@@ -4,7 +4,11 @@ Description: 'Infrastructure'
 Parameters:
   Env:
     Type: String
-    Default: ''
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+      - uat
     Description: String to enable multiple deployments per AWS region
   NamingPrefix:
     Type: String
@@ -61,6 +65,21 @@ Resources:
       CidrBlock: !FindInMap [RegionMap, !Ref "AWS::Region", "VPCCidrBlock"]
       EnableDnsSupport: true
       EnableDnsHostnames: true
+      Tags:
+        - Key: 'Name'
+          Value: 'mr-vpc'
+  ############
+  # Secret to store the VpcId of the created VPC so that the R53 Hosted Zone can be associated with it
+  ############
+  VpcId:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub 'MR-VpcId-${AWS::Region}-${Env}'
+      Description: "VPC Id"
+      KmsKeyId: "alias/aws/secretsmanager"
+      SecretString: !Ref Vpc
+      ReplicaRegions:
+        - Region: !If [isPrimary, us-west-2, us-east-1]
   FlowLogRole:
       Properties:
         AssumeRolePolicyDocument:
@@ -413,7 +432,7 @@ Resources:
     Type: AWS::SecretsManager::Secret
     Condition: isPrimary
     Properties:
-      Name: !Sub "EKSClusterKMSKeyIdSecret${Env}"
+      Name: !Sub "EKSClusterKMSKeyIdSecret-${Env}"
       Description: "EKS Cluster KMS KeyId Secret"
       KmsKeyId: "alias/aws/secretsmanager"
       SecretString: !Ref EksClusterPrimaryRegionKMSEncryptionKey
@@ -421,14 +440,14 @@ Resources:
         - Region: !Ref StandbyRegion
       Tags:
         - Key: Name
-          Value: !Sub "${AWS::StackName}-EKSClusterKMSKeyIdSecret${Env}"
+          Value: !Sub "${AWS::StackName}-EKSClusterKMSKeyIdSecret-${Env}"
   EksClusterStandbyRegionKMSEncryptionKey:
     Type: AWS::KMS::ReplicaKey
     Condition: isStandby
     Properties:
       Description: KMS Key for EKS Cluster Secrets Encryption in Standby Region
-      Enabled: Boolean
-      PrimaryKeyArn: !Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/{{resolve:secretsmanager:EKSClusterKMSKeyIdSecret${Env}}}'
+      Enabled: true
+      PrimaryKeyArn: !Sub 'arn:aws:kms:${PrimaryRegion}:${AWS::AccountId}:key/{{resolve:secretsmanager:EKSClusterKMSKeyIdSecret-${Env}}}'
       KeyPolicy:
         Version: 2012-10-17
         Id: keyPolicyForEKSKey
@@ -480,8 +499,7 @@ Resources:
   EKSCluster:
     Type: AWS::EKS::Cluster
     DependsOn:
-      - EKSClusterKMSKeyIdSecret 
-      - EKSNodeRole 
+      - EKSNodeRole
      # - EKSNodesSecurityGroup
     Properties:
       Logging:
@@ -496,7 +514,7 @@ Resources:
       RoleArn: !GetAtt EKSClusterRole.Arn
       EncryptionConfig:
         - Provider:
-            KeyArn: !Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/{{resolve:secretsmanager:EKSClusterKMSKeyIdSecret${Env}}}'
+            KeyArn: !Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/{{resolve:secretsmanager:EKSClusterKMSKeyIdSecret-${Env}}}'
           Resources:
             - "secrets"
       ResourcesVpcConfig:
@@ -625,27 +643,68 @@ Resources:
   CheckoutRepo:
     Type: AWS::ECR::Repository
     Properties:
-      RepositoryName: !Sub 'checkout${Env}'
+      RepositoryName: !Sub 'checkout-${Env}'
   CatalogRepo:
     Type: AWS::ECR::Repository
     Properties:
-      RepositoryName: !Sub 'catalog${Env}'
+      RepositoryName: !Sub 'catalog-${Env}'
   CartsRepo:
     Type: AWS::ECR::Repository
     Properties:
-      RepositoryName: !Sub 'carts${Env}'
+      RepositoryName: !Sub 'carts-${Env}'
   AssetsRepo:
     Type: AWS::ECR::Repository
     Properties:
-      RepositoryName: !Sub 'assets${Env}'
+      RepositoryName: !Sub 'assets-${Env}'
   OrdersRepo:
     Type: AWS::ECR::Repository
     Properties:
-      RepositoryName: !Sub 'orders${Env}'
+      RepositoryName: !Sub 'orders-${Env}'
 
-#Dynamo
+  ############
+  # Store subnet values in Parameter Store
+  ############
+  Subnet1:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Sub Subnet1-${Env}
+      Value: !Ref PrivateSubnet1
+  Subnet2:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Sub Subnet2-${Env}
+      Value: !Ref PrivateSubnet2
+  Subnet3:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Sub Subnet3-${Env}
+      Value: !Ref PrivateSubnet3
 
-#Aurora MySQL
+  AuroraMySqlComputeSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref Vpc
+      GroupDescription: Access to aurora mysql database
+      Tags:
+        - Key: Name
+          Value: aurora-mysql-security-group
+  AuroraMySqlSecurityGroupIdSSMParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Sub 'MR-aurora-mysql-sg-${AWS::Region}-${Env}'
+      Value: !GetAtt AuroraMySqlComputeSecurityGroup.GroupId
+  AuroraMySqlComputeSecurityGroupInboundRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort: 3306
+      ToPort: 3306
+      SourceSecurityGroupId: !GetAtt AuroraMySqlComputeSecurityGroup.GroupId
+      GroupId: !GetAtt AuroraMySqlComputeSecurityGroup.GroupId
 
 Outputs:
   EKSClusterName:

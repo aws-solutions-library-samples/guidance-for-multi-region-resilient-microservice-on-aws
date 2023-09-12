@@ -1,0 +1,256 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS Aurora Global database primary region
+Mappings:
+  MinorUpdateMap:
+    'Yes':
+      value: 'true'
+    'No':
+      value: 'false'
+  EngineMap:
+    '5.7':
+      family: aurora-mysql5.7
+Parameters:
+  NamingPrefix:
+    Type: String
+    Default: mr-app
+    Description: Enter the Naming Prefix for resources created
+  Env:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+      - uat
+  MachineType:
+    # global databases support either db.r4 or db.r5
+    Default: db.r5.large
+    Type: String
+    AllowedValues:
+      - db.r4.large
+      - db.r5.large
+  DatabaseName:
+    Default: globalDatabase
+    Type: String
+  MinorVersionUpgrade:
+    Default: 'Yes'
+    Type: String
+    AllowedValues:
+      - 'Yes'
+      - 'No'
+  MySqlVersion:
+    Default: '5.7'
+    Type: String
+    AllowedValues:
+      - '5.7'
+  MySqlEngineMode:
+    Default: 'provisioned'
+    Type: String
+    AllowedValues:
+      - 'provisioned'
+  ClusterName:
+    Default: dbcluster-01
+    Type: String
+  GlobalClusterIdentifier:
+    Default: global-db-cluster
+    Type: String
+  PrimaryRegion:
+    Type: String
+    Description: Enter the Primary Region
+    Default: "us-east-1"
+  StandbyRegion:
+    Type: String
+    Description: Enter the Standby Region
+    Default: "us-west-2"
+
+Conditions:
+  isPrimary: !Equals
+    - !Ref AWS::Region
+    - us-east-1
+Resources:
+  DBCredentialsSecret:
+    Type: 'AWS::SecretsManager::Secret'
+    Properties:
+      Name: !Sub '${NamingPrefix}-${GlobalClusterIdentifier}-UserCredentials-${Env}'
+      Description: "Secret that has the user credentials for the database"
+      GenerateSecretString:
+        SecretStringTemplate: '{"username": "admin"}'
+        GenerateStringKey: "password"
+        PasswordLength: 30
+        ExcludeCharacters: '"@/\'
+      ReplicaRegions:
+        - Region: !If [ isPrimary, us-west-2, us-east-1 ]
+      Tags:
+        - Key: Name
+          Value: !Sub '${NamingPrefix}-${GlobalClusterIdentifier}-UserCredentials-${Env}'
+  DBStorageEncryptionKMSKey:
+    Type: 'AWS::KMS::Key'
+    Properties:
+      Description: Multi-Region Aurora Storage Encryption Key
+      MultiRegion: true
+      EnableKeyRotation: true
+      PendingWindowInDays: 10
+      KeyPolicy:
+        Version: 2012-10-17
+        Id: key-default-1
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: 'kms:*'
+            Resource: '*'
+  AuroraStorageEncryptionKeyArnSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub '${NamingPrefix}-${GlobalClusterIdentifier}-StorageEncryptionKeyArn-${Env}'
+      Description: "KMS Key Arn for Aurora Storage Encryption"
+      KmsKeyId: "alias/aws/secretsmanager"
+      SecretString: !GetAtt DBStorageEncryptionKMSKey.Arn
+      ReplicaRegions:
+        - Region: !If [ isPrimary, us-west-2, us-east-1 ]
+  GlobalDBCluster:
+    DependsOn:
+      - DBCluster
+    Type: AWS::RDS::GlobalCluster
+    Properties:
+      GlobalClusterIdentifier: !Sub '${NamingPrefix}-${GlobalClusterIdentifier}-${Env}'
+      SourceDBClusterIdentifier: !Ref DBCluster
+  DBClusterParameterGroup:
+    Type: AWS::RDS::DBClusterParameterGroup
+    Properties:
+      Family: !FindInMap
+        - EngineMap
+        - !Ref MySqlVersion
+        - family
+      Parameters:
+        max_connections: 300
+      Description: DB Cluster Parameter Group
+  DBParameterGroup:
+    Type: AWS::RDS::DBParameterGroup
+    Properties:
+      Family: !FindInMap
+        - EngineMap
+        - !Ref MySqlVersion
+        - family
+      Parameters:
+        max_connections: 300
+      Description: DB Instance Parameter Group
+  DBCluster:
+    DependsOn:
+      - DBClusterParameterGroup
+      - SubnetGroup
+      - DBIamRoleForMonitoring
+      - DBCredentialsSecret
+    Type: AWS::RDS::DBCluster
+    Properties:
+      AutoMinorVersionUpgrade: true
+      BackupRetentionPeriod: 7
+      CopyTagsToSnapshot: true
+      DBClusterIdentifier: !Sub '${NamingPrefix}-${ClusterName}-${AWS::Region}-${Env}'
+      DBClusterParameterGroupName: !Ref DBClusterParameterGroup
+      DBSubnetGroupName: !Ref SubnetGroup
+      DatabaseName: !Sub '${DatabaseName}'
+      DeletionProtection: false
+      EnableCloudwatchLogsExports:
+        - audit
+        - error
+        - general
+        - slowquery
+      EnableIAMDatabaseAuthentication: true
+      Engine: aurora-mysql
+      EngineVersion: !Ref MySqlVersion
+      EngineMode: !Ref MySqlEngineMode
+      KmsKeyId: !Ref DBStorageEncryptionKMSKey
+      MasterUsername: !Sub '{{resolve:secretsmanager:${NamingPrefix}-${GlobalClusterIdentifier}-UserCredentials-${Env}:SecretString:username}}'
+      MasterUserPassword: !Sub '{{resolve:secretsmanager:${NamingPrefix}-${GlobalClusterIdentifier}-UserCredentials-${Env}:SecretString:password}}'
+      Port: '3306'
+      StorageEncrypted: true
+      VpcSecurityGroupIds:
+        - !Sub '{{resolve:ssm:MR-aurora-mysql-sg-${AWS::Region}-${Env}}}'
+      Tags:
+        - Key: "NamingPrefix"
+          Value: !Ref NamingPrefix
+  DBInstance1:
+    DependsOn:
+      - DBParameterGroup
+      - DBCluster
+      - SubnetGroup
+    Type: AWS::RDS::DBInstance
+    Properties:
+      AllowMajorVersionUpgrade: false
+      AutoMinorVersionUpgrade: !FindInMap
+        - MinorUpdateMap
+        - !Ref MinorVersionUpgrade
+        - value
+      DBClusterIdentifier: !Ref DBCluster
+      DBInstanceIdentifier: !Sub '${ClusterName}-1'
+      DBInstanceClass: !Ref MachineType
+      DBParameterGroupName: !Ref DBParameterGroup
+      DBSubnetGroupName: !Ref SubnetGroup
+      Engine: aurora-mysql
+      EngineVersion: !Ref MySqlVersion
+      PubliclyAccessible: false
+      MonitoringRoleArn: !GetAtt DBIamRoleForMonitoring.Arn
+      MonitoringInterval: 1
+  DBInstance2:
+    DependsOn:
+      - DBParameterGroup
+      - DBCluster
+      - SubnetGroup
+    Type: AWS::RDS::DBInstance
+    Properties:
+      AllowMajorVersionUpgrade: false
+      AutoMinorVersionUpgrade: !FindInMap
+        - MinorUpdateMap
+        - !Ref MinorVersionUpgrade
+        - value
+      DBClusterIdentifier: !Ref DBCluster
+      DBInstanceIdentifier: !Sub '${ClusterName}-2'
+      DBInstanceClass: !Ref MachineType
+      DBParameterGroupName: !Ref DBParameterGroup
+      DBSubnetGroupName: !Ref SubnetGroup
+      Engine: aurora-mysql
+      EngineVersion: !Ref MySqlVersion
+      PubliclyAccessible: false
+      MonitoringRoleArn: !GetAtt DBIamRoleForMonitoring.Arn
+      MonitoringInterval: 1
+  SubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      SubnetIds:
+        - !Sub '{{resolve:ssm:Subnet1-${Env}}}'
+        - !Sub '{{resolve:ssm:Subnet2-${Env}}}'
+        - !Sub '{{resolve:ssm:Subnet3-${Env}}}'
+      DBSubnetGroupDescription: !Sub ${DatabaseName}-subnet-group
+  DBIamRoleForMonitoring:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - "sts:AssumeRole"
+            Effect: Allow
+            Principal:
+              Service:
+                - monitoring.rds.amazonaws.com
+        Version: "2012-10-17"
+      Path: /
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
+    Type: "AWS::IAM::Role"
+  DBIamRoleForMonitoringArnSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub '${NamingPrefix}-${GlobalClusterIdentifier}-MonitoringIAMRoleArn-${Env}'
+      Description: "Aurora DB Monitoring IAM Role Arn"
+      KmsKeyId: "alias/aws/secretsmanager"
+      SecretString: !GetAtt DBIamRoleForMonitoring.Arn
+      ReplicaRegions:
+        - Region: !If [ isPrimary, us-west-2, us-east-1 ]
+Outputs:
+  GlobalDBCluster:
+    Value: !Ref GlobalDBCluster
+  DBEndpoint:
+    Value: !GetAtt DBCluster.Endpoint.Address
+  DBPort:
+    Value: !GetAtt DBCluster.Endpoint.Port
