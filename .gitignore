@@ -1,2 +1,14 @@
 .idea
 **/.DS_Store
+
+
+/target/
+*/target/**
+/.mvn/
+**/META-INF/
+!.mvn/wrapper/maven-wrapper.jar
+
+### IntelliJ IDEA ###
+*.iws
+*.iml
+*.ipr
