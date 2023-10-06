@@ -38,7 +38,7 @@ primary_infrastructure: create-peer
 	@aws cloudformation deploy --template ./regionalBaseInfra.yaml --region ${PRIMARY_REGION} \
 	--stack-name baseInfra${ENV} --capabilities CAPABILITY_IAM --parameter-overrides Env=${ENV}
 
-primary_ecs: primary_infrastructure build-catalog-primary primary_region_catalog-db primary_region_orders-db
+primary_ecs: primary_infrastructure build-catalog-primary build-ui-primary primary_region_catalog-db primary_region_orders-db
 	@aws cloudformation deploy --template ./ecs.yaml --region ${PRIMARY_REGION} \
 	--stack-name apps${ENV} --capabilities CAPABILITY_IAM --parameter-overrides Env=${ENV}
 
@@ -46,7 +46,7 @@ standby_infrastructure: create-peer
 	@aws cloudformation deploy --template ./regionalBaseInfra.yaml --region ${STANDBY_REGION} \
 	--stack-name baseInfra${ENV} --capabilities CAPABILITY_IAM --parameter-overrides Env=${ENV}
 
-standby_ecs: standby_infrastructure build-catalog-standby standby_region_catalog-db standby_region_orders-db
+standby_ecs: standby_infrastructure build-catalog-standby build-ui-standby standby_region_catalog-db standby_region_orders-db
 	@aws cloudformation deploy --template ./ecs.yaml --region ${STANDBY_REGION} \
 	--stack-name apps${ENV} --capabilities CAPABILITY_IAM --parameter-overrides Env=${ENV}
 
@@ -80,6 +80,18 @@ standby_region_orders-db:
 	@aws cloudformation deploy --template ./datastores/aurora/aurora-global-standby-cluster.yml \
 	--region ${STANDBY_REGION} --stack-name orders-db-stack-${ENV} --capabilities CAPABILITY_IAM \
 	--parameter-overrides Env=${ENV} NamingPrefix=orders
+
+build-ui-primary: primary_infrastructure
+	@cd ../source/ui/; docker build -t ui${ENV} .
+	(aws ecr get-login-password --region $(PRIMARY_REGION) | docker login --username AWS --password-stdin $(AWS_ACCOUNT_ID).dkr.ecr.$(PRIMARY_REGION).amazonaws.com)
+	docker tag ui${ENV}:latest ${AWS_ACCOUNT_ID}.dkr.ecr.${PRIMARY_REGION}.amazonaws.com/ui${ENV}:latest
+	docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${PRIMARY_REGION}.amazonaws.com/ui${ENV}:latest
+
+build-ui-standby: standby_infrastructure
+	@cd ../source/ui/; docker build -t ui${ENV} .
+	(aws ecr get-login-password --region $(STANDBY_REGION) | docker login --username AWS --password-stdin $(AWS_ACCOUNT_ID).dkr.ecr.$(STANDBY_REGION).amazonaws.com)
+	docker tag ui${ENV}:latest ${AWS_ACCOUNT_ID}.dkr.ecr.${STANDBY_REGION}.amazonaws.com/ui${ENV}:latest
+	docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${STANDBY_REGION}.amazonaws.com/ui${ENV}:latest
 
 clean:
 	@echo "To remove all stacks deployed by this solution, run 'make destroy-all'"
