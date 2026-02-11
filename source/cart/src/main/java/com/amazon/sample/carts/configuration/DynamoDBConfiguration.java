@@ -52,6 +52,7 @@ public class DynamoDBConfiguration {
         DynamoDBMapperConfig.Builder builder = new DynamoDBMapperConfig.Builder();
         // Inject missing defaults from the deprecated method
         builder.withTypeConverterFactory(DynamoDBTypeConverterFactory.standard());
+        builder.withConsistentReads(DynamoDBMapperConfig.ConsistentReads.CONSISTENT);
         builder.withTableNameResolver((aClass, dynamoDBMapperConfig) -> {
             return properties.getTableName();
         });

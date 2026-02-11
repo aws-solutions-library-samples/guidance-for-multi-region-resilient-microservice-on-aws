@@ -169,14 +169,11 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
-      IntelligentTieringConfigurations: 
-        -
-          Id: default
-          Status: Enabled
-          Tierings: 
-            - 
-              AccessTier: ARCHIVE_ACCESS
-              Days: 90
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteAfter24Hours
+            Status: Enabled
+            ExpirationInDays: 1
   canaryRole:
     Type: "AWS::IAM::Role"
     Properties:

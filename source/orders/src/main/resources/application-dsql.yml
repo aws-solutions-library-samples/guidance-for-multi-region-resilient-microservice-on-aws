@@ -1,0 +1,18 @@
+spring:
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    generate-ddl: true
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+
+  datasource:
+    dsql:
+      endpoint: ${DSQL_ENDPOINT}
+      region: ${AWS_REGION:us-east-1}
+
+logging:
+  level:
+    root: debug

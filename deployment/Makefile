@@ -26,7 +26,7 @@ endif
 ####
 
 deploy-all: test-creds create-peer primary_infrastructure primary_ecs standby_infrastructure standby_ecs global_routing \
-	canaries_primary canaries_standby failover_primary failover_standby client-primary client-standby restore-reconciliation monitoring \
+	canaries_primary canaries_standby region-switch client-primary client-standby restore-reconciliation monitoring \
 	secrets-rotation chaos-engineering restart-ecs-services
 
 deploy-primary: test-creds create-peer primary_infrastructure primary_ecs client-primary
@@ -50,9 +50,8 @@ deploy: deploy-all
 	@echo "https://${PRIMARY_REGION}.console.aws.amazon.com/secretsmanager/secret?name=mr-app-windowspassword-${PRIMARY_REGION}${ENV}&region=${PRIMARY_REGION}"
 	@echo "https://${STANDBY_REGION}.console.aws.amazon.com/secretsmanager/secret?name=mr-app-windowspassword-${STANDBY_REGION}${ENV}&region=${STANDBY_REGION}"
 	@echo ""
-	@echo "SSM Runbooks for failover execution:"
-	@echo "https://${PRIMARY_REGION}.console.aws.amazon.com/systems-manager/documents"
-	@echo "https://${STANDBY_REGION}.console.aws.amazon.com/systems-manager/documents"
+	@echo "Region Switch Plan:"
+	@echo "Use 'aws arc-region-switch start-plan-execution' to initiate failover"
 
 create-peer:
 	@echo "Verifying if the AWSServiceRoleForECS exists; if not; this will be created for you..."
@@ -64,7 +63,7 @@ create-peer:
 	@echo "Deploying VPC Stack in ${PRIMARY_REGION}"
 	@aws cloudformation deploy --template ./regionalVpc.yaml --region ${PRIMARY_REGION} \
 	--stack-name baseVpc${ENV} --capabilities CAPABILITY_IAM --parameter-overrides Env=${ENV} PrimaryOnly=true
-	
+
 	@if [ "$(PRIMARY_ONLY)" = "false" ];then \
 		aws cloudformation deploy --template ./regionalVpc.yaml --region ${STANDBY_REGION} \
 	--stack-name baseVpc${ENV} --capabilities CAPABILITY_IAM --parameter-overrides Env=${ENV}; \
@@ -149,7 +148,7 @@ primary_infrastructure: create-peer
 	@aws cloudformation deploy --template ./regionalBaseInfra.yaml --region ${PRIMARY_REGION} \
 	--stack-name baseInfra${ENV} --capabilities CAPABILITY_IAM --parameter-overrides Env=${ENV} KmsKey=retail-store-ar${ENV} PrimaryOnly=${PRIMARY_ONLY}
 
-primary_ecs: build-catalog-primary build-checkout-primary build-ui-primary build-carts-primary build-assets-primary build-orders-primary primary_region_catalog-db primary_region_orders-db carts-db
+primary_ecs: build-catalog-primary build-checkout-primary build-ui-primary build-carts-primary build-assets-primary build-orders-primary primary_region_catalog-db orders-dsql-db carts-db
 	@echo "Deploy ECS Services in ${PRIMARY_REGION}"
 	@aws cloudformation deploy --template ./ecs.yaml --region ${PRIMARY_REGION} \
 	--stack-name apps${ENV} --capabilities CAPABILITY_IAM --parameter-overrides Env=${ENV} Tag=${TAG} KmsKey=retail-store-ar${ENV}
@@ -159,7 +158,7 @@ standby_infrastructure: create-peer
 	@aws cloudformation deploy --template ./regionalBaseInfra.yaml --region ${STANDBY_REGION} \
 	--stack-name baseInfra${ENV} --capabilities CAPABILITY_IAM --parameter-overrides Env=${ENV} KmsKey=retail-store-ar${ENV}
 
-standby_ecs: build-catalog-standby build-checkout-standby build-ui-standby build-carts-standby build-assets-standby build-orders-standby standby_region_catalog-db standby_region_orders-db
+standby_ecs: build-catalog-standby build-checkout-standby build-ui-standby build-carts-standby build-assets-standby build-orders-standby standby_region_catalog-db
 	@echo "Deploy ECS Services in ${STANDBY_REGION}"
 	@aws cloudformation deploy --template ./ecs.yaml --region ${STANDBY_REGION} \
 	--stack-name apps${ENV} --capabilities CAPABILITY_IAM --parameter-overrides Env=${ENV} Tag=${TAG} KmsKey=retail-store-ar${ENV}
@@ -168,6 +167,11 @@ global_routing: standby_ecs primary_ecs
 	@echo "Deploy the Global Routing layer"
 	@aws cloudformation deploy --region ${PRIMARY_REGION} --template ./globalRouting.yaml \
 	--stack-name gr${ENV} --capabilities CAPABILITY_NAMED_IAM --parameter-overrides DomainName=demo${ENV}.io Env=${ENV} KmsKey=retail-store-ar${ENV}
+
+region-switch: global_routing
+	@echo "Deploy the ARC Region Switch Plan"
+	@aws cloudformation deploy --region ${PRIMARY_REGION} --template ./failover.yaml \
+	--stack-name region-switch${ENV} --capabilities CAPABILITY_NAMED_IAM --parameter-overrides Env=${ENV} DomainName=demo${ENV}.io
 
 canaries_primary: global_routing
 	@echo "Deploy the Synthetic Canaries in ${PRIMARY_REGION}"
@@ -179,15 +183,6 @@ canaries_standby: global_routing
 	$(eval result:=$(shell aws ssm get-parameter --name canaryBucketName$(ENV) --region $(STANDBY_REGION) --query "Parameter.Value" --output text ))
 	@aws cloudformation deploy --region ${STANDBY_REGION} --template ./canaries.yaml \
 	--stack-name canaries${ENV} --parameter-overrides Env=${ENV} RemoteRegion=${PRIMARY_REGION} --capabilities CAPABILITY_IAM --s3-bucket $(result)
-
-failover_primary: global_routing
-	@echo "Deploy the Regional Failover runbook resources in ${PRIMARY_REGION}"
-	@aws cloudformation deploy --region ${PRIMARY_REGION} --template ./failover.yaml \
-	--stack-name failover${ENV} --parameter-overrides Env=${ENV} RemoteRegion=${STANDBY_REGION} --capabilities CAPABILITY_IAM
-failover_standby: global_routing
-	@echo "Deploy the Regional Failover runbook resources in ${STANDBY_REGION}"
-	@aws cloudformation deploy --region ${STANDBY_REGION} --template ./failover.yaml \
-	--stack-name failover${ENV} --parameter-overrides Env=${ENV} RemoteRegion=${PRIMARY_REGION} --capabilities CAPABILITY_IAM
 
 primary_region_catalog-db: primary_infrastructure
 	@echo "Creating Catalog service Aurora MySql database in ${PRIMARY_REGION}..."
@@ -202,18 +197,11 @@ standby_region_catalog-db: standby_infrastructure primary_region_catalog-db
 	--region ${STANDBY_REGION} --stack-name catalog-db-stack${ENV} --capabilities CAPABILITY_IAM \
 	--parameter-overrides Env=${ENV} NamingPrefix=catalog DBSecretArn=${result} DatabaseName=catalog KmsKey=retail-store-ar${ENV}
 
-primary_region_orders-db: primary_infrastructure
-	@echo "Creating Orders service Aurora MySql database in ${PRIMARY_REGION}..."
-	@aws cloudformation deploy --template ./database/aurora/aurora-global-primary-cluster.yml \
-	--region ${PRIMARY_REGION} --stack-name orders-db-stack${ENV} --capabilities CAPABILITY_IAM \
-	--parameter-overrides Env=${ENV} NamingPrefix=orders DatabaseName=orders KmsKey=retail-store-ar${ENV}
-
-standby_region_orders-db: standby_infrastructure primary_region_orders-db
-	$(eval result:=$(shell aws ssm get-parameter --name orders-global-db-cluster-CredentialSecretArn$(ENV) --region $(PRIMARY_REGION) --query "Parameter.Value" --output text|sed s/$(PRIMARY_REGION)/$(STANDBY_REGION)/g ))
-	@echo "Creating Orders service Aurora MySql database in ${STANDBY_REGION}..."
-	@aws cloudformation deploy --template ./database/aurora/aurora-global-standby-cluster.yml \
-	--region ${STANDBY_REGION} --stack-name orders-db-stack${ENV} --capabilities CAPABILITY_IAM \
-	--parameter-overrides Env=${ENV} NamingPrefix=orders DBSecretArn=${result} DatabaseName=orders KmsKey=retail-store-ar${ENV}
+orders-dsql-db: primary_infrastructure
+	@echo "Creating Orders service DSQL cluster..."
+	@aws cloudformation deploy --template ./database/dsql/orders-dsql-cluster.yml \
+	--region ${PRIMARY_REGION} --stack-name orders-dsql-stack${ENV} --capabilities CAPABILITY_IAM \
+	--parameter-overrides Env=${ENV} KmsKey=retail-store-ar${ENV}
 
 carts-db: primary_infrastructure
 	@echo "Verifying if the AWSServiceRoleForDynamoDBReplication exists; if not; this will be created for you..."
@@ -240,7 +228,7 @@ client-standby: standby_infrastructure
 	@echo "Creating Windows client for testing purposes in ${STANDBY_REGION}"
 	@aws cloudformation deploy --template ./windows.yaml --parameter-overrides Env=${ENV} SubnetId=${subnet} VpcId=${vpc} KmsKey=retail-store-ar${ENV} --region ${STANDBY_REGION} --capabilities CAPABILITY_IAM --stack-name client${ENV}
 
-restore-reconciliation: primary_infrastructure primary_region_orders-db standby_infrastructure standby_region_orders-db
+restore-reconciliation: primary_infrastructure standby_infrastructure
 	@echo "Creating IAM Role for restore-reconcliation"
 	@aws cloudformation deploy --template ./database/crdr-reconciliation/src/crdr-roles.yaml --parameter-overrides KmsKey=retail-store-ar${ENV} Env=${ENV} --capabilities CAPABILITY_NAMED_IAM --stack-name crdr-roles${ENV}  --region ${PRIMARY_REGION}
 	@echo "Creating SSM automation runbook in ${PRIMARY_REGION}"
@@ -259,14 +247,14 @@ monitoring: restore-reconciliation
 	@aws cloudformation deploy --region ${PRIMARY_REGION} --template ./monitoring.yml \
 	--stack-name monitoring${ENV} --capabilities CAPABILITY_NAMED_IAM --parameter-overrides PrimaryRegion=${PRIMARY_REGION} Env=${ENV} SecondaryRegion=${STANDBY_REGION}
 
-secrets-rotation: primary_region_orders-db primary_region_catalog-db
+secrets-rotation: primary_region_catalog-db
 	@echo "Creating secrets rotation resources in ${PRIMARY_REGION}"
 	@echo "Step 1:Building Lambda Layers"
 	./database/secrets-rotation/build-lambda-layer.sh
 	@echo "Step 2:Deploying Lambda"
 	$(eval result:=$(shell aws ssm get-parameter --name canaryBucketName$(ENV) --region $(PRIMARY_REGION) --query "Parameter.Value" --output text ))
 	@aws cloudformation package --template-file ./database/secrets-rotation/src/secrets-rotation.yaml --region ${PRIMARY_REGION} --s3-bucket $(result) --output-template-file ./database/secrets-rotation/src/out.yaml
-	@aws cloudformation deploy --template-file ./database/secrets-rotation/src/out.yaml --stack-name secrets-rotation${ENV} --region ${PRIMARY_REGION} --capabilities CAPABILITY_NAMED_IAM --parameter-overrides Env=${ENV} OrdersDBCredentialsSecretId=mr-app/orders-global-db-cluster-UserCredentials${ENV} CatalogDBCredentialsSecretId=mr-app/catalog-global-db-cluster-UserCredentials${ENV}
+	@aws cloudformation deploy --template-file ./database/secrets-rotation/src/out.yaml --stack-name secrets-rotation${ENV} --region ${PRIMARY_REGION} --capabilities CAPABILITY_NAMED_IAM --parameter-overrides Env=${ENV} CatalogDBCredentialsSecretId=mr-app/catalog-global-db-cluster-UserCredentials${ENV}
 
 restart-ecs-services:
 	@echo "Restarting ECS Services"
@@ -314,7 +302,7 @@ destroy-restore-reconciliation-ssm: destroy-monitoring
 	./clean-up-aurora-cluster.sh ${STANDBY_REGION}
 	@echo "Deleting SSM automation runbook in ${PRIMARY_REGION}"
 	@aws cloudformation delete-stack --stack-name crdr-orders-ssm${ENV} --region ${PRIMARY_REGION}
-	@aws cloudformation delete-stack --stack-name reconciliation-orders-ssm${ENV} --region ${STANDBY_REGION}	
+	@aws cloudformation delete-stack --stack-name reconciliation-orders-ssm${ENV} --region ${STANDBY_REGION}
 	@aws cloudformation wait stack-delete-complete --stack-name reconciliation-orders-ssm${ENV} --region ${STANDBY_REGION}
 	@echo "Deleting IAM Role for restore-reconcliation"
 	@aws cloudformation delete-stack --stack-name crdr-roles${ENV} --region ${PRIMARY_REGION}
@@ -337,12 +325,12 @@ destroy-ecr-standby: destroy-apps-standby
 	@aws ecr delete-repository --force --repository-name assets${ENV} --region $(STANDBY_REGION) --no-cli-pager || true
 	@aws ecr delete-repository --force --repository-name orders${ENV} --region $(STANDBY_REGION) --no-cli-pager || true
 
-destroy-global_routing: destroy-canaries-standby destroy-canaries-primary destroy-failover-standby destroy-failover-primary destroy-restore-reconciliation-ssm
+destroy-global_routing: destroy-canaries-standby destroy-canaries-primary destroy-region-switch destroy-restore-reconciliation-ssm
 	@echo "Deleting global routing stack..."
 	@aws cloudformation delete-stack --stack-name gr${ENV} --region ${PRIMARY_REGION}
 	@aws cloudformation wait stack-delete-complete --stack-name gr${ENV} --region ${PRIMARY_REGION}
-	
-destroy-peer: destroy-peer_primary destroy-peer_standby 
+
+destroy-peer: destroy-peer_primary destroy-peer_standby
 
 destroy-peer_standby: destroy-infra
 	@echo "Deleting ${STANDBY_REGION} VPC..."
@@ -353,7 +341,7 @@ destroy-peer_primary: destroy-peer_standby
 	@echo "Deleting ${PRIMARY_REGION} VPC..."
 	@aws cloudformation delete-stack --stack-name baseVpc${ENV} --region ${PRIMARY_REGION}
 	@aws cloudformation wait stack-delete-complete --stack-name baseVpc${ENV} --region ${PRIMARY_REGION}
-	
+
 destroy-apps-primary: destroy-global_routing
 	@echo "Cleaning up S3 Buckets in ${PRIMARY_REGION}..."
 	$(eval result:=$(shell aws ssm get-parameter --name canaryBucketName$(ENV) --region $(PRIMARY_REGION) --query "Parameter.Value" --output text ))
@@ -367,7 +355,7 @@ destroy-apps-standby: destroy-global_routing
 	@echo "Cleaning up S3 Buckets in ${STANDBY_REGION}..."
 	$(eval result:=$(shell aws ssm get-parameter --name canaryBucketName$(ENV) --region $(STANDBY_REGION) --query "Parameter.Value" --output text ))
 	./cleanup.sh $(result)
-	
+
 	@echo "Deleting applications in ${STANDBY_REGION}..."
 	@aws cloudformation delete-stack --stack-name apps${ENV} --region ${STANDBY_REGION}
 	@aws cloudformation wait stack-delete-complete --stack-name apps${ENV} --region ${STANDBY_REGION}
@@ -390,39 +378,32 @@ destroy-canaries-primary:
 	@aws cloudformation delete-stack --stack-name canaries${ENV} --region ${PRIMARY_REGION}
 	@aws cloudformation wait stack-delete-complete --stack-name canaries${ENV} --region ${PRIMARY_REGION}
 
-destroy-failover-standby:
-	@echo "Deleting failover in ${STANDBY_REGION}..."
-	@aws cloudformation delete-stack --stack-name failover${ENV} --region ${STANDBY_REGION}
-	@aws cloudformation wait stack-delete-complete --stack-name failover${ENV} --region ${STANDBY_REGION}
-
-destroy-failover-primary:
-	@echo "Deleting failover in ${PRIMARY_REGION}..."
-	@aws cloudformation delete-stack --stack-name failover${ENV} --region ${PRIMARY_REGION}
-	@aws cloudformation wait stack-delete-complete --stack-name failover${ENV} --region ${PRIMARY_REGION}
+destroy-region-switch:
+	@echo "Deleting region switch plan..."
+	@aws cloudformation delete-stack --stack-name region-switch${ENV} --region ${PRIMARY_REGION}
+	@aws cloudformation wait stack-delete-complete --stack-name region-switch${ENV} --region ${PRIMARY_REGION}
 
 destroy-databases-primary: destroy-secrets-rotation destroy-apps-primary destroy-databases-standby
 	@echo "Deleting databases in ${PRIMARY_REGION}..."
 	@aws cloudformation delete-stack --stack-name catalog-db-stack${ENV} --region ${PRIMARY_REGION}
-	@aws cloudformation delete-stack --stack-name orders-db-stack${ENV} --region ${PRIMARY_REGION}
+	@aws cloudformation delete-stack --stack-name orders-dsql-stack${ENV} --region ${PRIMARY_REGION}
 	@aws cloudformation delete-stack --stack-name carts-db-stack${ENV} --region ${PRIMARY_REGION}
 
 	@aws cloudformation wait stack-delete-complete --stack-name catalog-db-stack${ENV} --region ${PRIMARY_REGION}
-	@aws cloudformation wait stack-delete-complete --stack-name orders-db-stack${ENV} --region ${PRIMARY_REGION}
+	@aws cloudformation wait stack-delete-complete --stack-name orders-dsql-stack${ENV} --region ${PRIMARY_REGION}
 	@aws cloudformation wait stack-delete-complete --stack-name carts-db-stack${ENV} --region ${PRIMARY_REGION}
 
-destroy-databases-standby: destroy-apps-standby 
+destroy-databases-standby: destroy-apps-standby
 	@echo "Deleting databases in ${STANDBY_REGION}..."
 	@aws cloudformation delete-stack --stack-name catalog-db-stack${ENV} --region ${STANDBY_REGION}
-	@aws cloudformation delete-stack --stack-name orders-db-stack${ENV} --region ${STANDBY_REGION}
-	
+
 	@aws cloudformation wait stack-delete-complete --stack-name catalog-db-stack${ENV} --region ${STANDBY_REGION}
-	@aws cloudformation wait stack-delete-complete --stack-name orders-db-stack${ENV} --region ${STANDBY_REGION}
 
 destroy-client-primary:
 	@echo "Deleting client in ${PRIMARY_REGION}"
 	@aws cloudformation delete-stack --stack-name client${ENV} --region ${PRIMARY_REGION}
 	@aws cloudformation wait stack-delete-complete --stack-name client${ENV} --region ${PRIMARY_REGION}
-	
+
 destroy-client-standby:
 	@echo "Deleting client in ${STANDBY_REGION}"
 	@aws cloudformation delete-stack --stack-name client${ENV} --region ${STANDBY_REGION}

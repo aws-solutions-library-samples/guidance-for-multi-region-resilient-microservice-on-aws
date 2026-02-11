@@ -1,0 +1,46 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: 'Orders DSQL Cluster'
+
+Parameters:
+  Env:
+    Type: String
+    Default: ''
+    Description: String to enable multiple deployments per AWS region
+  KmsKey:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: KmsKey
+    Description: CMK Id
+
+Resources:
+  OrdersDsqlCluster:
+    Type: AWS::DSQL::Cluster
+    Properties:
+      DeletionProtectionEnabled: false
+      Tags:
+        - Key: Name
+          Value: !Sub 'orders-dsql-cluster${Env}'
+        - Key: environment-name
+          Value: retail-store-ar
+
+  OrdersDsqlEndpointParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Sub 'orders-dsql-cluster-Endpoint${Env}'
+      Value: !GetAtt OrdersDsqlCluster.Endpoint
+
+  OrdersDsqlClusterIdSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub 'mr-app/orders-dsql-cluster${Env}'
+      Description: "Orders DSQL Cluster Identifier"
+      KmsKeyId: !Ref KmsKey
+      SecretString: !Ref OrdersDsqlCluster
+
+Outputs:
+  ClusterEndpoint:
+    Description: DSQL Cluster Endpoint
+    Value: !GetAtt OrdersDsqlCluster.Endpoint
+  ClusterId:
+    Description: DSQL Cluster Identifier
+    Value: !Ref OrdersDsqlCluster

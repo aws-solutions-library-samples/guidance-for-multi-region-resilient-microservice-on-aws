@@ -78,26 +78,6 @@ Resources:
         },
         {
             "height": 6,
-            "width": 8,
-            "y": 6,
-            "x": 6,
-            "type": "metric",
-            "properties": {
-                "metrics": [
-                    [ "AWS/RDS", "AuroraGlobalDBReplicationLag", "DBClusterIdentifier", "orders-dbcluster-02-${SecondaryRegion}${Env}", "SourceRegion", "${PrimaryRegion}", { "region": "${SecondaryRegion}" } ],
-                    [ ".", "AuroraGlobalDBRPOLag", ".", ".", ".", ".", { "region": "${SecondaryRegion}" } ],
-                    [ ".", "AuroraGlobalDBReplicatedWriteIO", ".", ".", ".", ".", { "region": "${SecondaryRegion}" } ]
-                ],
-                "view": "timeSeries",
-                "stacked": false,
-                "region": "${PrimaryRegion}",
-                "stat": "p99",
-                "period": 60,
-                "title": "Orders Aurora DB - Cross-Region Latency Metrics"
-            }
-        },
-        {
-            "height": 6,
             "width": 10,
             "y": 0,
             "x": 14,

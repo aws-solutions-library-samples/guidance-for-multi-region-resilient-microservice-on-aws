@@ -169,34 +169,6 @@ Resources:
           CidrIp: "0.0.0.0/0"
           Description: "Allow all egress"
           IpProtocol: "-1"
-  sgOrdersDB:
-    Type: "AWS::EC2::SecurityGroup"
-    Properties:
-      GroupDescription: "Control traffic to/from RDS Aurora retail-store-ar-orders"
-      Tags: 
-        - 
-          Key: "created-by"
-          Value: "retail-store-sample-app"
-        - 
-          Key: "Name"
-          Value: "retail-store-ar-orders-db"
-        - 
-          Key: "environment-name"
-          Value: "retail-store-ar"
-      VpcId: !Sub '{{resolve:secretsmanager:VpcId-${AWS::Region}${Env}}}'
-      SecurityGroupIngress: 
-        - 
-          SourceSecurityGroupId: !Ref sgTask
-          SourceSecurityGroupOwnerId: !Ref AWS::AccountId
-          Description: "From allowed SGs"
-          FromPort: 3306
-          IpProtocol: "tcp"
-          ToPort: 3306
-      SecurityGroupEgress: 
-        - 
-          CidrIp: "0.0.0.0/0"
-          Description: "Allow all egress"
-          IpProtocol: "-1"
   sgMq:
     Type: "AWS::EC2::SecurityGroup"
     Properties:
@@ -238,15 +210,6 @@ Resources:
       ToPort: 3306
       SourceSecurityGroupId: !Ref sgTask
       GroupId: !Sub '{{resolve:ssm:catalog-aurora-mysql-sg-${AWS::Region}${Env}}}'
-  OrdersAuroraMySqlComputeSecurityGroupInboundRule:
-    Type: AWS::EC2::SecurityGroupIngress
-    Properties:
-      Description: "Allow traffic on MySql Port"
-      IpProtocol: tcp
-      FromPort: 3306
-      ToPort: 3306
-      SourceSecurityGroupId: !Ref sgTask
-      GroupId: !Sub '{{resolve:ssm:orders-aurora-mysql-sg-${AWS::Region}${Env}}}'
   sgRedis:
     Type: "AWS::EC2::SecurityGroup"
     Properties:
@@ -436,11 +399,9 @@ Resources:
                   - "logs:PutRetentionPolicy"
                   - "logs:PutLogEvents"
               - Effect: "Allow"
-                Resource: 
+                Resource:
                   - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/{{resolve:secretsmanager:cartsTable${Env}Secret}}'
                   - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/{{resolve:secretsmanager:cartsTable${Env}Secret}}/*'
-                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/{{resolve:secretsmanager:cartsTable${Env}Secret}}/index'
-                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/{{resolve:secretsmanager:cartsTable${Env}Secret}}/index/*'
                 Action:
                   - "dynamodb:GetItem"
                   - "dynamodb:BatchGetItem"
@@ -598,7 +559,7 @@ Resources:
                   - "logs:PutRetentionPolicy"
                   - "logs:PutLogEvents"
               - Effect: "Allow"
-                Resource: 
+                Resource:
                   - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:mr-app/*'
                   - !Ref MqSecret
                 Action:
@@ -606,13 +567,18 @@ Resources:
               - Effect: Allow
                 Resource:
                   - !Sub "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/${KmsKey}"
-                Action: 
+                Action:
                   - "kms:Decrypt*"
               - Effect: "Allow"
-                Resource: 
+                Resource:
                   - !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:*'
                 Action:
                   - "ssm:GetParameters"
+              - Effect: "Allow"
+                Resource:
+                  - !Sub 'arn:aws:dsql:${AWS::Region}:${AWS::AccountId}:cluster/*'
+                Action:
+                  - "dsql:DbConnectAdmin"
   OrdersTaskDefinition:
     Type:  AWS::ECS::TaskDefinition
     Properties:
@@ -671,7 +637,11 @@ Resources:
           Essential: true
           Environment:
             - Name: SPRING_PROFILES_ACTIVE
-              Value: mysql,rabbitmq
+              Value: dsql,rabbitmq
+            - Name: DSQL_ENDPOINT
+              Value: !Sub '{{resolve:ssm:orders-dsql-cluster-Endpoint${Env}}}'
+            - Name: AWS_REGION
+              Value: !Ref AWS::Region
             - Name: OTEL_RESOURCE_ATTRIBUTES
               Value: !Sub "service.name=orders${Env},service.namespace=retail-store-ar,aws.log.group.names=${LogGroup}"
             - Name: OTEL_AWS_APPLICATION_SIGNALS_ENABLED
@@ -690,30 +660,12 @@ Resources:
               Value: " -javaagent:/otel-auto-instrumentation/javaagent.jar"
           Secrets:
             -
-              Name: "SPRING_DATASOURCE_WRITER_URL"
-              ValueFrom: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/orders-global-db-cluster-Hostname${Env}"
-            -
-              Name: "SPRING_DATASOURCE_READER_URL"
-              ValueFrom: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/orders-global-db-cluster-Hostname${Env}"
-            -
-              Name: "SPRING_DATASOURCE_WRITER_USERNAME"
-              ValueFrom: !Sub "{{resolve:ssm:orders-global-db-cluster-CredentialSecretArn${Env}}}:username::"
-            -
-              Name: "SPRING_DATASOURCE_READER_USERNAME"
-              ValueFrom: !Sub "{{resolve:ssm:orders-global-db-cluster-CredentialSecretArn${Env}}}:username::"
-            - 
               Name: "SPRING_RABBITMQ_USER"
               ValueFrom: !Sub "${MqSecret}:username::"
             -
               Name: "SPRING_RABBITMQ_ADDRESSES"
               ValueFrom: !Sub "${MqSecret}:host::"
             -
-              Name: "SPRING_DATASOURCE_WRITER_PASSWORD"
-              ValueFrom: !Sub "{{resolve:ssm:orders-global-db-cluster-CredentialSecretArn${Env}}}:password::"
-            -
-              Name: "SPRING_DATASOURCE_READER_PASSWORD"
-              ValueFrom: !Sub "{{resolve:ssm:orders-global-db-cluster-CredentialSecretArn${Env}}}:password::"
-            - 
               Name: "SPRING_RABBITMQ_PASSWORD"
               ValueFrom: !Sub "${MqSecret}:password::"
           LogConfiguration:

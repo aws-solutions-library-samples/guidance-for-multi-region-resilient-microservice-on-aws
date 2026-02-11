@@ -24,7 +24,6 @@ import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBQueryExpression;
 import com.amazonaws.services.dynamodbv2.datamodeling.PaginatedQueryList;
 import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
 import com.amazonaws.services.dynamodbv2.model.DeleteTableRequest;
-import com.amazonaws.services.dynamodbv2.model.Projection;
 import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
 import com.amazon.sample.carts.repositories.CartEntity;
 import com.amazon.sample.carts.repositories.ItemEntity;
@@ -69,8 +68,6 @@ public class DynamoDBCartService implements CartService {
             CreateTableRequest tableRequest = mapper
                     .generateCreateTableRequest(DynamoItemEntity.class);
             tableRequest.setProvisionedThroughput(pt);
-            tableRequest.getGlobalSecondaryIndexes().get(0).setProvisionedThroughput(pt);
-            tableRequest.getGlobalSecondaryIndexes().get(0).setProjection(new Projection().withProjectionType("ALL"));
             dynamoDB.createTable(tableRequest);
 
             try {
@@ -112,15 +109,13 @@ public class DynamoDBCartService implements CartService {
 
     @Override
     public ItemEntity add(String customerId, String itemId, int quantity, int unitPrice) {
-        String hashKey = hashKey(customerId, itemId);
-
-        DynamoItemEntity item = this.mapper.load(DynamoItemEntity.class, hashKey);
+        DynamoItemEntity item = this.mapper.load(DynamoItemEntity.class, customerId, itemId);
 
         if(item != null) {
             item.setQuantity(item.getQuantity() + quantity);
         }
         else {
-            item = new DynamoItemEntity(hashKey, customerId, itemId, 1, unitPrice);
+            item = new DynamoItemEntity(customerId, itemId, 1, unitPrice);
         }
 
         this.mapper.save(item);
@@ -130,13 +125,12 @@ public class DynamoDBCartService implements CartService {
 
     @Override
     public List<DynamoItemEntity> items(String customerId) {
-        final DynamoItemEntity gsiKeyObj = new DynamoItemEntity();
-        gsiKeyObj.setCustomerId(customerId);
+        final DynamoItemEntity keyObj = new DynamoItemEntity();
+        keyObj.setCustomerId(customerId);
         final DynamoDBQueryExpression<DynamoItemEntity> queryExpression =
                 new DynamoDBQueryExpression<>();
-        queryExpression.setHashKeyValues(gsiKeyObj);
-        queryExpression.setIndexName("idx_global_customerId");
-        queryExpression.setConsistentRead(false);   // cannot use consistent read on GSI
+        queryExpression.setHashKeyValues(keyObj);
+        queryExpression.setConsistentRead(true);
         final PaginatedQueryList<DynamoItemEntity> results =
                 mapper.query(DynamoItemEntity.class, queryExpression);
 
@@ -145,7 +139,7 @@ public class DynamoDBCartService implements CartService {
 
     @Override
     public Optional<DynamoItemEntity> item(String customerId, String itemId) {
-        return Optional.of(mapper.load(DynamoItemEntity.class, hashKey(customerId, itemId)));
+        return Optional.of(mapper.load(DynamoItemEntity.class, customerId, itemId));
     }
 
     @Override
@@ -172,9 +166,5 @@ public class DynamoDBCartService implements CartService {
     @Override
     public boolean exists(String customerId) {
         return this.items(customerId).size() > 0;
-    }
-
-    private String hashKey(String customerId, String itemId) {
-        return customerId+":"+itemId;
     }
 }

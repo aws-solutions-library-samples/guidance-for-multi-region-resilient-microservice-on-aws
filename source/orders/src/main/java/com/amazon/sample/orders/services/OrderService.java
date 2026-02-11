@@ -21,7 +21,6 @@ package com.amazon.sample.orders.services;
 import com.amazon.sample.orders.entities.OrderEntity;
 import com.amazon.sample.orders.entities.OrderItemEntity;
 import com.amazon.sample.orders.messaging.OrdersEventHandler;
-import com.amazon.sample.orders.repositories.OrderReadRepository;
 import com.amazon.sample.orders.repositories.OrderRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +28,6 @@ import org.springframework.stereotype.Service;
 
 import jakarta.transaction.Transactional;
 
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -41,9 +39,6 @@ public class OrderService {
 
     @Autowired
     private OrderRepository repository;
-
-    @Autowired
-    private OrderReadRepository readRepository;
 
     @Autowired
     private OrdersEventHandler eventHandler;
@@ -68,7 +63,7 @@ public class OrderService {
     }
 
     public List<OrderEntity> list() {
-        List<OrderEntity> orderEntities = StreamSupport.stream(this.readRepository.findAll().spliterator(), false)
+        List<OrderEntity> orderEntities = StreamSupport.stream(this.repository.findAll().spliterator(), false)
                 .collect(Collectors.toList());
         orderEntities.forEach(o -> {
             log.info("OrderId: {}", o.getId());

@@ -29,14 +29,17 @@ Resources:
     Properties:
       TableName: !Sub '${NamingPrefix}Table${Env}'
       BillingMode: PAY_PER_REQUEST
+      MultiRegionConsistency: STRONG
       AttributeDefinitions:
         - AttributeName: "customerId"
           AttributeType: "S"
-        - AttributeName: "id"
+        - AttributeName: "itemId"
           AttributeType: "S"
       KeySchema:
-        - AttributeName: "id"
+        - AttributeName: "customerId"
           KeyType: "HASH"
+        - AttributeName: "itemId"
+          KeyType: "RANGE"
       Replicas:
         - Region: !Ref PrimaryRegion
           PointInTimeRecoverySpecification:
@@ -54,13 +57,6 @@ Resources:
         StreamViewType: NEW_AND_OLD_IMAGES
       SSESpecification:
         SSEEnabled: true
-      GlobalSecondaryIndexes:
-        - IndexName: idx_global_customerId
-          KeySchema:
-            - AttributeName: customerId
-              KeyType: HASH
-          Projection:
-            ProjectionType: ALL
   DDBGlobalTableSecret:
     Type: AWS::SecretsManager::Secret
     Properties:
