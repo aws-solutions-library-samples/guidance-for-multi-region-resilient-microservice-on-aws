@@ -29,7 +29,7 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              Service: arc-regionswitch.amazonaws.com
+              Service: arc-region-switch.amazonaws.com
             Action: sts:AssumeRole
       Policies:
         - PolicyName: RegionSwitchPolicy
@@ -91,7 +91,7 @@ Resources:
                   DatabaseClusterArns:
                     - !Sub '{{resolve:secretsmanager:mr-app/catalog-${PrimaryRegion}-global-db-cluster${Env}}}'
                     - !Sub '{{resolve:secretsmanager:mr-app/catalog-${StandbyRegion}-global-db-cluster${Env}}}'
-                  Behavior: SwitchoverOnly
+                  Behavior: switchoverOnly
                   TimeoutMinutes: 20
             - Name: shift-dns-traffic
               ExecutionBlockType: Route53HealthCheck

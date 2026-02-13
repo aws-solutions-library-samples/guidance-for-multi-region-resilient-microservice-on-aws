@@ -75,7 +75,7 @@ default profile set up; you may need to run `aws configure` if you have never se
 
 * Install `make` for your OS if it is not already there.
 
-* Install Docker Desktop on your machine. Please follow the [Download and Install Docker Desktop](https://www.docker.com/products/docker-desktop/) instructions.
+* Install `zip` for your OS if it is not already there (used to package source for AWS CodeBuild). Container images are built via AWS CodeBuild — no local Docker installation is required.
 
 ### Regions
 
@@ -124,9 +124,8 @@ Administrator user passwords:
 * https://us-east-1.console.aws.amazon.com/secretsmanager/secret?name=mr-app-windowspassword-us-east-1&region=us-east-1
 * https://us-west-2.console.aws.amazon.com/secretsmanager/secret?name=mr-app-windowspassword-us-west-2&region=us-west-2
 
-SSM Runbooks for failover execution:
-* https://us-east-1.console.aws.amazon.com/systems-manager/documents
-* https://us-west-2.console.aws.amazon.com/systems-manager/documents
+Region Switch Plan:
+* Use `aws arc-region-switch start-plan-execution` to initiate failover
 
 ## Observability
 
@@ -189,6 +188,7 @@ The following table provides a sample cost breakdown for trying out this guidanc
 | Parameter Store | $0.00 | $0.00 | 50 standard parameters |
 | Secrets Manager | $20.00 | $240.00 | 50 secrets, 30-day duration |
 | KMS | $1.0003 | $12.00 | 1 CMK, 100 symmetric requests |
+| AWS CodeBuild | $1.00 | $12.00 | ~6 builds x ~5 min, BUILD_GENERAL1_MEDIUM ($0.005/min) |
 
 ### US West (Oregon) Region
 

@@ -15,8 +15,7 @@ AWS_ACCOUNT_ID := $(shell aws sts get-caller-identity --output text|awk '{print 
 AWS_PAGER:=''
 .DEFAULT_GOAL := test-creds
 MAKE=/usr/bin/make
-DOCKER_BUILDKIT=0
-COMPOSE_DOCKER_CLI_BUILD=0
+CODEBUILD_PROJECT=mr-app-docker-build$(ENV)
 
 ifeq ($(PRIMARY_ONLY),true)
 PRIMARY_ONLY=true
@@ -71,77 +70,102 @@ create-peer:
 
 	@echo "create-peer done"
 
+####
+# CodeBuild infrastructure and build targets
+####
+
+codebuild-infra: primary_infrastructure
+	@echo "Deploying CodeBuild project in ${PRIMARY_REGION}"
+	@aws cloudformation deploy --template ./codebuild.yaml --region ${PRIMARY_REGION} \
+	--stack-name codebuild${ENV} --capabilities CAPABILITY_NAMED_IAM \
+	--parameter-overrides Env=${ENV} PrimaryRegion=${PRIMARY_REGION} StandbyRegion=${STANDBY_REGION} KmsKey=retail-store-ar
+
+# Internal helper: package source, upload to S3, trigger CodeBuild, poll until complete
+# Usage: $(call codebuild-build,SERVICE_NAME,SOURCE_DIR)
+define codebuild-build
+	@echo "Packaging $(1) source from ../source/$(2)..."
+	$(eval _BUCKET:=$(shell aws ssm get-parameter --name canaryBucketName$(ENV) --region $(PRIMARY_REGION) --query "Parameter.Value" --output text))
+	@cd ../source/$(2) && zip -r -q /tmp/$(1)-source.zip . -x '*.git*'
+	@echo "Uploading $(1) source to S3..."
+	@aws s3 cp /tmp/$(1)-source.zip s3://$(_BUCKET)/codebuild/source.zip --region $(PRIMARY_REGION)
+	@rm -f /tmp/$(1)-source.zip
+	@echo "Starting CodeBuild for $(1) with tag ${TAG}..."
+	$(eval _BUILD_ID:=$(shell aws codebuild start-build \
+		--project-name $(CODEBUILD_PROJECT) \
+		--source-type-override S3 \
+		--source-location-override $(_BUCKET)/codebuild/source.zip \
+		--environment-variables-override \
+			name=SERVICE_NAME,value=$(1),type=PLAINTEXT \
+			name=TAG,value=${TAG},type=PLAINTEXT \
+			name=ENV_SUFFIX,value=${ENV},type=PLAINTEXT \
+			name=PRIMARY_REGION,value=${PRIMARY_REGION},type=PLAINTEXT \
+			name=STANDBY_REGION,value=${STANDBY_REGION},type=PLAINTEXT \
+			name=PRIMARY_ONLY,value=${PRIMARY_ONLY},type=PLAINTEXT \
+		--region $(PRIMARY_REGION) \
+		--query 'build.id' --output text))
+	@echo "Build started: $(_BUILD_ID)"
+	@echo "Waiting for CodeBuild to complete..."
+	@while true; do \
+		STATUS=$$(aws codebuild batch-get-builds --ids $(_BUILD_ID) --region $(PRIMARY_REGION) --query 'builds[0].buildStatus' --output text 2>/dev/null || echo "POLL_ERROR"); \
+		if [ "$$STATUS" = "SUCCEEDED" ]; then \
+			echo "CodeBuild for $(1) completed successfully"; \
+			break; \
+		elif [ "$$STATUS" = "IN_PROGRESS" ]; then \
+			echo "  ...still building $(1)"; \
+			sleep 15; \
+		elif [ "$$STATUS" = "POLL_ERROR" ] || [ -z "$$STATUS" ]; then \
+			echo "  ...retrying status check for $(1)"; \
+			sleep 15; \
+		else \
+			echo "CodeBuild for $(1) failed with status: $$STATUS"; \
+			echo "View logs: aws codebuild batch-get-builds --ids $(_BUILD_ID) --region $(PRIMARY_REGION)"; \
+			exit 1; \
+		fi; \
+	done
+endef
+
 ecr-login:
-	@echo "Verifying ECR Login in ${PRIMARY_REGION}"
-	(aws ecr get-login-password --region $(PRIMARY_REGION) | docker login --username AWS --password-stdin $(AWS_ACCOUNT_ID).dkr.ecr.$(PRIMARY_REGION).amazonaws.com)
-	@echo "Verifying ECR Login in ${STANDBY_REGION}"
-	(aws ecr get-login-password --region $(STANDBY_REGION) | docker login --username AWS --password-stdin $(AWS_ACCOUNT_ID).dkr.ecr.$(STANDBY_REGION).amazonaws.com)
+	@echo "ECR login is handled by CodeBuild — skipping"
 
-build-catalog-primary: primary_infrastructure ecr-login
-	@echo "Build Catalog service Image and Push to ECR in ${PRIMARY_REGION}"
-	@cd ../source/catalog/; docker build --platform linux/amd64 -t catalog${ENV}:${TAG} .
-	docker tag catalog${ENV}:${TAG} ${AWS_ACCOUNT_ID}.dkr.ecr.${PRIMARY_REGION}.amazonaws.com/catalog${ENV}:${TAG}
-	docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${PRIMARY_REGION}.amazonaws.com/catalog${ENV}:${TAG}
+build-catalog-primary: primary_infrastructure standby_infrastructure codebuild-infra
+	$(call codebuild-build,catalog,catalog)
 
-build-catalog-standby: standby_infrastructure ecr-login build-catalog-primary
-	@echo "Push Catalog service Image to ECR in ${STANDBY_REGION}"
-	docker tag catalog${ENV}:${TAG} ${AWS_ACCOUNT_ID}.dkr.ecr.${STANDBY_REGION}.amazonaws.com/catalog${ENV}:${TAG}
-	docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${STANDBY_REGION}.amazonaws.com/catalog${ENV}:${TAG}
+build-catalog-standby: build-catalog-primary
+	@echo "catalog image already pushed to both regions by CodeBuild"
 
-build-checkout-primary: primary_infrastructure ecr-login
-	@echo "Build Checkout service image and Push to ECR in ${PRIMARY_REGION}"
-	@cd ../source/checkout/; docker build --platform linux/amd64 -t checkout${ENV}:${TAG} .
-	docker tag checkout${ENV}:${TAG} ${AWS_ACCOUNT_ID}.dkr.ecr.${PRIMARY_REGION}.amazonaws.com/checkout${ENV}:${TAG}
-	docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${PRIMARY_REGION}.amazonaws.com/checkout${ENV}:${TAG}
+build-checkout-primary: primary_infrastructure standby_infrastructure codebuild-infra
+	$(call codebuild-build,checkout,checkout)
 
-build-checkout-standby: standby_infrastructure ecr-login build-checkout-primary
-	@echo "Push Checkout service Image to ECR in ${STANDBY_REGION}"
-	docker tag checkout${ENV}:${TAG} ${AWS_ACCOUNT_ID}.dkr.ecr.${STANDBY_REGION}.amazonaws.com/checkout${ENV}:${TAG}
-	docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${STANDBY_REGION}.amazonaws.com/checkout${ENV}:${TAG}
+build-checkout-standby: build-checkout-primary
+	@echo "checkout image already pushed to both regions by CodeBuild"
 
-build-ui-primary: primary_infrastructure ecr-login
-	@echo "Build UI service image and Push to ECR in ${PRIMARY_REGION}"
-	@cd ../source/ui/; docker build --platform linux/amd64 -t ui${ENV}:${TAG} .
-	docker tag ui${ENV}:${TAG} ${AWS_ACCOUNT_ID}.dkr.ecr.${PRIMARY_REGION}.amazonaws.com/ui${ENV}:${TAG}
-	docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${PRIMARY_REGION}.amazonaws.com/ui${ENV}:${TAG}
+build-ui-primary: primary_infrastructure standby_infrastructure codebuild-infra
+	$(call codebuild-build,ui,ui)
 
-build-ui-standby: standby_infrastructure ecr-login build-ui-primary
-	@echo "Push UI service Image to ECR in ${STANDBY_REGION}"
-	docker tag ui${ENV}:${TAG} ${AWS_ACCOUNT_ID}.dkr.ecr.${STANDBY_REGION}.amazonaws.com/ui${ENV}:${TAG}
-	docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${STANDBY_REGION}.amazonaws.com/ui${ENV}:${TAG}
+build-ui-standby: build-ui-primary
+	@echo "ui image already pushed to both regions by CodeBuild"
 
-build-carts-primary: primary_infrastructure ecr-login
-	@echo "Build Carts service image and Push to ECR in ${PRIMARY_REGION}"
-	@cd ../source/cart/; docker build --platform linux/amd64 -t carts${ENV}:${TAG} .
-	docker tag carts${ENV}:${TAG} ${AWS_ACCOUNT_ID}.dkr.ecr.${PRIMARY_REGION}.amazonaws.com/carts${ENV}:${TAG}
-	docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${PRIMARY_REGION}.amazonaws.com/carts${ENV}:${TAG}
+build-carts-primary: primary_infrastructure standby_infrastructure codebuild-infra
+	$(call codebuild-build,carts,cart)
 
-build-carts-standby: standby_infrastructure ecr-login build-carts-primary
-	@echo "Push Carts service Image to ECR in ${STANDBY_REGION}"
-	docker tag carts${ENV}:${TAG} ${AWS_ACCOUNT_ID}.dkr.ecr.${STANDBY_REGION}.amazonaws.com/carts${ENV}:${TAG}
-	docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${STANDBY_REGION}.amazonaws.com/carts${ENV}:${TAG}
+build-carts-standby: build-carts-primary
+	@echo "carts image already pushed to both regions by CodeBuild"
 
-build-assets-primary: primary_infrastructure ecr-login
-	@echo "Build Assets service image and Push to ECR in ${PRIMARY_REGION}"
-	@cd ../source/assets/; docker build --platform linux/amd64 -t assets${ENV}:${TAG} .
-	docker tag assets${ENV}:${TAG} ${AWS_ACCOUNT_ID}.dkr.ecr.${PRIMARY_REGION}.amazonaws.com/assets${ENV}:${TAG}
-	docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${PRIMARY_REGION}.amazonaws.com/assets${ENV}:${TAG}
+build-assets-primary: primary_infrastructure standby_infrastructure codebuild-infra
+	$(call codebuild-build,assets,assets)
 
-build-assets-standby: standby_infrastructure ecr-login build-assets-primary
-	@echo "Push Assets service Image to ECR in ${STANDBY_REGION}"
-	docker tag assets${ENV}:${TAG} ${AWS_ACCOUNT_ID}.dkr.ecr.${STANDBY_REGION}.amazonaws.com/assets${ENV}:${TAG}
-	docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${STANDBY_REGION}.amazonaws.com/assets${ENV}:${TAG}
+build-assets-standby: build-assets-primary
+	@echo "assets image already pushed to both regions by CodeBuild"
 
-build-orders-primary: primary_infrastructure ecr-login
-	@echo "Build Orders service image and Push to ECR in ${PRIMARY_REGION}"
-	@cd ../source/orders/; docker build --platform linux/amd64 -t orders${ENV}:${TAG} .
-	docker tag orders${ENV}:${TAG} ${AWS_ACCOUNT_ID}.dkr.ecr.${PRIMARY_REGION}.amazonaws.com/orders${ENV}:${TAG}
-	docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${PRIMARY_REGION}.amazonaws.com/orders${ENV}:${TAG}
+build-orders-primary: primary_infrastructure standby_infrastructure codebuild-infra
+	$(call codebuild-build,orders,orders)
 
-build-orders-standby: standby_infrastructure ecr-login build-orders-primary
-	@echo "Push Orders service Image to ECR in ${STANDBY_REGION}"
-	docker tag orders${ENV}:${TAG} ${AWS_ACCOUNT_ID}.dkr.ecr.${STANDBY_REGION}.amazonaws.com/orders${ENV}:${TAG}
-	docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${STANDBY_REGION}.amazonaws.com/orders${ENV}:${TAG}
+build-orders-standby: build-orders-primary
+	@echo "orders image already pushed to both regions by CodeBuild"
+
+####
+# Infrastructure and ECS targets
+####
 
 primary_infrastructure: create-peer
 	@echo "Deploy Infrastructure resources in ${PRIMARY_REGION}"
@@ -158,7 +182,7 @@ standby_infrastructure: create-peer
 	@aws cloudformation deploy --template ./regionalBaseInfra.yaml --region ${STANDBY_REGION} \
 	--stack-name baseInfra${ENV} --capabilities CAPABILITY_IAM --parameter-overrides Env=${ENV} KmsKey=retail-store-ar${ENV}
 
-standby_ecs: build-catalog-standby build-checkout-standby build-ui-standby build-carts-standby build-assets-standby build-orders-standby standby_region_catalog-db
+standby_ecs: build-catalog-standby build-checkout-standby build-ui-standby build-carts-standby build-assets-standby build-orders-standby standby_region_catalog-db orders-dsql-db-standby
 	@echo "Deploy ECS Services in ${STANDBY_REGION}"
 	@aws cloudformation deploy --template ./ecs.yaml --region ${STANDBY_REGION} \
 	--stack-name apps${ENV} --capabilities CAPABILITY_IAM --parameter-overrides Env=${ENV} Tag=${TAG} KmsKey=retail-store-ar${ENV}
@@ -203,6 +227,12 @@ orders-dsql-db: primary_infrastructure
 	--region ${PRIMARY_REGION} --stack-name orders-dsql-stack${ENV} --capabilities CAPABILITY_IAM \
 	--parameter-overrides Env=${ENV} KmsKey=retail-store-ar${ENV}
 
+orders-dsql-db-standby: orders-dsql-db
+	@echo "Replicating DSQL endpoint parameter to ${STANDBY_REGION}..."
+	$(eval _DSQL_ENDPOINT:=$(shell aws ssm get-parameter --name orders-dsql-cluster-Endpoint$(ENV) --region $(PRIMARY_REGION) --query "Parameter.Value" --output text))
+	@aws ssm put-parameter --name orders-dsql-cluster-Endpoint$(ENV) --value "$(_DSQL_ENDPOINT)" \
+	--type String --region ${STANDBY_REGION} --overwrite --no-cli-pager
+
 carts-db: primary_infrastructure
 	@echo "Verifying if the AWSServiceRoleForDynamoDBReplication exists; if not; this will be created for you..."
 	$(eval resultDDB:=$(shell aws iam list-roles --query "length(Roles[?RoleName=='AWSServiceRoleForDynamoDBReplication'])"))
@@ -212,7 +242,7 @@ carts-db: primary_infrastructure
 	@echo "Creating Carts service DynamoDB Global Table in ${PRIMARY_REGION} and ${STANDBY_REGION}..."
 	@aws cloudformation deploy --template ./database/dynamodb/global-table.yml \
 	--region ${PRIMARY_REGION} --stack-name carts-db-stack${ENV} --capabilities CAPABILITY_IAM \
-	--parameter-overrides Env=${ENV} NamingPrefix=carts KmsKey=retail-store-ar${ENV}
+	--parameter-overrides Env=${ENV} NamingPrefix=carts KmsKey=retail-store-ar${ENV} WitnessRegion=us-east-2
 
 client-primary: primary_infrastructure
 	@echo "Deploy the Windows Client in the Primary Region"
@@ -278,6 +308,10 @@ clean:
 test-creds:
 	@echo "Current AWS session:"
 	@aws sts get-caller-identity
+
+####
+# Destroy targets
+####
 
 destroy-all: destroy-peer destroy-restore-reconciliation-ssm destroy-chaos-engineering
 	@echo "Removed all cloudformation stacks!!!"
@@ -360,7 +394,12 @@ destroy-apps-standby: destroy-global_routing
 	@aws cloudformation delete-stack --stack-name apps${ENV} --region ${STANDBY_REGION}
 	@aws cloudformation wait stack-delete-complete --stack-name apps${ENV} --region ${STANDBY_REGION}
 
-destroy-infra: destroy-ecr-standby destroy-ecr-primary destroy-databases-standby destroy-databases-primary destroy-client-primary destroy-client-standby
+destroy-codebuild:
+	@echo "Deleting CodeBuild stack..."
+	@aws cloudformation delete-stack --stack-name codebuild${ENV} --region ${PRIMARY_REGION}
+	@aws cloudformation wait stack-delete-complete --stack-name codebuild${ENV} --region ${PRIMARY_REGION}
+
+destroy-infra: destroy-ecr-standby destroy-ecr-primary destroy-databases-standby destroy-databases-primary destroy-client-primary destroy-client-standby destroy-codebuild
 	@echo "Deleting networking resources in ${STANDBY_REGION}..."
 	@aws cloudformation delete-stack --stack-name baseInfra${ENV} --region ${STANDBY_REGION}
 	@aws cloudformation wait stack-delete-complete --stack-name baseInfra${ENV} --region ${STANDBY_REGION}
@@ -396,6 +435,7 @@ destroy-databases-primary: destroy-secrets-rotation destroy-apps-primary destroy
 destroy-databases-standby: destroy-apps-standby
 	@echo "Deleting databases in ${STANDBY_REGION}..."
 	@aws cloudformation delete-stack --stack-name catalog-db-stack${ENV} --region ${STANDBY_REGION}
+	@aws ssm delete-parameter --name orders-dsql-cluster-Endpoint$(ENV) --region ${STANDBY_REGION} --no-cli-pager 2>/dev/null || true
 
 	@aws cloudformation wait stack-delete-complete --stack-name catalog-db-stack${ENV} --region ${STANDBY_REGION}
 

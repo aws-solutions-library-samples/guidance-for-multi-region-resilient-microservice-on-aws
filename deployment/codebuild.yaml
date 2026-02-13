@@ -1,0 +1,181 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CodeBuild project for building Docker images and pushing to ECR in both regions
+
+Parameters:
+  Env:
+    Type: String
+    Default: ''
+  PrimaryRegion:
+    Type: String
+    Default: us-east-1
+  StandbyRegion:
+    Type: String
+    Default: us-west-2
+  KmsKey:
+    Type: String
+    Default: retail-store-ar
+
+Resources:
+
+  CodeBuildServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'mr-app-codebuild-role${Env}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: CodeBuildECRAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                  - ecr:PutImage
+                  - ecr:InitiateLayerUpload
+                  - ecr:UploadLayerPart
+                  - ecr:CompleteLayerUpload
+                Resource:
+                  - !Sub 'arn:aws:ecr:${PrimaryRegion}:${AWS::AccountId}:repository/catalog${Env}'
+                  - !Sub 'arn:aws:ecr:${PrimaryRegion}:${AWS::AccountId}:repository/checkout${Env}'
+                  - !Sub 'arn:aws:ecr:${PrimaryRegion}:${AWS::AccountId}:repository/ui${Env}'
+                  - !Sub 'arn:aws:ecr:${PrimaryRegion}:${AWS::AccountId}:repository/carts${Env}'
+                  - !Sub 'arn:aws:ecr:${PrimaryRegion}:${AWS::AccountId}:repository/assets${Env}'
+                  - !Sub 'arn:aws:ecr:${PrimaryRegion}:${AWS::AccountId}:repository/orders${Env}'
+                  - !Sub 'arn:aws:ecr:${StandbyRegion}:${AWS::AccountId}:repository/catalog${Env}'
+                  - !Sub 'arn:aws:ecr:${StandbyRegion}:${AWS::AccountId}:repository/checkout${Env}'
+                  - !Sub 'arn:aws:ecr:${StandbyRegion}:${AWS::AccountId}:repository/ui${Env}'
+                  - !Sub 'arn:aws:ecr:${StandbyRegion}:${AWS::AccountId}:repository/carts${Env}'
+                  - !Sub 'arn:aws:ecr:${StandbyRegion}:${AWS::AccountId}:repository/assets${Env}'
+                  - !Sub 'arn:aws:ecr:${StandbyRegion}:${AWS::AccountId}:repository/orders${Env}'
+        - PolicyName: CodeBuildS3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:GetBucketLocation
+                  - s3:ListBucket
+                Resource:
+                  - !Sub '{{resolve:ssm:canaryBucketArn${Env}}}'
+                  - !Sub '{{resolve:ssm:canaryBucketArn${Env}}}/*'
+        - PolicyName: CodeBuildLogsAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - !Sub 'arn:aws:logs:${PrimaryRegion}:${AWS::AccountId}:log-group:/aws/codebuild/mr-app-docker-build${Env}'
+                  - !Sub 'arn:aws:logs:${PrimaryRegion}:${AWS::AccountId}:log-group:/aws/codebuild/mr-app-docker-build${Env}:*'
+        - PolicyName: CodeBuildKMSAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - kms:Decrypt
+                  - kms:DescribeKey
+                Resource:
+                  - !Sub 'arn:aws:kms:${PrimaryRegion}:${AWS::AccountId}:alias/${KmsKey}${Env}'
+                  - !Sub 'arn:aws:kms:${StandbyRegion}:${AWS::AccountId}:alias/${KmsKey}${Env}'
+
+  DockerBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub 'mr-app-docker-build${Env}'
+      Description: Builds Docker images and pushes to ECR in both regions
+      ServiceRole: !GetAtt CodeBuildServiceRole.Arn
+      TimeoutInMinutes: 30
+      Source:
+        Type: S3
+        Location: !Sub '{{resolve:ssm:canaryBucketName${Env}}}/codebuild/source.zip'
+        BuildSpec: |
+          version: 0.2
+          phases:
+            pre_build:
+              commands:
+                - echo Logging in to Amazon ECR in $PRIMARY_REGION...
+                - aws ecr get-login-password --region $PRIMARY_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$PRIMARY_REGION.amazonaws.com
+                - |
+                  if [ "$PRIMARY_ONLY" != "true" ]; then
+                    echo Logging in to Amazon ECR in $STANDBY_REGION...
+                    aws ecr get-login-password --region $STANDBY_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$STANDBY_REGION.amazonaws.com
+                  fi
+                - PRIMARY_REPO=$AWS_ACCOUNT_ID.dkr.ecr.$PRIMARY_REGION.amazonaws.com/${SERVICE_NAME}${ENV_SUFFIX}
+                - STANDBY_REPO=$AWS_ACCOUNT_ID.dkr.ecr.$STANDBY_REGION.amazonaws.com/${SERVICE_NAME}${ENV_SUFFIX}
+            build:
+              commands:
+                - |
+                  echo "Rewriting Dockerfile to use ECR Public Gallery mirrors..."
+                  sed -i 's#FROM golang:#FROM public.ecr.aws/docker/library/golang:#g' Dockerfile
+                  sed -i 's#FROM node:#FROM public.ecr.aws/docker/library/node:#g' Dockerfile
+                  sed -i 's#FROM amazoncorretto:#FROM public.ecr.aws/docker/library/amazoncorretto:#g' Dockerfile
+                  cat Dockerfile
+                - echo Building Docker image for $SERVICE_NAME...
+                - docker build --platform linux/amd64 -t ${SERVICE_NAME}${ENV_SUFFIX}:${TAG} .
+            post_build:
+              commands:
+                - echo Pushing image to ECR in $PRIMARY_REGION...
+                - docker tag ${SERVICE_NAME}${ENV_SUFFIX}:${TAG} $PRIMARY_REPO:$TAG
+                - docker push $PRIMARY_REPO:$TAG
+                - |
+                  if [ "$PRIMARY_ONLY" != "true" ]; then
+                    echo Pushing image to ECR in $STANDBY_REGION...
+                    docker tag ${SERVICE_NAME}${ENV_SUFFIX}:${TAG} $STANDBY_REPO:$TAG
+                    docker push $STANDBY_REPO:$TAG
+                  fi
+                - echo Build and push completed successfully
+      Artifacts:
+        Type: NO_ARTIFACTS
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_MEDIUM
+        Image: aws/codebuild/amazonlinux-x86_64-standard:5.0
+        PrivilegedMode: true
+        EnvironmentVariables:
+          - Name: SERVICE_NAME
+            Value: placeholder
+          - Name: TAG
+            Value: latest
+          - Name: ENV_SUFFIX
+            Value: !Ref Env
+          - Name: PRIMARY_REGION
+            Value: !Ref PrimaryRegion
+          - Name: STANDBY_REGION
+            Value: !Ref StandbyRegion
+          - Name: PRIMARY_ONLY
+            Value: 'false'
+          - Name: AWS_ACCOUNT_ID
+            Value: !Ref 'AWS::AccountId'
+
+  CodeBuildProjectNameParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub 'codebuild-project-name${Env}'
+      Type: String
+      Value: !Ref DockerBuildProject
+
+Outputs:
+  CodeBuildProjectName:
+    Value: !Ref DockerBuildProject
+  CodeBuildProjectArn:
+    Value: !GetAtt DockerBuildProject.Arn
+  CodeBuildServiceRoleArn:
+    Value: !GetAtt CodeBuildServiceRole.Arn
