@@ -11,7 +11,7 @@ spring:
   datasource:
     dsql:
       endpoint: ${DSQL_ENDPOINT}
-      region: ${AWS_REGION:us-east-1}
+      region: ${DSQL_REGION:${AWS_REGION:us-east-1}}
 
 logging:
   level:

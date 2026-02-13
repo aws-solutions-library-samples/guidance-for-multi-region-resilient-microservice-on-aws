@@ -576,7 +576,7 @@ Resources:
                   - "ssm:GetParameters"
               - Effect: "Allow"
                 Resource:
-                  - !Sub 'arn:aws:dsql:${AWS::Region}:${AWS::AccountId}:cluster/*'
+                  - !Sub 'arn:aws:dsql:${PrimaryRegion}:${AWS::AccountId}:cluster/*'
                 Action:
                   - "dsql:DbConnectAdmin"
   OrdersTaskDefinition:
@@ -640,6 +640,8 @@ Resources:
               Value: dsql,rabbitmq
             - Name: DSQL_ENDPOINT
               Value: !Sub '{{resolve:ssm:orders-dsql-cluster-Endpoint${Env}}}'
+            - Name: DSQL_REGION
+              Value: !Ref PrimaryRegion
             - Name: AWS_REGION
               Value: !Ref AWS::Region
             - Name: OTEL_RESOURCE_ATTRIBUTES
