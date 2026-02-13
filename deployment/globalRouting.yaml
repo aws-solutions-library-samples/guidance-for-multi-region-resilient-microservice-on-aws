@@ -74,3 +74,12 @@ Resources:
       SecretString: !Ref PrimaryRegionRecord
       ReplicaRegions:
         - Region: !Ref StandbyRegion
+
+  HostedZoneIdSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub 'HostedZoneIdSecret${Env}'
+      SecretString: !Ref HostedZone
+      KmsKeyId: !Ref KmsKey
+      ReplicaRegions:
+        - Region: !Ref StandbyRegion

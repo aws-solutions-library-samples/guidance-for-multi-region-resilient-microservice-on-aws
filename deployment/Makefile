@@ -194,8 +194,16 @@ global_routing: standby_ecs primary_ecs
 
 region-switch: global_routing
 	@echo "Deploy the ARC Region Switch Plan"
+	$(eval PRIMARY_CLUSTER_ARN:=$(shell aws secretsmanager get-secret-value \
+		--secret-id mr-app/ecs-cluster-arn-$(PRIMARY_REGION)$(ENV) \
+		--region $(PRIMARY_REGION) --query "SecretString" --output text))
+	$(eval STANDBY_CLUSTER_ARN:=$(shell aws secretsmanager get-secret-value \
+		--secret-id mr-app/ecs-cluster-arn-$(STANDBY_REGION)$(ENV) \
+		--region $(PRIMARY_REGION) --query "SecretString" --output text))
 	@aws cloudformation deploy --region ${PRIMARY_REGION} --template ./failover.yaml \
-	--stack-name region-switch${ENV} --capabilities CAPABILITY_NAMED_IAM --parameter-overrides Env=${ENV} DomainName=demo${ENV}.io
+	--stack-name region-switch${ENV} --capabilities CAPABILITY_NAMED_IAM \
+	--parameter-overrides Env=${ENV} DomainName=demo${ENV}.io \
+	PrimaryClusterArn=$(PRIMARY_CLUSTER_ARN) StandbyClusterArn=$(STANDBY_CLUSTER_ARN)
 
 canaries_primary: global_routing
 	@echo "Deploy the Synthetic Canaries in ${PRIMARY_REGION}"

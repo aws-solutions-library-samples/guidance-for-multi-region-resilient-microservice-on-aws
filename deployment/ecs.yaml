@@ -1224,6 +1224,15 @@ Resources:
       ReplicaRegions:
         - Region: !If [isPrimary, us-west-2, us-east-1]
 
+  EcsClusterArnSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub 'mr-app/ecs-cluster-arn-${AWS::Region}${Env}'
+      SecretString: !GetAtt EcsCluster.Arn
+      KmsKeyId: !Ref KmsKey
+      ReplicaRegions:
+        - Region: !If [isPrimary, !Ref StandbyRegion, !Ref PrimaryRegion]
+
   OrdersCreatedMetricFilter:
     Type: AWS::Logs::MetricFilter
     Properties:
