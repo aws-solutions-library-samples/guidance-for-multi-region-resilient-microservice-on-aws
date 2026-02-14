@@ -502,7 +502,7 @@ Resources:
         - CapacityProvider: FARGATE_SPOT
           Weight: 1
       Cluster:  !Ref EcsCluster
-      DesiredCount: 1
+      DesiredCount: !If [isPrimary, 3, 1]
       TaskDefinition: !Ref CartsTaskDefinition
       ServiceConnectConfiguration:
         Enabled: true
@@ -684,7 +684,7 @@ Resources:
         - CapacityProvider: FARGATE_SPOT
           Weight: 1
       Cluster:  !Ref EcsCluster
-      DesiredCount: 1
+      DesiredCount: !If [isPrimary, 3, 1]
       TaskDefinition: !Ref OrdersTaskDefinition
       ServiceConnectConfiguration:
         Enabled: true
@@ -760,7 +760,7 @@ Resources:
         - CapacityProvider: FARGATE_SPOT
           Weight: 1
       Cluster:  !Ref EcsCluster
-      DesiredCount: 1
+      DesiredCount: !If [isPrimary, 3, 1]
       TaskDefinition: !Ref AssetsTaskDefinition
       ServiceConnectConfiguration:
         Enabled: true
@@ -881,7 +881,7 @@ Resources:
         - CapacityProvider: FARGATE_SPOT
           Weight: 1
       Cluster:  !Ref EcsCluster
-      DesiredCount: 1
+      DesiredCount: !If [isPrimary, 3, 1]
       TaskDefinition: !Ref CatalogTaskDefinition
       ServiceConnectConfiguration:
         Enabled: true
@@ -1029,7 +1029,7 @@ Resources:
         - CapacityProvider: FARGATE_SPOT
           Weight: 1
       Cluster:  !Ref EcsCluster
-      DesiredCount: 1
+      DesiredCount: !If [isPrimary, 3, 1]
       TaskDefinition: !Ref CheckoutTaskDefinition
       ServiceConnectConfiguration:
         Enabled: true
@@ -1185,7 +1185,7 @@ Resources:
         - CapacityProvider: FARGATE_SPOT
           Weight: 1
       Cluster:  !Ref EcsCluster
-      DesiredCount: 1
+      DesiredCount: !If [isPrimary, 3, 1]
       TaskDefinition: !Ref UiTaskDefinition
       ServiceConnectConfiguration:
         Enabled: true
@@ -1243,3 +1243,160 @@ Resources:
         - MetricValue: "1"
           MetricNamespace: "ecommerce"
           MetricName: !Sub 'OrdersCreated${Env}'
+
+  # Auto Scaling - scale down standby services to 1 after inactivity
+  CartsScalableTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Condition: isStandby
+    Properties:
+      MaxCapacity: 3
+      MinCapacity: 1
+      ResourceId: !Sub
+        - 'service/${ClusterName}/${ServiceName}'
+        - ClusterName: !Select [1, !Split ["/", !GetAtt EcsCluster.Arn]]
+          ServiceName: !GetAtt CartsService.Name
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+  CartsScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Condition: isStandby
+    Properties:
+      PolicyName: !Sub 'carts-scale-down${Env}'
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref CartsScalableTarget
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+        TargetValue: 70
+        ScaleInCooldown: 300
+        ScaleOutCooldown: 60
+
+  OrdersScalableTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Condition: isStandby
+    Properties:
+      MaxCapacity: 3
+      MinCapacity: 1
+      ResourceId: !Sub
+        - 'service/${ClusterName}/${ServiceName}'
+        - ClusterName: !Select [1, !Split ["/", !GetAtt EcsCluster.Arn]]
+          ServiceName: !GetAtt OrdersService.Name
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+  OrdersScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Condition: isStandby
+    Properties:
+      PolicyName: !Sub 'orders-scale-down${Env}'
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref OrdersScalableTarget
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+        TargetValue: 70
+        ScaleInCooldown: 300
+        ScaleOutCooldown: 60
+
+  AssetsScalableTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Condition: isStandby
+    Properties:
+      MaxCapacity: 3
+      MinCapacity: 1
+      ResourceId: !Sub
+        - 'service/${ClusterName}/${ServiceName}'
+        - ClusterName: !Select [1, !Split ["/", !GetAtt EcsCluster.Arn]]
+          ServiceName: !GetAtt AssetsService.Name
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+  AssetsScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Condition: isStandby
+    Properties:
+      PolicyName: !Sub 'assets-scale-down${Env}'
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref AssetsScalableTarget
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+        TargetValue: 70
+        ScaleInCooldown: 300
+        ScaleOutCooldown: 60
+
+  CatalogScalableTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Condition: isStandby
+    Properties:
+      MaxCapacity: 3
+      MinCapacity: 1
+      ResourceId: !Sub
+        - 'service/${ClusterName}/${ServiceName}'
+        - ClusterName: !Select [1, !Split ["/", !GetAtt EcsCluster.Arn]]
+          ServiceName: !GetAtt CatalogService.Name
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+  CatalogScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Condition: isStandby
+    Properties:
+      PolicyName: !Sub 'catalog-scale-down${Env}'
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref CatalogScalableTarget
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+        TargetValue: 70
+        ScaleInCooldown: 300
+        ScaleOutCooldown: 60
+
+  CheckoutScalableTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Condition: isStandby
+    Properties:
+      MaxCapacity: 3
+      MinCapacity: 1
+      ResourceId: !Sub
+        - 'service/${ClusterName}/${ServiceName}'
+        - ClusterName: !Select [1, !Split ["/", !GetAtt EcsCluster.Arn]]
+          ServiceName: !GetAtt CheckoutService.Name
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+  CheckoutScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Condition: isStandby
+    Properties:
+      PolicyName: !Sub 'checkout-scale-down${Env}'
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref CheckoutScalableTarget
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+        TargetValue: 70
+        ScaleInCooldown: 300
+        ScaleOutCooldown: 60
+
+  UiScalableTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Condition: isStandby
+    Properties:
+      MaxCapacity: 3
+      MinCapacity: 1
+      ResourceId: !Sub
+        - 'service/${ClusterName}/${ServiceName}'
+        - ClusterName: !Select [1, !Split ["/", !GetAtt EcsCluster.Arn]]
+          ServiceName: !GetAtt UiService.Name
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+  UiScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Condition: isStandby
+    Properties:
+      PolicyName: !Sub 'ui-scale-down${Env}'
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref UiScalableTarget
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+        TargetValue: 70
+        ScaleInCooldown: 300
+        ScaleOutCooldown: 60
