@@ -204,6 +204,20 @@ region-switch: global_routing
 	--stack-name region-switch${ENV} --capabilities CAPABILITY_NAMED_IAM \
 	--parameter-overrides Env=${ENV} DomainName=demo${ENV}.io \
 	PrimaryClusterArn=$(PRIMARY_CLUSTER_ARN) StandbyClusterArn=$(STANDBY_CLUSTER_ARN)
+	@echo "Wiring plan health checks to Route53 records"
+	$(eval PLAN_ARN:=$(shell aws cloudformation describe-stacks \
+		--stack-name region-switch$(ENV) --region $(PRIMARY_REGION) \
+		--query "Stacks[0].Outputs[?OutputKey=='RegionSwitchPlanArn'].OutputValue" --output text))
+	$(eval PRIMARY_HC_ID:=$(shell aws arc-region-switch list-route53-health-checks \
+		--arn $(PLAN_ARN) --region $(PRIMARY_REGION) --output json \
+		| jq -r '.healthChecks[] | select(.region == "$(PRIMARY_REGION)") | .healthCheckId'))
+	$(eval STANDBY_HC_ID:=$(shell aws arc-region-switch list-route53-health-checks \
+		--arn $(PLAN_ARN) --region $(PRIMARY_REGION) --output json \
+		| jq -r '.healthChecks[] | select(.region == "$(STANDBY_REGION)") | .healthCheckId'))
+	@aws cloudformation deploy --region ${PRIMARY_REGION} --template ./globalRouting.yaml \
+	--stack-name gr${ENV} --capabilities CAPABILITY_NAMED_IAM \
+	--parameter-overrides DomainName=demo${ENV}.io Env=${ENV} KmsKey=retail-store-ar${ENV} \
+	PrimaryHealthCheckId=$(PRIMARY_HC_ID) StandbyHealthCheckId=$(STANDBY_HC_ID)
 
 canaries_primary: global_routing
 	@echo "Deploy the Synthetic Canaries in ${PRIMARY_REGION}"

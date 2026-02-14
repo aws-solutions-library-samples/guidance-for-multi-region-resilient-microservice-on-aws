@@ -21,7 +21,18 @@ Parameters:
     Type: AWS::SSM::Parameter::Value<String>
     Default: KmsKey
     Description: CMK Id
+  PrimaryHealthCheckId:
+    Type: String
+    Default: ''
+    Description: Optional Route53 health check ID for the primary region record
+  StandbyHealthCheckId:
+    Type: String
+    Default: ''
+    Description: Optional Route53 health check ID for the standby region record
 
+Conditions:
+  HasPrimaryHealthCheck: !Not [!Equals [!Ref PrimaryHealthCheckId, '']]
+  HasStandbyHealthCheck: !Not [!Equals [!Ref StandbyHealthCheckId, '']]
 
 Resources:
   HostedZone:
@@ -42,6 +53,7 @@ Resources:
       Region: !Ref PrimaryRegion
       Type: A
       SetIdentifier: PrimaryRegion
+      HealthCheckId: !If [HasPrimaryHealthCheck, !Ref PrimaryHealthCheckId, !Ref 'AWS::NoValue']
       AliasTarget:
         DNSName: !Sub '{{resolve:secretsmanager:Alb-${PrimaryRegion}${Env}:SecretString:DnsName}}'
         EvaluateTargetHealth: true
@@ -55,6 +67,7 @@ Resources:
       Region: !Ref StandbyRegion
       Type: A
       SetIdentifier: StandbyRegion
+      HealthCheckId: !If [HasStandbyHealthCheck, !Ref StandbyHealthCheckId, !Ref 'AWS::NoValue']
       AliasTarget:
         DNSName: !Sub '{{resolve:secretsmanager:Alb-${StandbyRegion}${Env}:SecretString:DnsName}}'
         EvaluateTargetHealth: true
