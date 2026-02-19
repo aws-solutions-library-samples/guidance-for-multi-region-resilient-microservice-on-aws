@@ -2,12 +2,11 @@
 
 ## Getting started
 
-This guidance helps customers design and operate a multi-Region microservice based architecture for an e-commerce platform on AWS using services like Amazon Elastic Container Services, Amazon Aurora Global Tables, Route53 Application Recovery Controller (ARC) and Lambda functions. The solution is deployed across two Regions that can failover and failback from one Region to another in an automated fashion. It leverages Amazon Route 53 Application Recovery Controller to help with the regional failover using AWS Systems Manager document (SSM). AWS Systems Manager (SSM) runbook  toggles the Route53 Application Recovery Controller (ARC) routing control “off” which causes the managed Health Check for the region to enter a “Failed” state. SSM runbook executes Aurora Global Database managed failover which promotes the standby region to the primary for writes. SSM runbook recovers a copy of the old primary database from a snapshot and reconcile the data in the new primary database to the old and generates a missing transaction report. 
+This guidance helps customers design and operate a multi-Region microservice based architecture for an e-commerce platform on AWS using services like Amazon Elastic Container Services (ECS), Amazon Aurora Global Database, Amazon Aurora DSQL, Amazon DynamoDB Global Tables with multi-Region strong consistency (MRSC), and Route53 Application Recovery Controller (ARC) Region Switch. The solution is deployed across two Regions in an active/active configuration where both regions serve traffic simultaneously. This is possible because all services except Catalog are either stateless or use globally strongly consistent datastores (Aurora DSQL for Orders, DynamoDB Global Tables with MRSC for Carts). The Catalog service uses Amazon Aurora Global Database, which is sufficient for active/active because catalog data is read in-region and updated infrequently by an external process — in the event of data loss due to failover, updates can be re-run. The solution leverages Amazon Route 53 ARC Region Switch Plan to orchestrate regional failover through an automated workflow that scales up ECS services in the target region, fails over the Aurora Global Database, and shifts DNS traffic via Route53 health checks.
 
 ## Application Overview
 
-The sample application used for this prespective guidence is an e-commerce platform. The front-end of the applications runs as a service in an Amazon Elastic Container(ECS) supported by back-end micro-services 
-e.g. catalog, assets, orders, cats, checkout to support flows like displaying lists of available products, adding products to carts and finally placing and order. The application is supported by two Amazon Aurora Global database clusters running inastances of Catalog and Orders. 
+The sample application is an e-commerce platform. The front-end runs as a service in Amazon Elastic Container Service (ECS), supported by back-end microservices (catalog, assets, orders, carts, checkout) for displaying products, adding items to carts, and placing orders. The application uses Amazon Aurora Global Database for the Catalog service, Amazon Aurora DSQL for the Orders service, and Amazon DynamoDB Global Tables with multi-Region strong consistency for the Carts service.
 
 
 ## Architecture
@@ -20,32 +19,30 @@ e.g. catalog, assets, orders, cats, checkout to support flows like displaying li
 
 2. Application Load Balancers (ALB) send requests to the UI tasks on Amazon Elastic Container Service (ECS).  Depending on the page being accessed, the UI will make a service call to the appropriate service via ECS Service Connect
 
-3. As records are written to the writer instances of the  “Catalog” and “Orders” Amazon Aurora global databases, they are replicated to the standby clusters
+3. The “Catalog” service uses Amazon Aurora Global Database. Writes go to the primary writer instance and are replicated asynchronously to the secondary region. Reads are served locally in each region.
 
-4. As records are written to the “Carts” Amazon DynamoDB global table in one region, they are replicated to the table in the other region
+4. The “Orders” service uses Amazon Aurora DSQL, a serverless distributed SQL database that provides active-active replication with strong consistency across regions.
 
-5. The checkout service uses Amazon ElastiCache for Redis for temporarily caching the contents of the cart until the order is placed.
+5. The “Carts” service uses Amazon DynamoDB Global Tables with multi-Region strong consistency (MRSC), enabling strongly consistent reads and writes in both regions simultaneously.
 
-6. The orders service leverages Amazon RabbitMQ broker to publish order creation events for any downstream consumption purposes.
+6. The checkout service uses Amazon ElastiCache for Redis for temporarily caching the contents of the cart until the order is placed.
 
-7. Amazon CloudWatch Synthetics from each region sends requests to the application in each region via the ALB’s address and to the DNS name resolved through Route53 and pushes the metrics, logs and traces to CloudWatch.
+7. The orders service leverages Amazon RabbitMQ broker to publish order creation events for any downstream consumption purposes.
 
-8. AWS Systems Manager Automation Runbooks automate the enabling and disabling of the ARC routing controls and the failing-over of the Aurora Global Databases
+8. Amazon CloudWatch Synthetics from each region sends requests to the application in each region via the ALB’s address and to the DNS name resolved through Route53 and pushes the metrics, logs and traces to CloudWatch.
+
+9. Amazon Application Recovery Controller (ARC) Region Switch Plan orchestrates regional failover by scaling up ECS services, failing over the Aurora Global Database, and shifting DNS traffic via managed health checks.
 
 
 ### 2. Cross Region Failover 
 
 ![Application Running in failover state](assets/static//02.architecture-diagram-dr-mr-ms.png)
 
-1. AWS Systems Manager (SSM) runbook (triggered by an operator manually)  toggles the Route53 Application Recovery Controller (ARC) routing control “off” which causes the managed Health Check for the region to enter a “Failed” state.
+1. An operator initiates the Amazon Application Recovery Controller (ARC) Region Switch Plan execution targeting the healthy region. The plan first scales up ECS services in the target region to absorb all traffic.
 
-2. Amazon Route53 returns only the remaining healthy region as clients resolve the application’s fully-qualified domain name.
+2. The plan executes Amazon Aurora Global Database managed failover, which promotes the secondary region to the primary for writes. The former primary is rebuilt as a secondary by the Aurora service.
 
-3. SSM runbook executes Amazon Aurora Global Database managed failover which promotes the standby region to the primary for writes
-
-4. Former primary is rebuilt as a secondary by the Aurora service
-
-5. SSM runbook recovers a copy of the old primary database from a snapshot and compares the data in the new primary database to the old and creates a missing transaction report
+3. The plan shifts DNS traffic by updating Route53 managed health checks, causing the failing region’s health check to enter a “Failed” state. Amazon Route53 returns only the healthy region as clients resolve the application’s fully-qualified domain name.
 
 
 ## Pre-requisites

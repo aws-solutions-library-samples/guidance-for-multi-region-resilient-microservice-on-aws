@@ -117,7 +117,7 @@ Resources:
     Properties:
       Name: !Sub 'retail-store-ar-region-switch${Env}'
       ExecutionRole: !GetAtt RegionSwitchExecutionRole.Arn
-      RecoveryApproach: activePassive
+      RecoveryApproach: activeActive
       PrimaryRegion: !Ref PrimaryRegion
       Regions:
         - !Ref PrimaryRegion
