@@ -123,8 +123,8 @@ Resources:
         - !Ref PrimaryRegion
         - !Ref StandbyRegion
       Workflows:
-        - WorkflowTargetAction: activate
-          WorkflowDescription: "Scale up ECS services, failover database, then shift DNS traffic"
+        - WorkflowTargetAction: deactivate
+          WorkflowDescription: "Scale up remaining region, failover catalog database, shift DNS away"
           Steps:
             - Name: scale-up-ecs-services
               ExecutionBlockType: Parallel
@@ -251,7 +251,7 @@ Resources:
                   Ungraceful:
                     Ungraceful: failover
                   TimeoutMinutes: 20
-            - Name: shift-dns-traffic
+            - Name: shift-dns-traffic-away
               ExecutionBlockType: Route53HealthCheck
               ExecutionBlockConfiguration:
                 Route53HealthCheckConfig:
@@ -263,10 +263,10 @@ Resources:
                     - RecordSetIdentifier: StandbyRegion
                       Region: !Ref StandbyRegion
                   TimeoutMinutes: 5
-        - WorkflowTargetAction: deactivate
-          WorkflowDescription: "Shift DNS traffic away, failover database, then scale down ECS services"
+        - WorkflowTargetAction: activate
+          WorkflowDescription: "Re-enable region in DNS"
           Steps:
-            - Name: shift-dns-traffic
+            - Name: restore-dns-traffic
               ExecutionBlockType: Route53HealthCheck
               ExecutionBlockConfiguration:
                 Route53HealthCheckConfig:
@@ -278,131 +278,6 @@ Resources:
                     - RecordSetIdentifier: StandbyRegion
                       Region: !Ref StandbyRegion
                   TimeoutMinutes: 5
-            - Name: failover-catalog-db
-              ExecutionBlockType: AuroraGlobalDatabase
-              ExecutionBlockConfiguration:
-                GlobalAuroraConfig:
-                  GlobalClusterIdentifier: !Sub 'catalog-global-db-cluster${Env}'
-                  DatabaseClusterArns:
-                    - !Sub '{{resolve:secretsmanager:mr-app/catalog-${PrimaryRegion}-global-db-cluster${Env}}}'
-                    - !Sub '{{resolve:secretsmanager:mr-app/catalog-${StandbyRegion}-global-db-cluster${Env}}}'
-                  Behavior: switchoverOnly
-                  Ungraceful:
-                    Ungraceful: failover
-                  TimeoutMinutes: 20
-            - Name: scale-down-ecs-services
-              ExecutionBlockType: Parallel
-              ExecutionBlockConfiguration:
-                ParallelConfig:
-                  Steps:
-                    - Name: scale-carts
-                      ExecutionBlockType: ECSServiceScaling
-                      ExecutionBlockConfiguration:
-                        EcsCapacityIncreaseConfig:
-                          Services:
-                            - ClusterArn: !Ref PrimaryClusterArn
-                              ServiceArn:
-                                !Sub
-                                  - 'arn:aws:ecs:${PrimaryRegion}:${AWS::AccountId}:service/${ClusterName}/carts${Env}'
-                                  - ClusterName: !Select [1, !Split ["/", !Ref PrimaryClusterArn]]
-                            - ClusterArn: !Ref StandbyClusterArn
-                              ServiceArn:
-                                !Sub
-                                  - 'arn:aws:ecs:${StandbyRegion}:${AWS::AccountId}:service/${ClusterName}/carts${Env}'
-                                  - ClusterName: !Select [1, !Split ["/", !Ref StandbyClusterArn]]
-                          TargetPercent: 200
-                          CapacityMonitoringApproach: containerInsightsMaxInLast24Hours
-                          TimeoutMinutes: 15
-                    - Name: scale-orders
-                      ExecutionBlockType: ECSServiceScaling
-                      ExecutionBlockConfiguration:
-                        EcsCapacityIncreaseConfig:
-                          Services:
-                            - ClusterArn: !Ref PrimaryClusterArn
-                              ServiceArn:
-                                !Sub
-                                  - 'arn:aws:ecs:${PrimaryRegion}:${AWS::AccountId}:service/${ClusterName}/orders${Env}'
-                                  - ClusterName: !Select [1, !Split ["/", !Ref PrimaryClusterArn]]
-                            - ClusterArn: !Ref StandbyClusterArn
-                              ServiceArn:
-                                !Sub
-                                  - 'arn:aws:ecs:${StandbyRegion}:${AWS::AccountId}:service/${ClusterName}/orders${Env}'
-                                  - ClusterName: !Select [1, !Split ["/", !Ref StandbyClusterArn]]
-                          TargetPercent: 200
-                          CapacityMonitoringApproach: containerInsightsMaxInLast24Hours
-                          TimeoutMinutes: 15
-                    - Name: scale-assets
-                      ExecutionBlockType: ECSServiceScaling
-                      ExecutionBlockConfiguration:
-                        EcsCapacityIncreaseConfig:
-                          Services:
-                            - ClusterArn: !Ref PrimaryClusterArn
-                              ServiceArn:
-                                !Sub
-                                  - 'arn:aws:ecs:${PrimaryRegion}:${AWS::AccountId}:service/${ClusterName}/assets${Env}'
-                                  - ClusterName: !Select [1, !Split ["/", !Ref PrimaryClusterArn]]
-                            - ClusterArn: !Ref StandbyClusterArn
-                              ServiceArn:
-                                !Sub
-                                  - 'arn:aws:ecs:${StandbyRegion}:${AWS::AccountId}:service/${ClusterName}/assets${Env}'
-                                  - ClusterName: !Select [1, !Split ["/", !Ref StandbyClusterArn]]
-                          TargetPercent: 200
-                          CapacityMonitoringApproach: containerInsightsMaxInLast24Hours
-                          TimeoutMinutes: 15
-                    - Name: scale-catalog
-                      ExecutionBlockType: ECSServiceScaling
-                      ExecutionBlockConfiguration:
-                        EcsCapacityIncreaseConfig:
-                          Services:
-                            - ClusterArn: !Ref PrimaryClusterArn
-                              ServiceArn:
-                                !Sub
-                                  - 'arn:aws:ecs:${PrimaryRegion}:${AWS::AccountId}:service/${ClusterName}/catalog${Env}'
-                                  - ClusterName: !Select [1, !Split ["/", !Ref PrimaryClusterArn]]
-                            - ClusterArn: !Ref StandbyClusterArn
-                              ServiceArn:
-                                !Sub
-                                  - 'arn:aws:ecs:${StandbyRegion}:${AWS::AccountId}:service/${ClusterName}/catalog${Env}'
-                                  - ClusterName: !Select [1, !Split ["/", !Ref StandbyClusterArn]]
-                          TargetPercent: 200
-                          CapacityMonitoringApproach: containerInsightsMaxInLast24Hours
-                          TimeoutMinutes: 15
-                    - Name: scale-checkout
-                      ExecutionBlockType: ECSServiceScaling
-                      ExecutionBlockConfiguration:
-                        EcsCapacityIncreaseConfig:
-                          Services:
-                            - ClusterArn: !Ref PrimaryClusterArn
-                              ServiceArn:
-                                !Sub
-                                  - 'arn:aws:ecs:${PrimaryRegion}:${AWS::AccountId}:service/${ClusterName}/checkout${Env}'
-                                  - ClusterName: !Select [1, !Split ["/", !Ref PrimaryClusterArn]]
-                            - ClusterArn: !Ref StandbyClusterArn
-                              ServiceArn:
-                                !Sub
-                                  - 'arn:aws:ecs:${StandbyRegion}:${AWS::AccountId}:service/${ClusterName}/checkout${Env}'
-                                  - ClusterName: !Select [1, !Split ["/", !Ref StandbyClusterArn]]
-                          TargetPercent: 200
-                          CapacityMonitoringApproach: containerInsightsMaxInLast24Hours
-                          TimeoutMinutes: 15
-                    - Name: scale-ui
-                      ExecutionBlockType: ECSServiceScaling
-                      ExecutionBlockConfiguration:
-                        EcsCapacityIncreaseConfig:
-                          Services:
-                            - ClusterArn: !Ref PrimaryClusterArn
-                              ServiceArn:
-                                !Sub
-                                  - 'arn:aws:ecs:${PrimaryRegion}:${AWS::AccountId}:service/${ClusterName}/ui${Env}'
-                                  - ClusterName: !Select [1, !Split ["/", !Ref PrimaryClusterArn]]
-                            - ClusterArn: !Ref StandbyClusterArn
-                              ServiceArn:
-                                !Sub
-                                  - 'arn:aws:ecs:${StandbyRegion}:${AWS::AccountId}:service/${ClusterName}/ui${Env}'
-                                  - ClusterName: !Select [1, !Split ["/", !Ref StandbyClusterArn]]
-                          TargetPercent: 200
-                          CapacityMonitoringApproach: containerInsightsMaxInLast24Hours
-                          TimeoutMinutes: 15
 
 Outputs:
   RegionSwitchPlanArn:
