@@ -38,11 +38,15 @@ The sample application is an e-commerce platform. The front-end runs as a servic
 
 ![Application Running in failover state](assets/static//02.architecture-diagram-dr-mr-ms.png)
 
-1. An operator initiates the Amazon Application Recovery Controller (ARC) Region Switch Plan execution targeting the healthy region. The plan first scales up ECS services in the target region to absorb all traffic.
+1. An operator executes the Application Recovery Controller (ARC) Region Switch Plan
 
-2. The plan executes Amazon Aurora Global Database managed failover, which promotes the secondary region to the primary for writes. The former primary is rebuilt as a secondary by the Aurora service.
+2. ARC scales up ECS services to handle 100% of all site traffic
 
-3. The plan shifts DNS traffic by updating Route53 managed health checks, causing the failing region’s health check to enter a “Failed” state. Amazon Route53 returns only the healthy region as clients resolve the application’s fully-qualified domain name.
+3. ARC then executes Aurora Global Database managed failover which promotes the standby region to the primary for writes (former primary is rebuilt as a secondary by the Aurora service)
+
+4. ARC then toggles the Route53 Health Check for the failing region to “unhealthy” so that DNS returns only the remaining healthy region as clients resolve the application’s fully-qualified domain name
+
+5. An operator uses the SSM runbook to recover a copy of the old primary database from a snapshot and compare the data in the new primary database to the old and create a missing transaction report
 
 
 ## Pre-requisites
