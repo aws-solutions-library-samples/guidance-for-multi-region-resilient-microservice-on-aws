@@ -82,15 +82,18 @@ codebuild-infra: primary_infrastructure
 
 # Internal helper: package source, upload to S3, trigger CodeBuild, poll until complete
 # Usage: $(call codebuild-build,SERVICE_NAME,SOURCE_DIR)
+# NOTE: Build ID is captured via shell variable (not $(eval)) to ensure the build
+# starts AFTER the S3 upload completes. Using $(eval $(shell ...)) would cause the
+# build to start at recipe-expansion time, before the upload command runs.
 define codebuild-build
-	@echo "Packaging $(1) source from ../source/$(2)..."
 	$(eval _BUCKET:=$(shell aws ssm get-parameter --name canaryBucketName$(ENV) --region $(PRIMARY_REGION) --query "Parameter.Value" --output text))
+	@echo "Packaging $(1) source from ../source/$(2)..."
 	@cd ../source/$(2) && zip -r -q /tmp/$(1)-source.zip . -x '*.git*'
 	@echo "Uploading $(1) source to S3..."
 	@aws s3 cp /tmp/$(1)-source.zip s3://$(_BUCKET)/codebuild/source.zip --region $(PRIMARY_REGION)
 	@rm -f /tmp/$(1)-source.zip
 	@echo "Starting CodeBuild for $(1) with tag ${TAG}..."
-	$(eval _BUILD_ID:=$(shell aws codebuild start-build \
+	@BUILD_ID=$$(aws codebuild start-build \
 		--project-name $(CODEBUILD_PROJECT) \
 		--source-type-override S3 \
 		--source-location-override $(_BUCKET)/codebuild/source.zip \
@@ -102,11 +105,11 @@ define codebuild-build
 			name=STANDBY_REGION,value=${STANDBY_REGION},type=PLAINTEXT \
 			name=PRIMARY_ONLY,value=${PRIMARY_ONLY},type=PLAINTEXT \
 		--region $(PRIMARY_REGION) \
-		--query 'build.id' --output text))
-	@echo "Build started: $(_BUILD_ID)"
-	@echo "Waiting for CodeBuild to complete..."
-	@while true; do \
-		STATUS=$$(aws codebuild batch-get-builds --ids $(_BUILD_ID) --region $(PRIMARY_REGION) --query 'builds[0].buildStatus' --output text 2>/dev/null || echo "POLL_ERROR"); \
+		--query 'build.id' --output text) && \
+	echo "Build started: $$BUILD_ID" && \
+	echo "Waiting for CodeBuild to complete..." && \
+	while true; do \
+		STATUS=$$(aws codebuild batch-get-builds --ids $$BUILD_ID --region $(PRIMARY_REGION) --query 'builds[0].buildStatus' --output text 2>/dev/null || echo "POLL_ERROR"); \
 		if [ "$$STATUS" = "SUCCEEDED" ]; then \
 			echo "CodeBuild for $(1) completed successfully"; \
 			break; \
@@ -118,7 +121,7 @@ define codebuild-build
 			sleep 15; \
 		else \
 			echo "CodeBuild for $(1) failed with status: $$STATUS"; \
-			echo "View logs: aws codebuild batch-get-builds --ids $(_BUILD_ID) --region $(PRIMARY_REGION)"; \
+			echo "View logs: aws codebuild batch-get-builds --ids $$BUILD_ID --region $(PRIMARY_REGION)"; \
 			exit 1; \
 		fi; \
 	done
