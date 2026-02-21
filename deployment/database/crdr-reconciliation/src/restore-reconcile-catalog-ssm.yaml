@@ -1,12 +1,12 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Solution that uses SSM Automation to restore encrypted snapshots of RDS cluster Orders DB
+Description: Solution that uses SSM Automation to restore encrypted snapshots of RDS cluster Catalog DB
 
 Parameters: 
   NamingPrefix:
     Type: String
     Description: Enter the Naming Prefix for resources created
-    Default: "orders"
+    Default: "catalog"
   Env:
     Type: String
     Default: ''
@@ -34,8 +34,8 @@ Resources:
         - !Sub '{{resolve:ssm:Subnet1${Env}}}'
         - !Sub '{{resolve:ssm:Subnet2${Env}}}'
         - !Sub '{{resolve:ssm:Subnet3${Env}}}'
-      DBSubnetGroupDescription: "orders-subnet-group"
-      DBSubnetGroupName: 'orders-recon-dbcluster-subnet-group'
+      DBSubnetGroupDescription: "catalog-subnet-group"
+      DBSubnetGroupName: 'catalog-recon-dbcluster-subnet-group'
   LambdaSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -62,7 +62,7 @@ Resources:
       FromPort: 3306
       ToPort: 3306
       SourceSecurityGroupId: !Ref LambdaSecurityGroup
-      GroupId: !Sub '{{resolve:ssm:orders-aurora-mysql-sg-${AWS::Region}${Env}}}'
+      GroupId: !Sub '{{resolve:ssm:catalog-aurora-mysql-sg-${AWS::Region}${Env}}}'
 
   AutomationExecutionRole:
     Type: AWS::IAM::Role
@@ -90,7 +90,7 @@ Resources:
   LambdaFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: reconciliation-orders.lambda_handler
+      Handler: reconciliation-catalog.lambda_handler
       CodeUri: function/.
       Runtime: python3.12
       Architectures:
@@ -110,8 +110,8 @@ Resources:
         Ipv6AllowedForDualStack: false
       Environment:
         Variables:
-          user_name: !Sub '{{resolve:secretsmanager:mr-app/orders-${GlobalClusterIdentifier}-UserCredentials${Env}:SecretString:username}}'
-          password: !Sub '{{resolve:secretsmanager:mr-app/orders-${GlobalClusterIdentifier}-UserCredentials${Env}:SecretString:password}}'
+          user_name: !Sub '{{resolve:secretsmanager:mr-app/catalog-${GlobalClusterIdentifier}-UserCredentials${Env}:SecretString:username}}'
+          password: !Sub '{{resolve:secretsmanager:mr-app/catalog-${GlobalClusterIdentifier}-UserCredentials${Env}:SecretString:password}}'
       Layers:
         - !Ref libs
       Policies:
@@ -139,8 +139,8 @@ Resources:
               - rds:CreateDBInstance
               - rds:DescribeDBInstances
             Resource: 
-              - !Sub 'arn:aws:rds:${AWS::Region}:${AWS::AccountId}:cluster:orders-reconciliation-db-cluster-*'
-              - !Sub '{{resolve:secretsmanager:mr-app/orders-${TargetRegion}-global-db-cluster${Env}}}'
+              - !Sub 'arn:aws:rds:${AWS::Region}:${AWS::AccountId}:cluster:catalog-reconciliation-db-cluster-*'
+              - !Sub '{{resolve:secretsmanager:mr-app/catalog-${TargetRegion}-global-db-cluster${Env}}}'
   libs:
     Type: AWS::Serverless::LayerVersion
     Properties:
@@ -183,7 +183,7 @@ Resources:
               inputs:
                 Service: rds
                 Api: RestoreDBClusterFromSnapshot                 
-                DBClusterIdentifier: "orders-recon-dbcluster-{{automation:EXECUTION_ID}}"
+                DBClusterIdentifier: "catalog-recon-dbcluster-{{automation:EXECUTION_ID}}"
                 Engine: aurora-mysql
                 SnapshotIdentifier : !Sub "{{SnapshotArn}}"
                 EnableIAMDatabaseAuthentication: true
@@ -193,7 +193,7 @@ Resources:
                   MaxCapacity: 8
                 DBSubnetGroupName: !Ref SubnetGroup
                 VpcSecurityGroupIds: 
-                  - !Sub '{{resolve:ssm:orders-aurora-mysql-sg-${AWS::Region}${Env}}}'
+                  - !Sub '{{resolve:ssm:catalog-aurora-mysql-sg-${AWS::Region}${Env}}}'
                 DeletionProtection: false
                 Tags:
                   - Key: "NamingPrefix"
@@ -224,7 +224,7 @@ Resources:
               inputs:
                 Service: rds
                 Api: CreateDBInstance                 
-                DBInstanceIdentifier: "orders-recon-dbinstance-{{automation:EXECUTION_ID}}" 
+                DBInstanceIdentifier: "catalog-recon-dbinstance-{{automation:EXECUTION_ID}}" 
                 DBClusterIdentifier: '{{RestoreSnapshot.ReconciliationClusterId}}'
                 Engine: aurora-mysql
                 DBInstanceClass: "db.serverless"                                
@@ -256,8 +256,8 @@ Resources:
                 FunctionName: !Ref LambdaFunction
                 InputPayload: 
                   source_db_endpoint : '{{RestoreSnapshot.ReconciliationClusterEndpoint}}'
-                  target_db_endpoint: !Sub '{{resolve:secretsmanager:mr-app/orders-${TargetRegion}-${GlobalClusterIdentifier}-endpoint${Env}}}'                  
-                  db_name: orders
+                  target_db_endpoint: !Sub '{{resolve:secretsmanager:mr-app/catalog-${TargetRegion}-${GlobalClusterIdentifier}-endpoint${Env}}}'
+                  db_name: catalog
 
 Outputs:      
   AutomationDocument:

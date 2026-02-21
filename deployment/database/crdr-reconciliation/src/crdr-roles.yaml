@@ -66,11 +66,18 @@ Resources:
             Version: '2012-10-17'
             Statement:
               - Effect: Allow
-                Action: 
+                Action:
                   - "rds:CopyDBClusterSnapshot"
                   - "rds:DescribeDBClusterSnapshots"
+                  - "rds:RestoreDBClusterFromSnapshot"
+                  - "rds:DescribeDBClusters"
+                  - "rds:CreateDBInstance"
+                  - "rds:DescribeDBInstances"
+                  - "rds:DeleteDBInstance"
+                  - "rds:DeleteDBCluster"
+                  - "rds:AddTagsToResource"
                 Resource: 
-                  - !Sub '{{resolve:secretsmanager:mr-app/orders-${SourceRegion}-${GlobalClusterIdentifier}${Env}}}'                  
+                  - !Sub '{{resolve:secretsmanager:mr-app/catalog-${SourceRegion}-${GlobalClusterIdentifier}${Env}}}'
                   - Fn::Join:
                     - ":"
                     - - "arn:aws:rds"
@@ -78,35 +85,49 @@ Resources:
                       - !Ref AWS::AccountId
                       - "cluster-snapshot"
                       - "rds"
-                      - "unplanned-global-failover-orders-dbcluster-01-us-east-1-*"
+                      - "unplanned-global-failover-catalog-dbcluster-01-us-east-1-*"
                   - Fn::Join:
                     - ":"
                     - - "arn:aws:rds"
                       - !Ref TargetRegion
                       - !Ref AWS::AccountId
                       - "cluster-snapshot"
-                      - "unplanned-global-failover-orders-dbcluster-01-us-east-1-*"
+                      - "unplanned-global-failover-catalog-dbcluster-01-us-east-1-*"
+                  - Fn::Join:
+                    - ":"
+                    - - "arn:aws:rds"
+                      - !Ref TargetRegion
+                      - !Ref AWS::AccountId
+                      - "cluster-snapshot"
+                      - "catalog-db-stack-*"
+                  - Fn::Join:
+                    - ":"
+                    - - "arn:aws:rds"
+                      - !Ref TargetRegion
+                      - !Ref AWS::AccountId
+                      - "cluster-snapshot"
+                      - "rds:catalog-dbcluster-*"
                   - Fn::Join:
                     - ":"
                     - - "arn:aws:rds"
                       - !Ref TargetRegion
                       - !Ref AWS::AccountId
                       - "cluster"
-                      - "orders-recon-dbcluster-*"
+                      - "catalog-recon-dbcluster-*"
                   - Fn::Join:
                     - ":"
                     - - "arn:aws:rds"
                       - !Ref TargetRegion
                       - !Ref AWS::AccountId
                       - "db"
-                      - "orders-recon-dbinstance-*"
+                      - "catalog-recon-dbinstance-*"
                   - Fn::Join:
                     - ":"
                     - - "arn:aws:rds"
                       - !Ref TargetRegion
                       - !Ref AWS::AccountId
                       - "subgrp"
-                      - "orders-recon-dbcluster-subnet-group"
+                      - "catalog-recon-dbcluster-subnet-group"
                 Condition:
                   StringEquals:
                     aws:ResourceAccount: !Sub ${AWS::AccountId}
@@ -120,8 +141,8 @@ Resources:
               - Effect: Allow
                 Action: ["kms:DescribeKey","kms:CreateGrant"]
                 Resource:  
-                  - !Sub '{{resolve:secretsmanager:mr-app/orders-${GlobalClusterIdentifier}-StorageEncryptionKeyArn${Env}}}'                
-                  - !Sub '{{resolve:secretsmanager:mr-app/orders-${TargetRegion}-${GlobalClusterIdentifier}-Snapshot-KeyArn${Env}}}' 
+                  - !Sub '{{resolve:secretsmanager:mr-app/catalog-${GlobalClusterIdentifier}-StorageEncryptionKeyArn${Env}}}'
+                  - !Sub '{{resolve:secretsmanager:mr-app/catalog-${TargetRegion}-${GlobalClusterIdentifier}-Snapshot-KeyArn${Env}}}' 
               - Effect: Allow
                 Action: ["lambda:InvokeAsync","lambda:InvokeFunction"]
                 Resource: 

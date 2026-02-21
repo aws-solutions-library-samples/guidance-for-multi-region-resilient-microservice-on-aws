@@ -13,15 +13,13 @@ logger.setLevel(logging.INFO)
 def lambda_handler(event, context):
 
     client = boto3.client('rds')
-    
+
     source_db_endpoint = event.get("source_db_endpoint")
     target_db_endpoint = event.get("target_db_endpoint")
     user_name = os.environ["user_name"]
     password = os.environ["password"]
-    # user_name = event.get("user_name")
-    # password = event.get("password")
     db_name = event.get("db_name")
-    
+
     src_results = []
     target_results = []
     try:
@@ -30,7 +28,7 @@ def lambda_handler(event, context):
         print("target db endpoint:" + str(target_db_endpoint))
         print("user:" + str(user_name))
         print("database:" + db_name)
-        
+
         try:
             src_conn = pymysql.connect(host=source_db_endpoint, user=user_name, passwd=password, db=db_name, connect_timeout=5)
 
@@ -38,9 +36,9 @@ def lambda_handler(event, context):
             logger.error("ERROR: Unexpected error: Could not connect to MySQL instance.")
             logger.error(e)
             sys.exit(1)
-        
+
         logger.info("SUCCESS: Connection to Source RDS for MySQL instance succeeded")
-        
+
         try:
             target_conn = pymysql.connect(host= target_db_endpoint, user=user_name, passwd=password, db=db_name, connect_timeout=5)
 
@@ -48,77 +46,75 @@ def lambda_handler(event, context):
             logger.error("ERROR: Unexpected error: Could not connect to MySQL instance.")
             logger.error(e)
             sys.exit(1)
-        
+
         logger.info("SUCCESS: Connection to Target RDS for MySQL instance succeeded")
-        
-        #get order ids from the fail-over DB in the DR region
-        src_rows= read_from_db("CUSTOMER_ORDER", src_conn)
+
+        #get product ids from the fail-over DB in the DR region
+        src_rows= read_from_db(src_conn)
         if len(src_rows) > 0:
             for (id) in src_rows:
-                print("Source order id:" + str(id))
+                print("Source product id:" + str(id))
                 src_results.append(id)
-        
-        print("Total no of orders in restored snapshot :" + str(len(src_results)))
-        
-        #get order ids from the restored snapshot in the DR region
-        target_rows= read_from_db("CUSTOMER_ORDER", target_conn)
+
+        print("Total no of products in restored snapshot :" + str(len(src_results)))
+
+        #get product ids from the restored snapshot in the DR region
+        target_rows= read_from_db(target_conn)
         if len(target_rows) > 0:
             for (id) in target_rows:
-                print("Target order id:" + str(id))
+                print("Target product id:" + str(id))
                 target_results.append(id)
-        print("Total no of orders in the fail-over DB in us-west-2:" + str(len(target_results)))
-        
-        
+        print("Total no of products in the fail-over DB in us-west-2:" + str(len(target_results)))
+
+
         final_results = []
-        
-        # find the diff of orders in the fail-over DB and the restored snapshot in the DR region
+
+        # find the diff of products in the fail-over DB and the restored snapshot in the DR region
         diff = find_diff(src_results, target_results)
-        
+
         cs_diff= ','.join([str(*i) for i in diff])
-        
+
         if len(diff) > 0:
             for (id) in diff:
-                final_results.append(read_all_orders_from_db(target_conn,id))
+                final_results.append(read_all_from_db(target_conn,id))
 
-        print("Total no of orders that are not in the fail-over DB in us-west-2:" + str(len(final_results)))        
+        print("Total no of products that are not in the fail-over DB in us-west-2:" + str(len(final_results)))
         target_conn.close()
         src_conn.close()
-            
+
         return final_results
-        
+
     except botocore.exceptions.ClientError as e:
         logger.error(e)
         raise
 
     return("reconcliation report generated!!!")
 
-def read_all_orders_from_db(conn, id):
+def read_all_from_db(conn, id):
     try:
         id_val= str(*id)
         new_cursor = conn.cursor()
-    
-        # query = "SELECT co.id,co.email, co.firstName, co.lastName,coi.productId, coi.name, coi.price FROM CUSTOMER_ORDER co INNER JOIN CUSTOMER_ORDER_ITEM coi ON co.id = coi.order_id where co.id IN (\"" + id_val + "\")" 
-        # query = "SELECT * from CUSTOMER_ORDER where id=" + "\"" + id_val + "\""
-        stmt = "SELECT * from CUSTOMER_ORDER where id=:id_val"
+
+        stmt = "SELECT * FROM product WHERE product_id = %s"
         print("Printing query:" + stmt)
-        new_cursor.execute(stmt, id_val=id)
+        new_cursor.execute(stmt, (id_val,))
         rows = new_cursor.fetchall()
         return rows
-        
+
     except Exception as e:
         print(e)
         return None
     finally:
         new_cursor.close()
-       
-        
-        
-def read_from_db(table_name, conn):
+
+
+
+def read_from_db(conn):
     try:
-      
+
         cursor = conn.cursor()
-        stmt = "SELECT id FROM :table_name"
-        cursor.execute(stmt, table_name=table_name)
+        stmt = "SELECT product_id FROM product"
+        cursor.execute(stmt)
         rows = cursor.fetchall()
         return rows
     except Exception as e:
@@ -126,20 +122,7 @@ def read_from_db(table_name, conn):
         return None
     finally:
         cursor.close()
-        
+
 
 def find_diff(list1: [], list2: []) -> []:
     return list(set(list1).difference(list2))
-
-
-
-
-
-
-
-
-
-
-
-
-

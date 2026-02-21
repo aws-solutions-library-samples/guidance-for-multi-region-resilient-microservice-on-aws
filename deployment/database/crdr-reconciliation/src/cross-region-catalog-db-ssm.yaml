@@ -26,7 +26,7 @@ Resources:
       Name: 
         Fn::Join:
         - "-"
-        - - "CRDR-SSMAutomation-Orders"
+        - - "CRDR-SSMAutomation-Catalog"
           - !Ref SourceRegion         
           - Fn::Select:
             - 0
@@ -50,14 +50,14 @@ Resources:
           - name: CopyFailoverSnapshot
             action: 'aws:executeScript'
             inputs:
-              Runtime: python3.7
+              Runtime: python3.11
               Handler: script_handler
               InputPayload:                
                 SourceDBsnapshotArn: !Sub "{{SourceDBsnapshotArn}}"                
                 automationid: '{{automation:EXECUTION_ID}}'
                 sourceregion: !Ref SourceRegion
                 targetregion: !Ref TargetRegion
-                kmstargetkey: !Sub '{{resolve:secretsmanager:mr-app/orders-${TargetRegion}-${GlobalClusterIdentifier}-Snapshot-KeyArn${Env}}}' 
+                kmstargetkey: !Sub '{{resolve:secretsmanager:mr-app/catalog-${TargetRegion}-${GlobalClusterIdentifier}-Snapshot-KeyArn${Env}}}' 
               Script: |-
                 def script_handler(event, context):
                   import boto3, json, os,botocore
@@ -88,7 +88,7 @@ Resources:
                         Tags=[
                                 {
                                     'Key': 'NamingPrefix',
-                                    'Value': 'orders'
+                                    'Value': 'catalog'
                                 },
                             ],
                         SourceRegion=sourceregion # This attribute will automatically generate presigned URL

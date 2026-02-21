@@ -284,15 +284,15 @@ restore-reconciliation: primary_infrastructure standby_infrastructure
 	@echo "Creating IAM Role for restore-reconcliation"
 	@aws cloudformation deploy --template ./database/crdr-reconciliation/src/crdr-roles.yaml --parameter-overrides KmsKey=retail-store-ar${ENV} Env=${ENV} --capabilities CAPABILITY_NAMED_IAM --stack-name crdr-roles${ENV}  --region ${PRIMARY_REGION}
 	@echo "Creating SSM automation runbook in ${PRIMARY_REGION}"
-	@aws cloudformation deploy --template ./database/crdr-reconciliation/src/cross-region-orders-db-ssm.yaml --parameter-overrides Env=${ENV} --capabilities CAPABILITY_NAMED_IAM --stack-name crdr-orders-ssm${ENV} --region ${PRIMARY_REGION}
+	@aws cloudformation deploy --template ./database/crdr-reconciliation/src/cross-region-catalog-db-ssm.yaml --parameter-overrides Env=${ENV} --capabilities CAPABILITY_NAMED_IAM --stack-name crdr-catalog-ssm${ENV} --region ${PRIMARY_REGION}
 
 	@echo "Creating reconciliation resources in ${STANDBY_REGION}"
 	@echo "Step 1:Building Lambda Layers"
 	./build-lambda-layer.sh
 	@echo "Step 2:Deploying Lambda and SSM Runbook"
 	$(eval result:=$(shell aws ssm get-parameter --name canaryBucketName$(ENV) --region $(STANDBY_REGION) --query "Parameter.Value" --output text ))
-	@aws cloudformation package --template-file ./database/crdr-reconciliation/src/restore-reconcile-orders-ssm.yaml --region ${STANDBY_REGION} --s3-bucket $(result) --output-template-file ./database/crdr-reconciliation/src/out.yaml
-	@aws cloudformation deploy --template-file ./database/crdr-reconciliation/src/out.yaml --stack-name reconciliation-orders-ssm${ENV} --region ${STANDBY_REGION} --capabilities CAPABILITY_NAMED_IAM --parameter-overrides Env=${ENV}
+	@aws cloudformation package --template-file ./database/crdr-reconciliation/src/restore-reconcile-catalog-ssm.yaml --region ${STANDBY_REGION} --s3-bucket $(result) --output-template-file ./database/crdr-reconciliation/src/out.yaml
+	@aws cloudformation deploy --template-file ./database/crdr-reconciliation/src/out.yaml --stack-name reconciliation-catalog-ssm${ENV} --region ${STANDBY_REGION} --capabilities CAPABILITY_NAMED_IAM --parameter-overrides Env=${ENV}
 
 monitoring: restore-reconciliation
 	@echo "Deploy the Monitoring Dashboard"
@@ -357,9 +357,9 @@ destroy-restore-reconciliation-ssm: destroy-monitoring
 	echo "Deleting Aurora database instances and clusters in ${STANDBY_REGION} region..."
 	./clean-up-aurora-cluster.sh ${STANDBY_REGION}
 	@echo "Deleting SSM automation runbook in ${PRIMARY_REGION}"
-	@aws cloudformation delete-stack --stack-name crdr-orders-ssm${ENV} --region ${PRIMARY_REGION}
-	@aws cloudformation delete-stack --stack-name reconciliation-orders-ssm${ENV} --region ${STANDBY_REGION}
-	@aws cloudformation wait stack-delete-complete --stack-name reconciliation-orders-ssm${ENV} --region ${STANDBY_REGION}
+	@aws cloudformation delete-stack --stack-name crdr-catalog-ssm${ENV} --region ${PRIMARY_REGION}
+	@aws cloudformation delete-stack --stack-name reconciliation-catalog-ssm${ENV} --region ${STANDBY_REGION}
+	@aws cloudformation wait stack-delete-complete --stack-name reconciliation-catalog-ssm${ENV} --region ${STANDBY_REGION}
 	@echo "Deleting IAM Role for restore-reconcliation"
 	@aws cloudformation delete-stack --stack-name crdr-roles${ENV} --region ${PRIMARY_REGION}
 
