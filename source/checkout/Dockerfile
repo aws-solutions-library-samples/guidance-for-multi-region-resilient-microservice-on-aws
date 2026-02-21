@@ -1,4 +1,4 @@
-FROM node:16.3-alpine3.12
+FROM node:20-alpine3.21
 #
 #RUN yum install -q -y libstdc++.i686 glibc.i686 tar gzip xz shadow-utils && \
 #    yum clean all

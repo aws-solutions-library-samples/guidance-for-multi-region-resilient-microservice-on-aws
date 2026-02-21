@@ -1,4 +1,4 @@
-FROM amazoncorretto:17-al2-full as build-env
+FROM amazoncorretto:17-al2023-full as build-env
 
 ARG JAR_PATH
 
@@ -16,13 +16,13 @@ COPY ./src ./src
 RUN ./mvnw -DskipTests package -q && mv ./target/orders-0.0.1-SNAPSHOT.jar /app.jar
 
 # Package Stage
-FROM amazoncorretto:17-al2-full
+FROM amazoncorretto:17-al2023-full
 
 ARG aws_opentelemetry_agent_version=1.24.0
 
-RUN yum install -q -y \
+RUN dnf install -q -y \
     shadow-utils wget && \
-    yum clean all
+    dnf clean all
 
 ENV APPUSER=appuser
 ENV APPUID=1000

@@ -22,7 +22,7 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 
 import org.springframework.http.HttpHeaders;
-import org.springframework.util.Base64Utils;
+import java.util.Base64;
 import org.springframework.util.MultiValueMap;
 
 @jakarta.annotation.Generated(value = "org.openapitools.codegen.languages.JavaClientCodegen", date = "2020-06-30T15:47:44.774503-07:00[America/Los_Angeles]")
