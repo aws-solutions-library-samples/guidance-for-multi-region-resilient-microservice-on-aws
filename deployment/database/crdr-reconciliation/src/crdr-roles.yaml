@@ -112,6 +112,13 @@ Resources:
                     - - "arn:aws:rds"
                       - !Ref TargetRegion
                       - !Ref AWS::AccountId
+                      - "cluster-snapshot"
+                      - "catalog-recon-test-*"
+                  - Fn::Join:
+                    - ":"
+                    - - "arn:aws:rds"
+                      - !Ref TargetRegion
+                      - !Ref AWS::AccountId
                       - "cluster"
                       - "catalog-recon-dbcluster-*"
                   - Fn::Join:

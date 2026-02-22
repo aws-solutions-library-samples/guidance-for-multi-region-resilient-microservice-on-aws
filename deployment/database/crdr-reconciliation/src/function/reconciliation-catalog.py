@@ -10,14 +10,20 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
+def get_db_credentials():
+    secret_id = os.environ["DB_CREDENTIALS_SECRET_ID"]
+    sm_client = boto3.client('secretsmanager')
+    secret = json.loads(sm_client.get_secret_value(SecretId=secret_id)['SecretString'])
+    return secret['username'], secret['password']
+
+
 def lambda_handler(event, context):
 
     client = boto3.client('rds')
 
     source_db_endpoint = event.get("source_db_endpoint")
     target_db_endpoint = event.get("target_db_endpoint")
-    user_name = os.environ["user_name"]
-    password = os.environ["password"]
+    user_name, password = get_db_credentials()
     db_name = event.get("db_name")
 
     src_results = []

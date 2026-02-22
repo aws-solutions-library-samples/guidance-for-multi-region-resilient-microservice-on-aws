@@ -64,6 +64,15 @@ Resources:
       SourceSecurityGroupId: !Ref LambdaSecurityGroup
       GroupId: !Sub '{{resolve:ssm:catalog-aurora-mysql-sg-${AWS::Region}${Env}}}'
 
+  VPCEndpointSecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Sub '{{resolve:ssm:VPCEndpointSecretsManagerSGId${Env}}}'
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      SourceSecurityGroupId: !Ref LambdaSecurityGroup
+
   AutomationExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -110,12 +119,15 @@ Resources:
         Ipv6AllowedForDualStack: false
       Environment:
         Variables:
-          user_name: !Sub '{{resolve:secretsmanager:mr-app/catalog-${GlobalClusterIdentifier}-UserCredentials${Env}:SecretString:username}}'
-          password: !Sub '{{resolve:secretsmanager:mr-app/catalog-${GlobalClusterIdentifier}-UserCredentials${Env}:SecretString:password}}'
+          DB_CREDENTIALS_SECRET_ID: !Sub 'mr-app/catalog-${GlobalClusterIdentifier}-UserCredentials${Env}'
       Layers:
         - !Ref libs
       Policies:
         - Statement:
+          - Effect: Allow
+            Action:
+              - secretsmanager:GetSecretValue
+            Resource: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:mr-app/catalog-${GlobalClusterIdentifier}-UserCredentials${Env}-*'
           - Effect: Allow
             Action:
               - ec2:CreateNetworkInterface
