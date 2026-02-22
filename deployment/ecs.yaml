@@ -949,7 +949,10 @@ Resources:
       ContainerDefinitions:
         -
           Name: "checkout"
-          MountPoints: 
+          DependsOn:
+            - ContainerName: init
+              Condition: SUCCESS
+          MountPoints:
             - SourceVolume: opentelemetry-auto-instrumentation-node
               ContainerPath: /otel-auto-instrumentation-node
               ReadOnly: false

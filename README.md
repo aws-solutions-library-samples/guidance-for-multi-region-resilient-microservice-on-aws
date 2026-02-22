@@ -69,7 +69,7 @@ The sample application is an e-commerce platform. The front-end runs as a servic
     * Amazon CloudWatch
     * Amazon Simple Storage Service
     * Amazon Application Recovery Controller
-    
+
 * Install the latest version of AWS CLI v2 on your machine, including configuring the CLI for a specific account and region
 profile.  Please follow the [AWS CLI setup instructions](https://github.com/aws/aws-cli).  Make sure you have a 
 default profile set up; you may need to run `aws configure` if you have never set up the CLI before. 
@@ -206,6 +206,7 @@ The following table provides a sample cost breakdown for trying out this guidanc
 | Parameter Store | $0.00 | $0.00 | 50 standard parameters |
 | Secrets Manager | $20.00 | $240.00 | 50 secrets, 30-day duration |
 | KMS | $1.0003 | $12.00 | 1 CMK, 100 symmetric requests |
+| Application Recovery Controller | $70.00 | $840.00 | 1 Plan |
 
 ## Acknowledgement
 *AWS Pricing Calculator provides only an estimate of your AWS fees and doesn't include any taxes that might apply. Your actual fees depend on a variety of factors, including your actual usage of AWS services.*
