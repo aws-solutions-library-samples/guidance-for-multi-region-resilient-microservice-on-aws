@@ -380,7 +380,7 @@ destroy-peer_primary: destroy-peer_standby
 	@aws cloudformation delete-stack --stack-name baseVpc${ENV} --region ${PRIMARY_REGION}
 	@aws cloudformation wait stack-delete-complete --stack-name baseVpc${ENV} --region ${PRIMARY_REGION}
 
-destroy-apps-primary: destroy-global_routing
+destroy-apps-primary:
 	@echo "Cleaning up S3 Buckets in ${PRIMARY_REGION}..."
 	$(eval result:=$(shell aws ssm get-parameter --name canaryBucketName$(ENV) --region $(PRIMARY_REGION) --query "Parameter.Value" --output text ))
 	./cleanup.sh $(result)
@@ -389,7 +389,7 @@ destroy-apps-primary: destroy-global_routing
 	@aws cloudformation delete-stack --stack-name apps${ENV} --region ${PRIMARY_REGION}
 	@aws cloudformation wait stack-delete-complete --stack-name apps${ENV} --region ${PRIMARY_REGION}
 
-destroy-apps-standby: destroy-global_routing
+destroy-apps-standby:
 	@echo "Cleaning up S3 Buckets in ${STANDBY_REGION}..."
 	$(eval result:=$(shell aws ssm get-parameter --name canaryBucketName$(ENV) --region $(STANDBY_REGION) --query "Parameter.Value" --output text ))
 	./cleanup.sh $(result)
@@ -403,7 +403,7 @@ destroy-codebuild:
 	@aws cloudformation delete-stack --stack-name codebuild${ENV} --region ${PRIMARY_REGION}
 	@aws cloudformation wait stack-delete-complete --stack-name codebuild${ENV} --region ${PRIMARY_REGION}
 
-destroy-infra: destroy-ecr-standby destroy-ecr-primary destroy-databases-standby destroy-databases-primary destroy-client-primary destroy-client-standby destroy-codebuild destroy-secrets-rotation destroy-restore-reconciliation-ssm destroy-monitoring destroy-chaos-engineering
+destroy-infra: destroy-ecr-standby destroy-ecr-primary destroy-databases-standby destroy-databases-primary destroy-client-primary destroy-client-standby destroy-codebuild destroy-secrets-rotation destroy-restore-reconciliation-ssm destroy-monitoring destroy-chaos-engineering destroy-global_routing
 	@echo "Deleting networking resources in ${STANDBY_REGION}..."
 	@aws cloudformation delete-stack --stack-name baseInfra${ENV} --region ${STANDBY_REGION}
 	@aws cloudformation wait stack-delete-complete --stack-name baseInfra${ENV} --region ${STANDBY_REGION}
