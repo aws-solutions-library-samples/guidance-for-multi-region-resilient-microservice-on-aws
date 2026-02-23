@@ -317,7 +317,7 @@ test-creds:
 # Destroy targets
 ####
 
-destroy-all: destroy-peer destroy-restore-reconciliation-ssm destroy-chaos-engineering
+destroy-all: destroy-peer
 	@echo "Removed all cloudformation stacks!!!"
 
 destroy-chaos-engineering:
@@ -363,7 +363,7 @@ destroy-ecr-standby: destroy-apps-standby
 	@aws ecr delete-repository --force --repository-name assets${ENV} --region $(STANDBY_REGION) --no-cli-pager || true
 	@aws ecr delete-repository --force --repository-name orders${ENV} --region $(STANDBY_REGION) --no-cli-pager || true
 
-destroy-global_routing: destroy-canaries-standby destroy-canaries-primary destroy-region-switch destroy-restore-reconciliation-ssm
+destroy-global_routing: destroy-canaries-standby destroy-canaries-primary destroy-region-switch
 	@echo "Deleting global routing stack..."
 	@aws cloudformation delete-stack --stack-name gr${ENV} --region ${PRIMARY_REGION}
 	@aws cloudformation wait stack-delete-complete --stack-name gr${ENV} --region ${PRIMARY_REGION}
@@ -403,7 +403,7 @@ destroy-codebuild:
 	@aws cloudformation delete-stack --stack-name codebuild${ENV} --region ${PRIMARY_REGION}
 	@aws cloudformation wait stack-delete-complete --stack-name codebuild${ENV} --region ${PRIMARY_REGION}
 
-destroy-infra: destroy-ecr-standby destroy-ecr-primary destroy-databases-standby destroy-databases-primary destroy-client-primary destroy-client-standby destroy-codebuild
+destroy-infra: destroy-ecr-standby destroy-ecr-primary destroy-databases-standby destroy-databases-primary destroy-client-primary destroy-client-standby destroy-codebuild destroy-secrets-rotation destroy-restore-reconciliation-ssm destroy-monitoring destroy-chaos-engineering
 	@echo "Deleting networking resources in ${STANDBY_REGION}..."
 	@aws cloudformation delete-stack --stack-name baseInfra${ENV} --region ${STANDBY_REGION}
 	@aws cloudformation wait stack-delete-complete --stack-name baseInfra${ENV} --region ${STANDBY_REGION}
@@ -426,7 +426,7 @@ destroy-region-switch:
 	@aws cloudformation delete-stack --stack-name region-switch${ENV} --region ${PRIMARY_REGION}
 	@aws cloudformation wait stack-delete-complete --stack-name region-switch${ENV} --region ${PRIMARY_REGION}
 
-destroy-databases-primary: destroy-secrets-rotation destroy-apps-primary destroy-databases-standby
+destroy-databases-primary: destroy-apps-primary destroy-databases-standby
 	@echo "Deleting databases in ${PRIMARY_REGION}..."
 	@aws cloudformation delete-stack --stack-name catalog-db-stack${ENV} --region ${PRIMARY_REGION}
 	@aws cloudformation delete-stack --stack-name orders-dsql-stack${ENV} --region ${PRIMARY_REGION}
