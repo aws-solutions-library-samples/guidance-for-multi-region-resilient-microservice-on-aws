@@ -4,17 +4,25 @@ import (
 	"catalog/config"
 	"catalog/model"
 	"context"
+	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"strings"
+	"sync"
+	"time"
+
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/dlmiddlecote/sqlstats"
+	"github.com/go-sql-driver/mysql"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mysql"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jmoiron/sqlx"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/signalfx/splunk-otel-go/instrumentation/github.com/jmoiron/sqlx/splunksqlx"
-	"log"
-	"strings"
 )
 
 // ErrNotFound is returned when there is no product for a given ID.
@@ -30,11 +38,72 @@ type mySQLRepository struct {
 	readerDb *sqlx.DB
 }
 
-func newMySQLRepository(config config.DatabaseConfiguration) (Repository, error) {
-	connectionString := fmt.Sprintf("%s:%s@tcp(%s)/%s?timeout=%ds", config.User, config.Password, config.Endpoint, config.Name, config.ConnectTimeout)
+// credentialCache fetches and caches DB credentials from Secrets Manager with a TTL.
+type credentialCache struct {
+	client   *secretsmanager.Client
+	secretId string
 
-	if config.Migrate {
-		err := migrateMySQL(connectionString, config.MigrationsPath)
+	mu       sync.Mutex
+	username string
+	password string
+	expiry   time.Time
+}
+
+const credentialCacheTTL = 5 * time.Minute
+
+// get returns cached credentials, refreshing from Secrets Manager if expired.
+func (c *credentialCache) get(ctx context.Context) (string, string, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if time.Now().Before(c.expiry) {
+		return c.username, c.password, nil
+	}
+
+	username, password, err := fetchCredentials(ctx, c.client, c.secretId)
+	if err != nil {
+		// If we have stale credentials, return them rather than failing
+		if c.username != "" {
+			log.Printf("Warning: failed to refresh credentials, using cached: %v", err)
+			return c.username, c.password, nil
+		}
+		return "", "", err
+	}
+
+	c.username = username
+	c.password = password
+	c.expiry = time.Now().Add(credentialCacheTTL)
+	return username, password, nil
+}
+
+// fetchCredentials retrieves username/password from a Secrets Manager secret.
+func fetchCredentials(ctx context.Context, client *secretsmanager.Client, secretId string) (string, string, error) {
+	out, err := client.GetSecretValue(ctx, &secretsmanager.GetSecretValueInput{
+		SecretId: &secretId,
+	})
+	if err != nil {
+		return "", "", fmt.Errorf("GetSecretValue(%s): %w", secretId, err)
+	}
+
+	var secret struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+	if err := json.Unmarshal([]byte(*out.SecretString), &secret); err != nil {
+		return "", "", fmt.Errorf("unmarshal secret: %w", err)
+	}
+	return secret.Username, secret.Password, nil
+}
+
+func newMySQLRepository(cfg config.DatabaseConfiguration) (Repository, error) {
+	if cfg.CredentialsSecretId != "" {
+		return newMySQLRepositoryWithSecretsManager(cfg)
+	}
+
+	connectionString := fmt.Sprintf("%s:%s@tcp(%s)/%s?timeout=%ds", cfg.User, cfg.Password, cfg.Endpoint, cfg.Name, cfg.ConnectTimeout)
+
+	if cfg.Migrate {
+		err := migrateMySQL(connectionString, cfg.MigrationsPath)
 		if err != nil {
 			log.Println("Error: Failed to run migration", err)
 			return nil, err
@@ -46,15 +115,14 @@ func newMySQLRepository(config config.DatabaseConfiguration) (Repository, error)
 
 	var readerDb *sqlx.DB
 
-	db, err := createConnection(config.Endpoint, config.User, config.Password, config.Name, config.ConnectTimeout)
+	db, err := createConnection(cfg.Endpoint, cfg.User, cfg.Password, cfg.Name, cfg.ConnectTimeout)
 	if err != nil {
 		log.Println("Error: Unable to connect to database", err)
 		return nil, err
 	}
 
-	if len(config.ReadEndpoint) > 0 {
-
-		readerDb, err = createConnection(config.ReadEndpoint, config.User, config.Password, config.Name, config.ConnectTimeout)
+	if len(cfg.ReadEndpoint) > 0 {
+		readerDb, err = createConnection(cfg.ReadEndpoint, cfg.User, cfg.Password, cfg.Name, cfg.ConnectTimeout)
 		if err != nil {
 			log.Println("Error: Unable to connect to reader database", err)
 			return nil, err
@@ -67,6 +135,99 @@ func newMySQLRepository(config config.DatabaseConfiguration) (Repository, error)
 		db:       db,
 		readerDb: readerDb,
 	}, nil
+}
+
+func newMySQLRepositoryWithSecretsManager(cfg config.DatabaseConfiguration) (Repository, error) {
+	ctx := context.Background()
+
+	awsCfg, err := awsconfig.LoadDefaultConfig(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("load AWS config: %w", err)
+	}
+
+	smClient := secretsmanager.NewFromConfig(awsCfg)
+	cache := &credentialCache{
+		client:   smClient,
+		secretId: cfg.CredentialsSecretId,
+	}
+
+	// Fetch initial credentials for migration and connectivity check
+	username, password, err := cache.get(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("fetch initial credentials: %w", err)
+	}
+	log.Printf("Fetched DB credentials from Secrets Manager")
+
+	connectionString := fmt.Sprintf("%s:%s@tcp(%s)/%s?timeout=%ds", username, password, cfg.Endpoint, cfg.Name, cfg.ConnectTimeout)
+
+	if cfg.Migrate {
+		err := migrateMySQL(connectionString, cfg.MigrationsPath)
+		if err != nil {
+			log.Println("Error: Failed to run migration", err)
+			return nil, err
+		}
+		log.Printf("Schema migration applied")
+	} else {
+		log.Printf("Skipping schema migration")
+	}
+
+	db, err := createConnectionWithBeforeConnect(cfg.Endpoint, cfg.Name, cfg.ConnectTimeout, cache)
+	if err != nil {
+		log.Println("Error: Unable to connect to database", err)
+		return nil, err
+	}
+
+	var readerDb *sqlx.DB
+	if len(cfg.ReadEndpoint) > 0 {
+		readerDb, err = createConnectionWithBeforeConnect(cfg.ReadEndpoint, cfg.Name, cfg.ConnectTimeout, cache)
+		if err != nil {
+			log.Println("Error: Unable to connect to reader database", err)
+			return nil, err
+		}
+	} else {
+		readerDb = db
+	}
+
+	return &mySQLRepository{
+		db:       db,
+		readerDb: readerDb,
+	}, nil
+}
+
+// createConnectionWithBeforeConnect creates a *sqlx.DB that refreshes credentials
+// from Secrets Manager via a BeforeConnect hook on every new underlying connection.
+func createConnectionWithBeforeConnect(endpoint, name string, timeout int, cache *credentialCache) (*sqlx.DB, error) {
+	log.Printf("Connecting to %s/%s?timeout=%ds (with BeforeConnect)", endpoint, name, timeout)
+
+	mysqlCfg, err := mysql.ParseDSN(fmt.Sprintf("placeholder:placeholder@tcp(%s)/%s?timeout=%ds", endpoint, name, timeout))
+	if err != nil {
+		return nil, fmt.Errorf("parse DSN: %w", err)
+	}
+
+	// BeforeConnect is called before each new connection; inject fresh credentials.
+	mysqlCfg.Apply(mysql.BeforeConnect(func(ctx context.Context, cfg *mysql.Config) error {
+		username, password, err := cache.get(ctx)
+		if err != nil {
+			return fmt.Errorf("refresh credentials: %w", err)
+		}
+		cfg.User = username
+		cfg.Passwd = password
+		return nil
+	}))
+
+	connector, err := mysql.NewConnector(mysqlCfg)
+	if err != nil {
+		return nil, fmt.Errorf("new connector: %w", err)
+	}
+
+	db := sqlx.NewDb(sql.OpenDB(connector), "mysql")
+
+	if err := db.Ping(); err != nil {
+		return nil, err
+	}
+
+	log.Printf("Connected")
+	return db, nil
 }
 
 func createConnection(endpoint string, username string, password string, name string, timeout int) (*sqlx.DB, error) {

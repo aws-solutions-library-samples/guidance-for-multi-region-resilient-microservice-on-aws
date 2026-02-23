@@ -5,11 +5,11 @@ STANDBY_REGION=us-west-2
 ####
 
 ####
-# Generate Tag basedon git commit ref
-#TAG=$(shell git rev-parse --short HEAD)
-$(eval TAG:=$(shell LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 7))
-# Generate Tag based on date hash
-# TAG=$(date|sum|awk '{print $1}')
+# Tag based on git commit — deterministic so ECR cache checks work.
+# During development (uncommitted changes), builds always run.
+# After committing, builds are skipped if the image already exists in ECR.
+TAG := $(shell git rev-parse --short HEAD)
+SOURCE_CLEAN := $(shell git diff --quiet HEAD -- ../source 2>/dev/null && echo true || echo false)
 
 AWS_ACCOUNT_ID := $(shell aws sts get-caller-identity --output text|awk '{print $$1}')
 AWS_PAGER:=''
@@ -26,7 +26,7 @@ endif
 
 deploy-all: test-creds create-peer primary_infrastructure primary_ecs standby_infrastructure standby_ecs global_routing \
 	canaries_primary canaries_standby region-switch client-primary client-standby restore-reconciliation monitoring \
-	secrets-rotation chaos-engineering restart-ecs-services
+	secrets-rotation chaos-engineering
 
 deploy-primary: test-creds create-peer primary_infrastructure primary_ecs client-primary
 	@echo "Deploy the Synthetic Canaries in ${PRIMARY_REGION}"
@@ -80,91 +80,75 @@ codebuild-infra: primary_infrastructure
 	--stack-name codebuild${ENV} --capabilities CAPABILITY_NAMED_IAM \
 	--parameter-overrides Env=${ENV} PrimaryRegion=${PRIMARY_REGION} StandbyRegion=${STANDBY_REGION} KmsKey=retail-store-ar
 
-# Internal helper: package source, upload to S3, trigger CodeBuild, poll until complete
-# Usage: $(call codebuild-build,SERVICE_NAME,SOURCE_DIR)
-# NOTE: Build ID is captured via shell variable (not $(eval)) to ensure the build
-# starts AFTER the S3 upload completes. Using $(eval $(shell ...)) would cause the
-# build to start at recipe-expansion time, before the upload command runs.
-define codebuild-build
-	$(eval _BUCKET:=$(shell aws ssm get-parameter --name canaryBucketName$(ENV) --region $(PRIMARY_REGION) --query "Parameter.Value" --output text))
-	@echo "Packaging $(1) source from ../source/$(2)..."
-	@cd ../source/$(2) && zip -r -q /tmp/$(1)-source.zip . -x '*.git*'
-	@echo "Uploading $(1) source to S3..."
-	@aws s3 cp /tmp/$(1)-source.zip s3://$(_BUCKET)/codebuild/source.zip --region $(PRIMARY_REGION)
-	@rm -f /tmp/$(1)-source.zip
-	@echo "Starting CodeBuild for $(1) with tag ${TAG}..."
-	@BUILD_ID=$$(aws codebuild start-build \
-		--project-name $(CODEBUILD_PROJECT) \
-		--source-type-override S3 \
-		--source-location-override $(_BUCKET)/codebuild/source.zip \
-		--environment-variables-override \
-			name=SERVICE_NAME,value=$(1),type=PLAINTEXT \
-			name=TAG,value=${TAG},type=PLAINTEXT \
-			name=ENV_SUFFIX,value=${ENV},type=PLAINTEXT \
-			name=PRIMARY_REGION,value=${PRIMARY_REGION},type=PLAINTEXT \
-			name=STANDBY_REGION,value=${STANDBY_REGION},type=PLAINTEXT \
-			name=PRIMARY_ONLY,value=${PRIMARY_ONLY},type=PLAINTEXT \
-		--region $(PRIMARY_REGION) \
-		--query 'build.id' --output text) && \
-	echo "Build started: $$BUILD_ID" && \
-	echo "Waiting for CodeBuild to complete..." && \
-	while true; do \
-		STATUS=$$(aws codebuild batch-get-builds --ids $$BUILD_ID --region $(PRIMARY_REGION) --query 'builds[0].buildStatus' --output text 2>/dev/null || echo "POLL_ERROR"); \
-		if [ "$$STATUS" = "SUCCEEDED" ]; then \
-			echo "CodeBuild for $(1) completed successfully"; \
-			break; \
-		elif [ "$$STATUS" = "IN_PROGRESS" ]; then \
-			echo "  ...still building $(1)"; \
-			sleep 15; \
-		elif [ "$$STATUS" = "POLL_ERROR" ] || [ -z "$$STATUS" ]; then \
-			echo "  ...retrying status check for $(1)"; \
-			sleep 15; \
-		else \
-			echo "CodeBuild for $(1) failed with status: $$STATUS"; \
-			echo "View logs: aws codebuild batch-get-builds --ids $$BUILD_ID --region $(PRIMARY_REGION)"; \
-			exit 1; \
-		fi; \
-	done
-endef
-
 ecr-login:
 	@echo "ECR login is handled by CodeBuild — skipping"
 
-build-catalog-primary: primary_infrastructure standby_infrastructure codebuild-infra
-	$(call codebuild-build,catalog,catalog)
+# Service definitions — name:source_dir
+SERVICES := catalog:catalog checkout:checkout ui:ui carts:cart assets:assets orders:orders
 
-build-catalog-standby: build-catalog-primary
-	@echo "catalog image already pushed to both regions by CodeBuild"
-
-build-checkout-primary: primary_infrastructure standby_infrastructure codebuild-infra
-	$(call codebuild-build,checkout,checkout)
-
-build-checkout-standby: build-checkout-primary
-	@echo "checkout image already pushed to both regions by CodeBuild"
-
-build-ui-primary: primary_infrastructure standby_infrastructure codebuild-infra
-	$(call codebuild-build,ui,ui)
-
-build-ui-standby: build-ui-primary
-	@echo "ui image already pushed to both regions by CodeBuild"
-
-build-carts-primary: primary_infrastructure standby_infrastructure codebuild-infra
-	$(call codebuild-build,carts,cart)
-
-build-carts-standby: build-carts-primary
-	@echo "carts image already pushed to both regions by CodeBuild"
-
-build-assets-primary: primary_infrastructure standby_infrastructure codebuild-infra
-	$(call codebuild-build,assets,assets)
-
-build-assets-standby: build-assets-primary
-	@echo "assets image already pushed to both regions by CodeBuild"
-
-build-orders-primary: primary_infrastructure standby_infrastructure codebuild-infra
-	$(call codebuild-build,orders,orders)
-
-build-orders-standby: build-orders-primary
-	@echo "orders image already pushed to both regions by CodeBuild"
+# Build all container images in parallel via CodeBuild.
+# Skips services whose image already exists in ECR (when source tree is clean).
+build-images: primary_infrastructure standby_infrastructure codebuild-infra
+	@BUCKET=$$(aws ssm get-parameter --name canaryBucketName$(ENV) --region $(PRIMARY_REGION) \
+		--query "Parameter.Value" --output text); \
+	BUILD_IDS=""; \
+	for ENTRY in $(SERVICES); do \
+		SVC=$${ENTRY%%:*}; \
+		SRC=$${ENTRY##*:}; \
+		if [ "$(SOURCE_CLEAN)" = "true" ] && \
+		   aws ecr describe-images --repository-name $${SVC}$(ENV) \
+		     --image-ids imageTag=$(TAG) --region $(PRIMARY_REGION) >/dev/null 2>&1; then \
+			echo "$$SVC:$(TAG) already in ECR and source is clean — skipping"; \
+			continue; \
+		fi; \
+		echo "Packaging $$SVC source from ../source/$$SRC..."; \
+		(cd ../source/$$SRC && zip -r -q /tmp/$${SVC}-source.zip . -x '*.git*'); \
+		aws s3 cp /tmp/$${SVC}-source.zip s3://$$BUCKET/codebuild/$${SVC}-source.zip \
+			--region $(PRIMARY_REGION) --quiet; \
+		rm -f /tmp/$${SVC}-source.zip; \
+		echo "Starting CodeBuild for $$SVC with tag $(TAG)..."; \
+		BID=$$(aws codebuild start-build \
+			--project-name $(CODEBUILD_PROJECT) \
+			--source-type-override S3 \
+			--source-location-override $$BUCKET/codebuild/$${SVC}-source.zip \
+			--environment-variables-override \
+				name=SERVICE_NAME,value=$$SVC,type=PLAINTEXT \
+				name=TAG,value=$(TAG),type=PLAINTEXT \
+				name=ENV_SUFFIX,value=$(ENV),type=PLAINTEXT \
+				name=PRIMARY_REGION,value=$(PRIMARY_REGION),type=PLAINTEXT \
+				name=STANDBY_REGION,value=$(STANDBY_REGION),type=PLAINTEXT \
+				name=PRIMARY_ONLY,value=$(PRIMARY_ONLY),type=PLAINTEXT \
+			--region $(PRIMARY_REGION) \
+			--query 'build.id' --output text); \
+		echo "  Build started: $$BID"; \
+		BUILD_IDS="$$BUILD_IDS $$BID"; \
+	done; \
+	if [ -z "$$BUILD_IDS" ]; then \
+		echo "All images up to date — no builds needed"; \
+	else \
+		echo "Waiting for all CodeBuild jobs to complete..."; \
+		while true; do \
+			ALL_DONE=true; \
+			for BID in $$BUILD_IDS; do \
+				STATUS=$$(aws codebuild batch-get-builds --ids $$BID \
+					--region $(PRIMARY_REGION) \
+					--query 'builds[0].buildStatus' --output text 2>/dev/null || echo "POLL_ERROR"); \
+				if [ "$$STATUS" = "IN_PROGRESS" ] || [ "$$STATUS" = "POLL_ERROR" ] || [ -z "$$STATUS" ]; then \
+					ALL_DONE=false; \
+				elif [ "$$STATUS" != "SUCCEEDED" ]; then \
+					echo "Build $$BID failed with status: $$STATUS"; \
+					echo "View logs: aws codebuild batch-get-builds --ids $$BID --region $(PRIMARY_REGION)"; \
+					exit 1; \
+				fi; \
+			done; \
+			if [ "$$ALL_DONE" = "true" ]; then \
+				echo "All CodeBuild jobs completed successfully"; \
+				break; \
+			fi; \
+			echo "  ...still building"; \
+			sleep 15; \
+		done; \
+	fi
 
 ####
 # Infrastructure and ECS targets
@@ -175,7 +159,7 @@ primary_infrastructure: create-peer
 	@aws cloudformation deploy --template ./regionalBaseInfra.yaml --region ${PRIMARY_REGION} \
 	--stack-name baseInfra${ENV} --capabilities CAPABILITY_IAM --parameter-overrides Env=${ENV} KmsKey=retail-store-ar${ENV} PrimaryOnly=${PRIMARY_ONLY}
 
-primary_ecs: build-catalog-primary build-checkout-primary build-ui-primary build-carts-primary build-assets-primary build-orders-primary primary_region_catalog-db orders-dsql-db carts-db
+primary_ecs: build-images primary_region_catalog-db orders-dsql-db carts-db
 	@echo "Deploy ECS Services in ${PRIMARY_REGION}"
 	@aws cloudformation deploy --template ./ecs.yaml --region ${PRIMARY_REGION} \
 	--stack-name apps${ENV} --capabilities CAPABILITY_IAM --parameter-overrides Env=${ENV} Tag=${TAG} KmsKey=retail-store-ar${ENV}
@@ -185,7 +169,7 @@ standby_infrastructure: create-peer
 	@aws cloudformation deploy --template ./regionalBaseInfra.yaml --region ${STANDBY_REGION} \
 	--stack-name baseInfra${ENV} --capabilities CAPABILITY_IAM --parameter-overrides Env=${ENV} KmsKey=retail-store-ar${ENV}
 
-standby_ecs: build-catalog-standby build-checkout-standby build-ui-standby build-carts-standby build-assets-standby build-orders-standby standby_region_catalog-db orders-dsql-db-standby
+standby_ecs: build-images standby_region_catalog-db orders-dsql-db-standby
 	@echo "Deploy ECS Services in ${STANDBY_REGION}"
 	@aws cloudformation deploy --template ./ecs.yaml --region ${STANDBY_REGION} \
 	--stack-name apps${ENV} --capabilities CAPABILITY_IAM --parameter-overrides Env=${ENV} Tag=${TAG} KmsKey=retail-store-ar${ENV}
@@ -195,7 +179,7 @@ global_routing: standby_ecs primary_ecs
 	@aws cloudformation deploy --region ${PRIMARY_REGION} --template ./globalRouting.yaml \
 	--stack-name gr${ENV} --capabilities CAPABILITY_NAMED_IAM --parameter-overrides DomainName=demo${ENV}.io Env=${ENV} KmsKey=retail-store-ar${ENV}
 
-region-switch: global_routing
+region-switch-plan: global_routing
 	@echo "Deploy the ARC Region Switch Plan"
 	$(eval PRIMARY_CLUSTER_ARN:=$(shell aws secretsmanager get-secret-value \
 		--secret-id mr-app/ecs-cluster-arn-$(PRIMARY_REGION)$(ENV) \
@@ -207,6 +191,8 @@ region-switch: global_routing
 	--stack-name region-switch${ENV} --capabilities CAPABILITY_NAMED_IAM \
 	--parameter-overrides Env=${ENV} DomainName=demo${ENV}.io \
 	PrimaryClusterArn=$(PRIMARY_CLUSTER_ARN) StandbyClusterArn=$(STANDBY_CLUSTER_ARN)
+
+region-switch: region-switch-plan
 	@echo "Wiring plan health checks to Route53 records"
 	$(eval PLAN_ARN:=$(shell aws cloudformation describe-stacks \
 		--stack-name region-switch$(ENV) --region $(PRIMARY_REGION) \
@@ -283,7 +269,7 @@ client-standby: standby_infrastructure
 	@echo "Creating Windows client for testing purposes in ${STANDBY_REGION}"
 	@aws cloudformation deploy --template ./windows.yaml --parameter-overrides Env=${ENV} SubnetId=${subnet} VpcId=${vpc} KmsKey=retail-store-ar${ENV} --region ${STANDBY_REGION} --capabilities CAPABILITY_IAM --stack-name client${ENV}
 
-restore-reconciliation: primary_infrastructure standby_infrastructure
+restore-reconciliation: primary_infrastructure standby_infrastructure standby_region_catalog-db
 	@echo "Creating IAM Role for restore-reconcliation"
 	@aws cloudformation deploy --template ./database/crdr-reconciliation/src/crdr-roles.yaml --parameter-overrides KmsKey=retail-store-ar${ENV} Env=${ENV} --capabilities CAPABILITY_NAMED_IAM --stack-name crdr-roles${ENV}  --region ${PRIMARY_REGION}
 	@echo "Creating SSM automation runbook in ${PRIMARY_REGION}"
@@ -311,15 +297,8 @@ secrets-rotation: primary_region_catalog-db
 	@aws cloudformation package --template-file ./database/secrets-rotation/src/secrets-rotation.yaml --region ${PRIMARY_REGION} --s3-bucket $(result) --output-template-file ./database/secrets-rotation/src/out.yaml
 	@aws cloudformation deploy --template-file ./database/secrets-rotation/src/out.yaml --stack-name secrets-rotation${ENV} --region ${PRIMARY_REGION} --capabilities CAPABILITY_NAMED_IAM --parameter-overrides Env=${ENV} CatalogDBCredentialsSecretId=mr-app/catalog-global-db-cluster-UserCredentials${ENV}
 
-restart-ecs-services:
-	@echo "Restarting ECS Services"
-	@if [ -z "${ENV}" ]; then \
-		./restart-services.sh --services catalog,orders; \
-	else \
-		./restart-services.sh --env ${ENV} --services catalog,orders; \
-	fi
 
-chaos-engineering: create-peer
+chaos-engineering: primary_infrastructure standby_infrastructure
 	@echo "Creating chaos experiments in ${PRIMARY_REGION}"
 	$(eval result:=$(shell aws ssm get-parameter --name canaryBucketName$(ENV) --region $(PRIMARY_REGION) --query "Parameter.Value" --output text ))
 	@aws cloudformation deploy --template-file ./chaos/multi-region-scenario.yaml --stack-name chaos${ENV} --region ${PRIMARY_REGION} --capabilities CAPABILITY_NAMED_IAM --parameter-overrides Env=${ENV} Region=${STANDBY_REGION}

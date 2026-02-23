@@ -141,115 +141,8 @@ Resources:
             reason: "Wildcard permissions are required for FIS experiments to cover transit gateway attachments."
             appliesTo: ["Resource::arn:aws:ec2:*:*:transit-gateway-attachment/*"]
           - id: AwsSolutions-IAM5
-            reason: "Wildcard permissions are required for FIS experiments to cover S3 buckets."
-            appliesTo: ["Resource::arn:aws:s3:::*"]
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard permissions are required for FIS experiments to cover DynamoDB tables."
-            appliesTo: ["Resource::arn:aws:dynamodb:*:*:table/*"]
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard permissions are required for FIS experiments to cover DynamoDB global tables."
-            appliesTo: ["Resource::arn:aws:dynamodb:*:*:global-table/*"]
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard permissions are required for FIS experiments to cover KMS keys."
-            appliesTo: ["Resource::arn:aws:kms:*:*:key/*"]
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard permissions are required for FIS experiments to cover network ACLs."
-            appliesTo: ["Resource::arn:aws:ec2:*:*:network-acl/*"]
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard permissions are required for FIS experiments to cover RDS clusters."
-            appliesTo: ["Resource::arn:aws:rds:*:*:cluster:*"]
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard permissions are required for FIS experiments to cover RDS databases."
-            appliesTo: ["Resource::arn:aws:rds:*:*:db:*"]
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard permissions are required for FIS experiments to cover ElastiCache replication groups."
-            appliesTo: ["Resource::arn:aws:elasticache:*:*:replicationgroup:*"]
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard permissions are required for FIS experiments to cover EC2 instances."
-            appliesTo: ["Resource::arn:aws:ec2:*:*:instance/*"]
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard permissions are required for FIS experiments to cover EBS volumes."
-            appliesTo: ["Resource::arn:aws:ec2:*:*:volume/*"]
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard actions are required for FIS experiments to manage EC2 resources."
-            appliesTo: ["Action::ec2:*"]
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard actions are required for FIS experiments to manage S3 resources."
-            appliesTo: ["Action::s3:*"]
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard actions are required for FIS experiments to manage DynamoDB resources."
-            appliesTo: ["Action::dynamodb:*"]
-      cdk_nag:
-        rules_to_suppress:
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard permissions are required for FIS experiments to cover route tables."
-            appliesTo: [ "Resource::arn:aws:ec2:*:*:route-table/*" ]
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard permissions are required for FIS experiments to cover VPCs."
-            appliesTo: [ "Resource::arn:aws:ec2:*:*:vpc/*" ]
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard permissions are required for FIS experiments to cover network interfaces."
-            appliesTo: [ "Resource::arn:aws:ec2:*:*:network-interface/*" ]
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard permissions are required for FIS experiments to cover prefix lists."
-            appliesTo: [ "Resource::arn:aws:ec2:*:*:prefix-list/*" ]
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard permissions are required for FIS experiments to cover subnets."
-            appliesTo: [ "Resource::arn:aws:ec2:*:*:subnet/*" ]
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard permissions are required for FIS experiments to cover security groups."
-            appliesTo: [ "Resource::arn:aws:ec2:*:*:security-group/*" ]
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard permissions are required for FIS experiments to cover all resources."
-            appliesTo: [ "Resource::*" ]
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard permissions are required for FIS experiments to cover VPC endpoints."
-            appliesTo: [ "Resource::arn:aws:ec2:*:*:vpc-endpoint/*" ]
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard permissions are required for FIS experiments to cover transit gateway route tables."
-            appliesTo: [ "Resource::arn:aws:ec2:*:*:transit-gateway-route-table/*" ]
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard permissions are required for FIS experiments to cover transit gateway attachments."
-            appliesTo: [ "Resource::arn:aws:ec2:*:*:transit-gateway-attachment/*" ]
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard permissions are required for FIS experiments to cover S3 buckets."
-            appliesTo: [ "Resource::arn:aws:s3:::*" ]
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard permissions are required for FIS experiments to cover DynamoDB tables."
-            appliesTo: [ "Resource::arn:aws:dynamodb:*:*:table/*" ]
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard permissions are required for FIS experiments to cover DynamoDB global tables."
-            appliesTo: [ "Resource::arn:aws:dynamodb:*:*:global-table/*" ]
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard permissions are required for FIS experiments to cover KMS keys."
-            appliesTo: [ "Resource::arn:aws:kms:*:*:key/*" ]
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard permissions are required for FIS experiments to cover network ACLs."
-            appliesTo: [ "Resource::arn:aws:ec2:*:*:network-acl/*" ]
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard permissions are required for FIS experiments to cover RDS clusters."
-            appliesTo: [ "Resource::arn:aws:rds:*:*:cluster:*" ]
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard permissions are required for FIS experiments to cover RDS databases."
-            appliesTo: [ "Resource::arn:aws:rds:*:*:db:*" ]
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard permissions are required for FIS experiments to cover ElastiCache replication groups."
-            appliesTo: [ "Resource::arn:aws:elasticache:*:*:replicationgroup:*" ]
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard permissions are required for FIS experiments to cover EC2 instances."
-            appliesTo: [ "Resource::arn:aws:ec2:*:*:instance/*" ]
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard permissions are required for FIS experiments to cover EBS volumes."
-            appliesTo: [ "Resource::arn:aws:ec2:*:*:volume/*" ]
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard actions are required for FIS experiments to manage EC2 resources."
-            appliesTo: [ "Action::ec2:*" ]
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard actions are required for FIS experiments to manage S3 resources."
-            appliesTo: [ "Action::s3:*" ]
-          - id: AwsSolutions-IAM5
-            reason: "Wildcard actions are required for FIS experiments to manage DynamoDB resources."
-            appliesTo: [ "Action::dynamodb:*" ]
+            reason: "Wildcard permissions are required for FIS experiments."
+            appliesTo: ["Resource::*"]
     Properties:
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -258,11 +151,18 @@ Resources:
             Principal:
               Service: fis.amazonaws.com
             Action: sts:AssumeRole
-      Policies:
-        - PolicyName: CrossRegionPolicy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
+      ManagedPolicyArns:
+        - !Ref CrossRegionRouteTablePolicy
+        - !Ref CrossRegionTransitS3DdbPolicy
+        - !Ref FISExperimentManagedPolicy
+        - !Ref AZDisruptionPolicy
+
+  CrossRegionRouteTablePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
             - Sid: RouteTableDisruptConnectivity1
               Effect: Allow
               Action: 'ec2:CreateRouteTable'
@@ -445,6 +345,12 @@ Resources:
               Condition:
                 StringEquals:
                   'aws:ResourceAccount': !Ref AWS::AccountId
+  CrossRegionTransitS3DdbPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
             - Sid: TransitGatewayDisruptConnectivity1
               Effect: Allow
               Action:
@@ -531,22 +437,26 @@ Resources:
               Condition:
                 StringEquals:
                   'aws:ResourceAccount': !Ref AWS::AccountId
-        - PolicyName: FISExperimentPolicy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'ec2:*'
-                  - 's3:*'
-                  - 'dynamodb:*'
-                Resource: '*'
-                Condition:
-                  StringEquals:
-                    aws:PrincipalAccount: !Sub "${AWS::AccountId}"
-                    aws:ResourceAccount: !Ref 'AWS::AccountId'
-        - PolicyName: AZDisruptionPolicy
-          PolicyDocument:
+  FISExperimentManagedPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'ec2:*'
+              - 's3:*'
+              - 'dynamodb:*'
+            Resource: '*'
+            Condition:
+              StringEquals:
+                aws:PrincipalAccount: !Sub "${AWS::AccountId}"
+                aws:ResourceAccount: !Ref 'AWS::AccountId'
+  AZDisruptionPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
             Version: '2012-10-17'
             Statement:
               - Sid: AllowRouteTableDisruptions
