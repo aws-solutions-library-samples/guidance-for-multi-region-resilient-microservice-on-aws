@@ -342,8 +342,6 @@ destroy-restore-reconciliation-ssm: destroy-monitoring
 	@aws cloudformation delete-stack --stack-name crdr-catalog-ssm${ENV} --region ${PRIMARY_REGION}
 	@aws cloudformation delete-stack --stack-name reconciliation-catalog-ssm${ENV} --region ${STANDBY_REGION}
 	@aws cloudformation wait stack-delete-complete --stack-name reconciliation-catalog-ssm${ENV} --region ${STANDBY_REGION}
-	@echo "Deleting IAM Role for restore-reconcliation"
-	@aws cloudformation delete-stack --stack-name crdr-roles${ENV} --region ${PRIMARY_REGION}
 
 destroy-ecr-primary: destroy-apps-primary
 	@echo "Deleting ECR Repos..."
@@ -426,7 +424,12 @@ destroy-region-switch:
 	@aws cloudformation delete-stack --stack-name region-switch${ENV} --region ${PRIMARY_REGION}
 	@aws cloudformation wait stack-delete-complete --stack-name region-switch${ENV} --region ${PRIMARY_REGION}
 
-destroy-databases-primary: destroy-apps-primary destroy-databases-standby destroy-secrets-rotation
+destroy-crdr-roles:
+	@echo "Deleting IAM Role for restore-reconciliation"
+	@aws cloudformation delete-stack --stack-name crdr-roles${ENV} --region ${PRIMARY_REGION}
+	@aws cloudformation wait stack-delete-complete --stack-name crdr-roles${ENV} --region ${PRIMARY_REGION}
+
+destroy-databases-primary: destroy-apps-primary destroy-databases-standby destroy-secrets-rotation destroy-crdr-roles
 	@echo "Deleting databases in ${PRIMARY_REGION}..."
 	@aws cloudformation delete-stack --stack-name catalog-db-stack${ENV} --region ${PRIMARY_REGION}
 	@aws cloudformation delete-stack --stack-name orders-dsql-stack${ENV} --region ${PRIMARY_REGION}
