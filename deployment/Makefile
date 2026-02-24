@@ -341,6 +341,7 @@ destroy-restore-reconciliation-ssm: destroy-monitoring
 	@echo "Deleting SSM automation runbook in ${PRIMARY_REGION}"
 	@aws cloudformation delete-stack --stack-name crdr-catalog-ssm${ENV} --region ${PRIMARY_REGION}
 	@aws cloudformation delete-stack --stack-name reconciliation-catalog-ssm${ENV} --region ${STANDBY_REGION}
+	@aws cloudformation wait stack-delete-complete --stack-name crdr-catalog-ssm${ENV} --region ${PRIMARY_REGION}
 	@aws cloudformation wait stack-delete-complete --stack-name reconciliation-catalog-ssm${ENV} --region ${STANDBY_REGION}
 
 destroy-ecr-primary: destroy-apps-primary
@@ -424,7 +425,7 @@ destroy-region-switch:
 	@aws cloudformation delete-stack --stack-name region-switch${ENV} --region ${PRIMARY_REGION}
 	@aws cloudformation wait stack-delete-complete --stack-name region-switch${ENV} --region ${PRIMARY_REGION}
 
-destroy-crdr-roles:
+destroy-crdr-roles: destroy-restore-reconciliation-ssm
 	@echo "Deleting IAM Role for restore-reconciliation"
 	@aws cloudformation delete-stack --stack-name crdr-roles${ENV} --region ${PRIMARY_REGION}
 	@aws cloudformation wait stack-delete-complete --stack-name crdr-roles${ENV} --region ${PRIMARY_REGION}

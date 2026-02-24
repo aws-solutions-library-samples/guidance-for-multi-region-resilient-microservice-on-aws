@@ -199,6 +199,11 @@ class TestDestroyOrdering:
 
     # -- Secrets / IAM role race conditions --
 
+    def test_reconciliation_ssm_before_crdr_roles(self, makefile_targets):
+        """SSM automation docs reference CRDRSSMAutomationRoleArn secret from crdr-roles stack.
+        SSM stacks must be deleted before crdr-roles (which owns the secret)."""
+        assert is_before(makefile_targets, "destroy-restore-reconciliation-ssm", "destroy-crdr-roles")
+
     def test_crdr_roles_before_databases_primary(self, makefile_targets):
         """crdr-roles IAM role references catalog DB secret."""
         assert is_before(makefile_targets, "destroy-crdr-roles", "destroy-databases-primary")
