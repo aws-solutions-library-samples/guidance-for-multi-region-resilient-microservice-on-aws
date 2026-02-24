@@ -149,6 +149,78 @@ Resources:
       FromPort: 443
       ToPort: 443
       SourceSecurityGroupId: !Ref sgTask
+  VPCEndpointECRApiSecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Sub '{{resolve:ssm:VPCEndpointECRApiSGId${Env}}}'
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      SourceSecurityGroupId: !GetAtt sgTask.GroupId
+  VPCEndpointECRDkrSecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Sub '{{resolve:ssm:VPCEndpointECRDkrSGId${Env}}}'
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      SourceSecurityGroupId: !GetAtt sgTask.GroupId
+  VPCEndpointLogsSecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Sub '{{resolve:ssm:VPCEndpointLogsSGId${Env}}}'
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      SourceSecurityGroupId: !GetAtt sgTask.GroupId
+  VPCEndpointSTSSecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Sub '{{resolve:ssm:VPCEndpointSTSSGId${Env}}}'
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      SourceSecurityGroupId: !GetAtt sgTask.GroupId
+  VPCEndpointKMSSecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Sub '{{resolve:ssm:VPCEndpointKMSSGId${Env}}}'
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      SourceSecurityGroupId: !GetAtt sgTask.GroupId
+  VPCEndpointMonitoringSecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Sub '{{resolve:ssm:VPCEndpointMonitoringSGId${Env}}}'
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      SourceSecurityGroupId: !GetAtt sgTask.GroupId
+  VPCEndpointXRaySecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Sub '{{resolve:ssm:VPCEndpointXRaySGId${Env}}}'
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      SourceSecurityGroupId: !GetAtt sgTask.GroupId
+  VPCEndpointECSSecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Sub '{{resolve:ssm:VPCEndpointECSSGId${Env}}}'
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      SourceSecurityGroupId: !GetAtt sgTask.GroupId
+  VPCEndpointDSQLSecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Sub '{{resolve:ssm:VPCEndpointDSQLSGId${Env}}}'
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      SourceSecurityGroupId: !GetAtt sgTask.GroupId
   sgAlb:
     Type: AWS::EC2::SecurityGroup
     Properties: 
@@ -465,7 +537,7 @@ Resources:
               awslogs-stream-prefix: ecs  
         -
           Name: ecs-cwagent
-          Image: public.ecr.aws/cloudwatch-agent/cloudwatch-agent:latest
+          Image: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/cloudwatch-agent${Env}:latest'
           Essential: true
           Secrets: 
             - Name: CW_CONFIG_CONTENT
@@ -479,7 +551,7 @@ Resources:
               awslogs-stream-prefix: ecs
         -
           Name: init
-          Image: public.ecr.aws/aws-observability/adot-autoinstrumentation-java:v1.32.5
+          Image: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/adot-autoinstrumentation-java${Env}:v1.32.5'
           Essential: false
           MountPoints: 
             - SourceVolume: opentelemetry-auto-instrumentation
@@ -593,7 +665,7 @@ Resources:
       ContainerDefinitions:
         -
           Name: ecs-cwagent
-          Image: public.ecr.aws/cloudwatch-agent/cloudwatch-agent:latest
+          Image: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/cloudwatch-agent${Env}:latest'
           Essential: true
           Secrets: 
             - Name: CW_CONFIG_CONTENT
@@ -607,7 +679,7 @@ Resources:
               awslogs-stream-prefix: ecs
         -
           Name: init
-          Image: public.ecr.aws/aws-observability/adot-autoinstrumentation-java:v1.32.5
+          Image: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/adot-autoinstrumentation-java${Env}:v1.32.5'
           Essential: false
           MountPoints: 
             - SourceVolume: opentelemetry-auto-instrumentation
@@ -990,7 +1062,7 @@ Resources:
               awslogs-stream-prefix: ecs  
         -
           Name: ecs-cwagent
-          Image: public.ecr.aws/cloudwatch-agent/cloudwatch-agent:latest
+          Image: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/cloudwatch-agent${Env}:latest'
           Essential: true
           Secrets: 
             - Name: CW_CONFIG_CONTENT
@@ -1004,7 +1076,7 @@ Resources:
               awslogs-stream-prefix: ecs
         -
           Name: init
-          Image: public.ecr.aws/aws-observability/adot-autoinstrumentation-node:v0.3.0
+          Image: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/adot-autoinstrumentation-node${Env}:v0.3.0'
           Essential: false
           MountPoints: 
             - SourceVolume: opentelemetry-auto-instrumentation-node
@@ -1139,7 +1211,7 @@ Resources:
               awslogs-stream-prefix: ecs  
         -
           Name: ecs-cwagent
-          Image: public.ecr.aws/cloudwatch-agent/cloudwatch-agent:latest
+          Image: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/cloudwatch-agent${Env}:latest'
           Essential: true
           Secrets: 
             - Name: CW_CONFIG_CONTENT
@@ -1153,7 +1225,7 @@ Resources:
               awslogs-stream-prefix: ecs
         -
           Name: init
-          Image: public.ecr.aws/aws-observability/adot-autoinstrumentation-java:v1.32.5
+          Image: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/adot-autoinstrumentation-java${Env}:v1.32.5'
           Essential: false
           MountPoints: 
             - SourceVolume: opentelemetry-auto-instrumentation

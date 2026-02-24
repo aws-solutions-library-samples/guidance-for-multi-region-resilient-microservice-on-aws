@@ -150,6 +150,42 @@ build-images: primary_infrastructure standby_infrastructure codebuild-infra
 		done; \
 	fi
 
+mirror-sidecar-images: codebuild-infra
+	@echo "Mirroring sidecar images to private ECR via CodeBuild..."
+	@BUCKET=$$(aws ssm get-parameter --name canaryBucketName$(ENV) --region $(PRIMARY_REGION) \
+		--query "Parameter.Value" --output text); \
+	BUILDSPEC="$$(cat mirror-sidecar-buildspec.yml)"; \
+	BID=$$(aws codebuild start-build \
+		--project-name $(CODEBUILD_PROJECT) \
+		--source-type-override NO_SOURCE \
+		--buildspec-override "$$BUILDSPEC" \
+		--environment-variables-override \
+			name=ENV_SUFFIX,value=$(ENV),type=PLAINTEXT \
+			name=PRIMARY_REGION,value=$(PRIMARY_REGION),type=PLAINTEXT \
+			name=STANDBY_REGION,value=$(STANDBY_REGION),type=PLAINTEXT \
+			name=PRIMARY_ONLY,value=$(PRIMARY_ONLY),type=PLAINTEXT \
+			name=AWS_ACCOUNT_ID,value=$(AWS_ACCOUNT_ID),type=PLAINTEXT \
+		--region $(PRIMARY_REGION) \
+		--query 'build.id' --output text); \
+	echo "  Mirror build started: $$BID"; \
+	echo "Waiting for mirror build to complete..."; \
+	while true; do \
+		STATUS=$$(aws codebuild batch-get-builds --ids $$BID \
+			--region $(PRIMARY_REGION) \
+			--query 'builds[0].buildStatus' --output text 2>/dev/null || echo "POLL_ERROR"); \
+		if [ "$$STATUS" = "SUCCEEDED" ]; then \
+			echo "Sidecar image mirroring completed successfully"; \
+			break; \
+		elif [ "$$STATUS" = "IN_PROGRESS" ] || [ "$$STATUS" = "POLL_ERROR" ] || [ -z "$$STATUS" ]; then \
+			echo "  ...still mirroring"; \
+			sleep 15; \
+		else \
+			echo "Mirror build failed with status: $$STATUS"; \
+			echo "View logs: aws codebuild batch-get-builds --ids $$BID --region $(PRIMARY_REGION)"; \
+			exit 1; \
+		fi; \
+	done
+
 ####
 # Infrastructure and ECS targets
 ####
@@ -159,7 +195,7 @@ primary_infrastructure: create-peer
 	@aws cloudformation deploy --template ./regionalBaseInfra.yaml --region ${PRIMARY_REGION} \
 	--stack-name baseInfra${ENV} --capabilities CAPABILITY_IAM --parameter-overrides Env=${ENV} KmsKey=retail-store-ar${ENV} PrimaryOnly=${PRIMARY_ONLY}
 
-primary_ecs: build-images primary_region_catalog-db orders-dsql-db carts-db
+primary_ecs: build-images mirror-sidecar-images primary_region_catalog-db orders-dsql-db dsql-vpc-endpoint carts-db
 	@echo "Deploy ECS Services in ${PRIMARY_REGION}"
 	@aws cloudformation deploy --template ./ecs.yaml --region ${PRIMARY_REGION} \
 	--stack-name apps${ENV} --capabilities CAPABILITY_IAM --parameter-overrides Env=${ENV} Tag=${TAG} KmsKey=retail-store-ar${ENV}
@@ -169,7 +205,7 @@ standby_infrastructure: create-peer
 	@aws cloudformation deploy --template ./regionalBaseInfra.yaml --region ${STANDBY_REGION} \
 	--stack-name baseInfra${ENV} --capabilities CAPABILITY_IAM --parameter-overrides Env=${ENV} KmsKey=retail-store-ar${ENV}
 
-standby_ecs: build-images standby_region_catalog-db orders-dsql-db-standby
+standby_ecs: build-images mirror-sidecar-images standby_region_catalog-db orders-dsql-db-standby
 	@echo "Deploy ECS Services in ${STANDBY_REGION}"
 	@aws cloudformation deploy --template ./ecs.yaml --region ${STANDBY_REGION} \
 	--stack-name apps${ENV} --capabilities CAPABILITY_IAM --parameter-overrides Env=${ENV} Tag=${TAG} KmsKey=retail-store-ar${ENV}
@@ -243,6 +279,42 @@ orders-dsql-db-standby: orders-dsql-db
 	$(eval _DSQL_ENDPOINT:=$(shell aws ssm get-parameter --name orders-dsql-cluster-Endpoint$(ENV) --region $(PRIMARY_REGION) --query "Parameter.Value" --output text))
 	@aws ssm put-parameter --name orders-dsql-cluster-Endpoint$(ENV) --value "$(_DSQL_ENDPOINT)" \
 	--type String --region ${STANDBY_REGION} --overwrite --no-cli-pager
+
+dsql-vpc-endpoint: orders-dsql-db primary_infrastructure
+	@echo "Creating DSQL connection VPC endpoint in ${PRIMARY_REGION}..."
+	$(eval CLUSTER_ID:=$(shell aws secretsmanager get-secret-value \
+		--secret-id mr-app/orders-dsql-cluster$(ENV) \
+		--region $(PRIMARY_REGION) --query "SecretString" --output text))
+	$(eval SVC_NAME:=$(shell aws dsql get-vpc-endpoint-service-name \
+		--cluster-identifier $(CLUSTER_ID) --region $(PRIMARY_REGION) \
+		--query "serviceName" --output text))
+	$(eval VPC_ID:=$(shell aws secretsmanager get-secret-value \
+		--secret-id VpcId-$(PRIMARY_REGION)$(ENV) \
+		--region $(PRIMARY_REGION) --query "SecretString" --output text))
+	$(eval SUBNET1:=$(shell aws ssm get-parameter --name Subnet1$(ENV) \
+		--region $(PRIMARY_REGION) --query "Parameter.Value" --output text))
+	$(eval SUBNET2:=$(shell aws ssm get-parameter --name Subnet2$(ENV) \
+		--region $(PRIMARY_REGION) --query "Parameter.Value" --output text))
+	$(eval SUBNET3:=$(shell aws ssm get-parameter --name Subnet3$(ENV) \
+		--region $(PRIMARY_REGION) --query "Parameter.Value" --output text))
+	$(eval DSQL_SG:=$(shell aws ssm get-parameter --name VPCEndpointDSQLSGId$(ENV) \
+		--region $(PRIMARY_REGION) --query "Parameter.Value" --output text))
+	@EXISTING=$$(aws ec2 describe-vpc-endpoints \
+		--filters Name=service-name,Values=$(SVC_NAME) Name=vpc-id,Values=$(VPC_ID) \
+		--region $(PRIMARY_REGION) \
+		--query 'VpcEndpoints[?State!=`deleted`].VpcEndpointId' --output text); \
+	if [ -n "$$EXISTING" ]; then \
+		echo "DSQL connection VPC endpoint already exists in $(PRIMARY_REGION): $$EXISTING"; \
+	else \
+		echo "Creating DSQL connection VPC endpoint for cluster $(CLUSTER_ID)..."; \
+		aws ec2 create-vpc-endpoint --vpc-id $(VPC_ID) --service-name $(SVC_NAME) \
+			--vpc-endpoint-type Interface \
+			--subnet-ids $(SUBNET1) $(SUBNET2) $(SUBNET3) \
+			--security-group-ids $(DSQL_SG) \
+			--private-dns-enabled \
+			--tag-specifications 'ResourceType=vpc-endpoint,Tags=[{Key=Name,Value=DSQL Connection Endpoint},{Key=dsql-cluster-id,Value=$(CLUSTER_ID)}]' \
+			--region $(PRIMARY_REGION) --no-cli-pager; \
+	fi
 
 carts-db: primary_infrastructure
 	@echo "Verifying if the AWSServiceRoleForDynamoDBReplication exists; if not; this will be created for you..."
@@ -355,6 +427,9 @@ destroy-ecr-primary: destroy-apps-primary
 	@aws ecr delete-repository --force --repository-name carts${ENV} --region $(PRIMARY_REGION) --no-cli-pager || true
 	@aws ecr delete-repository --force --repository-name assets${ENV} --region $(PRIMARY_REGION) --no-cli-pager || true
 	@aws ecr delete-repository --force --repository-name orders${ENV} --region $(PRIMARY_REGION) --no-cli-pager || true
+	@aws ecr delete-repository --force --repository-name cloudwatch-agent${ENV} --region $(PRIMARY_REGION) --no-cli-pager || true
+	@aws ecr delete-repository --force --repository-name adot-autoinstrumentation-java${ENV} --region $(PRIMARY_REGION) --no-cli-pager || true
+	@aws ecr delete-repository --force --repository-name adot-autoinstrumentation-node${ENV} --region $(PRIMARY_REGION) --no-cli-pager || true
 
 destroy-ecr-standby: destroy-apps-standby
 	@echo "Deleting ECR Repos..."
@@ -364,6 +439,9 @@ destroy-ecr-standby: destroy-apps-standby
 	@aws ecr delete-repository --force --repository-name carts${ENV} --region $(STANDBY_REGION) --no-cli-pager || true
 	@aws ecr delete-repository --force --repository-name assets${ENV} --region $(STANDBY_REGION) --no-cli-pager || true
 	@aws ecr delete-repository --force --repository-name orders${ENV} --region $(STANDBY_REGION) --no-cli-pager || true
+	@aws ecr delete-repository --force --repository-name cloudwatch-agent${ENV} --region $(STANDBY_REGION) --no-cli-pager || true
+	@aws ecr delete-repository --force --repository-name adot-autoinstrumentation-java${ENV} --region $(STANDBY_REGION) --no-cli-pager || true
+	@aws ecr delete-repository --force --repository-name adot-autoinstrumentation-node${ENV} --region $(STANDBY_REGION) --no-cli-pager || true
 
 destroy-global_routing: destroy-canaries-standby destroy-canaries-primary destroy-region-switch
 	@echo "Deleting global routing stack..."
@@ -433,7 +511,31 @@ destroy-crdr-roles: destroy-restore-reconciliation-ssm
 	@aws cloudformation delete-stack --stack-name crdr-roles${ENV} --region ${PRIMARY_REGION}
 	@aws cloudformation wait stack-delete-complete --stack-name crdr-roles${ENV} --region ${PRIMARY_REGION}
 
-destroy-databases-primary: destroy-apps-primary destroy-databases-standby destroy-secrets-rotation destroy-crdr-roles
+destroy-dsql-vpc-endpoint: destroy-apps-primary
+	@echo "Deleting DSQL connection VPC endpoint in ${PRIMARY_REGION}..."
+	@CLUSTER_ID=$$(aws secretsmanager get-secret-value \
+		--secret-id mr-app/orders-dsql-cluster$(ENV) \
+		--region $(PRIMARY_REGION) --query "SecretString" --output text 2>/dev/null) || true; \
+	if [ -n "$$CLUSTER_ID" ]; then \
+		SVC_NAME=$$(aws dsql get-vpc-endpoint-service-name \
+			--cluster-identifier $$CLUSTER_ID --region $(PRIMARY_REGION) \
+			--query "serviceName" --output text 2>/dev/null) || true; \
+		if [ -n "$$SVC_NAME" ]; then \
+			EP_IDS=$$(aws ec2 describe-vpc-endpoints \
+				--filters Name=service-name,Values=$$SVC_NAME \
+				--region $(PRIMARY_REGION) \
+				--query 'VpcEndpoints[?State!=`deleted`].VpcEndpointId' --output text 2>/dev/null); \
+			if [ -n "$$EP_IDS" ]; then \
+				echo "Deleting DSQL connection VPC endpoints: $$EP_IDS"; \
+				aws ec2 delete-vpc-endpoints --vpc-endpoint-ids $$EP_IDS \
+					--region $(PRIMARY_REGION) --no-cli-pager; \
+			else \
+				echo "No DSQL connection VPC endpoints found"; \
+			fi; \
+		fi; \
+	fi
+
+destroy-databases-primary: destroy-apps-primary destroy-databases-standby destroy-secrets-rotation destroy-crdr-roles destroy-dsql-vpc-endpoint
 	@echo "Deleting databases in ${PRIMARY_REGION}..."
 	@aws cloudformation delete-stack --stack-name catalog-db-stack${ENV} --region ${PRIMARY_REGION}
 	@aws cloudformation delete-stack --stack-name orders-dsql-stack${ENV} --region ${PRIMARY_REGION}
@@ -443,7 +545,7 @@ destroy-databases-primary: destroy-apps-primary destroy-databases-standby destro
 	@aws cloudformation wait stack-delete-complete --stack-name orders-dsql-stack${ENV} --region ${PRIMARY_REGION}
 	@aws cloudformation wait stack-delete-complete --stack-name carts-db-stack${ENV} --region ${PRIMARY_REGION}
 
-destroy-databases-standby: destroy-apps-standby destroy-restore-reconciliation-ssm
+destroy-databases-standby: destroy-apps-standby destroy-restore-reconciliation-ssm destroy-crdr-roles
 	@echo "Deleting databases in ${STANDBY_REGION}..."
 	@aws cloudformation delete-stack --stack-name catalog-db-stack${ENV} --region ${STANDBY_REGION}
 	@aws ssm delete-parameter --name orders-dsql-cluster-Endpoint$(ENV) --region ${STANDBY_REGION} --no-cli-pager 2>/dev/null || true

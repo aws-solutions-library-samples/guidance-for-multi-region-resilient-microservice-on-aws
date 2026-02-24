@@ -146,6 +146,24 @@ class TestDeployOrdering:
         assert is_before(makefile_targets, "build-images", "primary_ecs")
         assert is_before(makefile_targets, "build-images", "standby_ecs")
 
+    def test_mirror_sidecar_images_after_codebuild(self, makefile_targets):
+        """Sidecar mirroring needs the CodeBuild project to exist."""
+        assert is_before(makefile_targets, "codebuild-infra", "mirror-sidecar-images")
+
+    def test_ecs_after_mirror_sidecar_images(self, makefile_targets):
+        """ECS tasks reference private ECR images that must be mirrored first."""
+        assert is_before(makefile_targets, "mirror-sidecar-images", "primary_ecs")
+        assert is_before(makefile_targets, "mirror-sidecar-images", "standby_ecs")
+
+    def test_dsql_vpc_endpoint_after_cluster_and_infra(self, makefile_targets):
+        """DSQL connection endpoint needs the cluster (for service name) and VPC infra."""
+        assert is_before(makefile_targets, "orders-dsql-db", "dsql-vpc-endpoint")
+        assert is_before(makefile_targets, "primary_infrastructure", "dsql-vpc-endpoint")
+
+    def test_primary_ecs_after_dsql_vpc_endpoint(self, makefile_targets):
+        """Primary ECS tasks need the DSQL connection VPC endpoint for private connectivity."""
+        assert is_before(makefile_targets, "dsql-vpc-endpoint", "primary_ecs")
+
     def test_ecs_after_databases(self, makefile_targets):
         assert is_before(makefile_targets, "primary_region_catalog-db", "primary_ecs")
         assert is_before(makefile_targets, "orders-dsql-db", "primary_ecs")
@@ -216,6 +234,12 @@ class TestDestroyOrdering:
         """reconciliation Lambda role references catalog DB secret in standby."""
         assert is_before(makefile_targets, "destroy-restore-reconciliation-ssm", "destroy-databases-standby")
 
+    def test_crdr_roles_before_databases_standby(self, makefile_targets):
+        """crdr-roles IAM role inline policy resolves Snapshot-KeyArn secret from
+        the standby catalog-db-stack. crdr-roles must be deleted before the
+        standby catalog-db-stack (owned by destroy-databases-standby)."""
+        assert is_before(makefile_targets, "destroy-crdr-roles", "destroy-databases-standby")
+
     def test_canaries_before_apps(self, makefile_targets):
         """Canary execution roles reference secrets from the apps stack.
         Canaries must be fully deleted before apps (which own the secrets)."""
@@ -229,6 +253,15 @@ class TestDestroyOrdering:
         Global routing must be deleted before apps (which own the secrets)."""
         assert is_before(makefile_targets, "destroy-global_routing", "destroy-apps-primary")
         assert is_before(makefile_targets, "destroy-global_routing", "destroy-apps-standby")
+
+    def test_dsql_vpc_endpoint_before_databases_primary(self, makefile_targets):
+        """DSQL connection VPC endpoint references the cluster; must be deleted
+        before the DSQL cluster stack is destroyed."""
+        assert is_before(makefile_targets, "destroy-dsql-vpc-endpoint", "destroy-databases-primary")
+
+    def test_apps_before_dsql_vpc_endpoint(self, makefile_targets):
+        """ECS tasks use the DSQL VPC endpoint; apps must be deleted first."""
+        assert is_before(makefile_targets, "destroy-apps-primary", "destroy-dsql-vpc-endpoint")
 
     # -- Standard reverse-deploy ordering --
 

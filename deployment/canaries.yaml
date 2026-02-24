@@ -1505,3 +1505,35 @@ Resources:
         }
     ]
 }'
+  VPCEndpointLogsCanarySecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Sub '{{resolve:ssm:VPCEndpointLogsSGId${Env}}}'
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      SourceSecurityGroupId: !Sub '{{resolve:ssm:canarySgId${Env}}}'
+  VPCEndpointMonitoringCanarySecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Sub '{{resolve:ssm:VPCEndpointMonitoringSGId${Env}}}'
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      SourceSecurityGroupId: !Sub '{{resolve:ssm:canarySgId${Env}}}'
+  VPCEndpointXRayCanarySecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Sub '{{resolve:ssm:VPCEndpointXRaySGId${Env}}}'
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      SourceSecurityGroupId: !Sub '{{resolve:ssm:canarySgId${Env}}}'
+  VPCEndpointSTSCanarySecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Sub '{{resolve:ssm:VPCEndpointSTSSGId${Env}}}'
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      SourceSecurityGroupId: !Sub '{{resolve:ssm:canarySgId${Env}}}'

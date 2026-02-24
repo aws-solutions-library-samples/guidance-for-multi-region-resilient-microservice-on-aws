@@ -53,12 +53,18 @@ Resources:
                   - !Sub 'arn:aws:ecr:${PrimaryRegion}:${AWS::AccountId}:repository/carts${Env}'
                   - !Sub 'arn:aws:ecr:${PrimaryRegion}:${AWS::AccountId}:repository/assets${Env}'
                   - !Sub 'arn:aws:ecr:${PrimaryRegion}:${AWS::AccountId}:repository/orders${Env}'
+                  - !Sub 'arn:aws:ecr:${PrimaryRegion}:${AWS::AccountId}:repository/cloudwatch-agent${Env}'
+                  - !Sub 'arn:aws:ecr:${PrimaryRegion}:${AWS::AccountId}:repository/adot-autoinstrumentation-java${Env}'
+                  - !Sub 'arn:aws:ecr:${PrimaryRegion}:${AWS::AccountId}:repository/adot-autoinstrumentation-node${Env}'
                   - !Sub 'arn:aws:ecr:${StandbyRegion}:${AWS::AccountId}:repository/catalog${Env}'
                   - !Sub 'arn:aws:ecr:${StandbyRegion}:${AWS::AccountId}:repository/checkout${Env}'
                   - !Sub 'arn:aws:ecr:${StandbyRegion}:${AWS::AccountId}:repository/ui${Env}'
                   - !Sub 'arn:aws:ecr:${StandbyRegion}:${AWS::AccountId}:repository/carts${Env}'
                   - !Sub 'arn:aws:ecr:${StandbyRegion}:${AWS::AccountId}:repository/assets${Env}'
                   - !Sub 'arn:aws:ecr:${StandbyRegion}:${AWS::AccountId}:repository/orders${Env}'
+                  - !Sub 'arn:aws:ecr:${StandbyRegion}:${AWS::AccountId}:repository/cloudwatch-agent${Env}'
+                  - !Sub 'arn:aws:ecr:${StandbyRegion}:${AWS::AccountId}:repository/adot-autoinstrumentation-java${Env}'
+                  - !Sub 'arn:aws:ecr:${StandbyRegion}:${AWS::AccountId}:repository/adot-autoinstrumentation-node${Env}'
         - PolicyName: CodeBuildS3Access
           PolicyDocument:
             Version: '2012-10-17'

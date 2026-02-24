@@ -72,6 +72,14 @@ Resources:
       FromPort: 443
       ToPort: 443
       SourceSecurityGroupId: !Ref LambdaSecurityGroup
+  VPCEndpointLogsReconcileLambdaSecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Sub '{{resolve:ssm:VPCEndpointLogsSGId${Env}}}'
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      SourceSecurityGroupId: !GetAtt LambdaSecurityGroup.GroupId
 
   AutomationExecutionRole:
     Type: AWS::IAM::Role

@@ -1,0 +1,31 @@
+version: 0.2
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR in $PRIMARY_REGION...
+      - aws ecr get-login-password --region $PRIMARY_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$PRIMARY_REGION.amazonaws.com
+      - |
+        if [ "$PRIMARY_ONLY" != "true" ]; then
+          echo Logging in to Amazon ECR in $STANDBY_REGION...
+          aws ecr get-login-password --region $STANDBY_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$STANDBY_REGION.amazonaws.com
+        fi
+  build:
+    commands:
+      - |
+        for ENTRY in \
+          "cloudwatch-agent${ENV_SUFFIX}:public.ecr.aws/cloudwatch-agent/cloudwatch-agent:latest" \
+          "adot-autoinstrumentation-java${ENV_SUFFIX}:public.ecr.aws/aws-observability/adot-autoinstrumentation-java:v1.32.5" \
+          "adot-autoinstrumentation-node${ENV_SUFFIX}:public.ecr.aws/aws-observability/adot-autoinstrumentation-node:v0.3.0"; do
+          REPO=${ENTRY%%:*}; SRC=${ENTRY#*:}; TAG_VAL=${SRC##*:}
+          echo "Pulling $SRC..."
+          docker pull $SRC
+          echo "Pushing to $AWS_ACCOUNT_ID.dkr.ecr.$PRIMARY_REGION.amazonaws.com/$REPO:$TAG_VAL..."
+          docker tag $SRC $AWS_ACCOUNT_ID.dkr.ecr.$PRIMARY_REGION.amazonaws.com/$REPO:$TAG_VAL
+          docker push $AWS_ACCOUNT_ID.dkr.ecr.$PRIMARY_REGION.amazonaws.com/$REPO:$TAG_VAL
+          if [ "$PRIMARY_ONLY" != "true" ]; then
+            echo "Pushing to $AWS_ACCOUNT_ID.dkr.ecr.$STANDBY_REGION.amazonaws.com/$REPO:$TAG_VAL..."
+            docker tag $SRC $AWS_ACCOUNT_ID.dkr.ecr.$STANDBY_REGION.amazonaws.com/$REPO:$TAG_VAL
+            docker push $AWS_ACCOUNT_ID.dkr.ecr.$STANDBY_REGION.amazonaws.com/$REPO:$TAG_VAL
+          fi
+        done
+      - echo "Sidecar image mirroring completed successfully"

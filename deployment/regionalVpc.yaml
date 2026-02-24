@@ -26,9 +26,6 @@ Mappings:
       "PrivateCidrBlock1": 10.1.0.0/20
       "PrivateCidrBlock2": 10.1.16.0/20
       "PrivateCidrBlock3": 10.1.32.0/20
-      "PublicCidrBlock1": 10.1.48.0/20
-      "PublicCidrBlock2": 10.1.64.0/20
-      "PublicCidrBlock3": 10.1.80.0/20
       "AvailabilityZoneId1": use1-az1
       "AvailabilityZoneId2": use1-az4
       "AvailabilityZoneId3": use1-az6
@@ -37,9 +34,6 @@ Mappings:
       "PrivateCidrBlock1": 10.2.0.0/20
       "PrivateCidrBlock2": 10.2.16.0/20
       "PrivateCidrBlock3": 10.2.32.0/20
-      "PublicCidrBlock1": 10.2.48.0/20
-      "PublicCidrBlock2": 10.2.64.0/20
-      "PublicCidrBlock3": 10.2.80.0/20
       "AvailabilityZoneId1": usw2-az1
       "AvailabilityZoneId2": usw2-az2
       "AvailabilityZoneId3": usw2-az3
