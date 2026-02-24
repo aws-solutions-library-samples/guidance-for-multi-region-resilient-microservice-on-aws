@@ -324,6 +324,8 @@ destroy-chaos-engineering:
 	@echo "Deleting Chaos Engineering stacks"
 	@aws cloudformation delete-stack --stack-name chaos${ENV} --region ${PRIMARY_REGION}
 	@aws cloudformation delete-stack --stack-name chaos${ENV} --region ${STANDBY_REGION}
+	@aws cloudformation wait stack-delete-complete --stack-name chaos${ENV} --region ${PRIMARY_REGION}
+	@aws cloudformation wait stack-delete-complete --stack-name chaos${ENV} --region ${STANDBY_REGION}
 
 destroy-secrets-rotation:
 	@echo "Deleting secrets rotation stack"
@@ -333,6 +335,7 @@ destroy-secrets-rotation:
 destroy-monitoring:
 	@echo "Deleting monitoring stack"
 	@aws cloudformation delete-stack --stack-name monitoring${ENV} --region ${PRIMARY_REGION}
+	@aws cloudformation wait stack-delete-complete --stack-name monitoring${ENV} --region ${PRIMARY_REGION}
 
 destroy-restore-reconciliation-ssm: destroy-monitoring
 
