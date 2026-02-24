@@ -44,7 +44,7 @@ Resources:
           from aws_synthetics.selenium import synthetics_webdriver as syn_webdriver
           from aws_synthetics.common import synthetics_logger as logger
           
-          def verify_request(method, url, post_data=None, headers={}):
+          def verify_request(method, url, post_data=None, headers={}, expected_status=None):
               parsed_url = urllib.parse.urlparse(url)
               user_agent = str(syn_webdriver.get_canary_user_agent_string())
               if "User-Agent" in headers:
@@ -60,8 +60,13 @@ Resources:
               response = conn.getresponse()
               logger.info(f"Status Code: {response.status}")
               logger.info(f"Response Headers: {json.dumps(response.headers.as_string())}")
-          
-              if not response.status or response.status < 200 or response.status > 299:
+
+              if expected_status is not None:
+                  status_ok = response.status == expected_status
+              else:
+                  status_ok = 200 <= response.status <= 299
+
+              if not status_ok:
                   try:
                       logger.error(f"Response: {response.read().decode()}")
                   finally:
@@ -73,7 +78,9 @@ Resources:
                           raise Exception(f"Failed with status code: {response.status}")
               logger.info(f"Response: {response.read().decode()}")
               logger.info("HTTP request successfully executed.")
+              status = response.status
               conn.close()
+              return status
           def main():
               url1 = "http://{{resolve:secretsmanager:Alb-${AWS::Region}${Env}:SecretString:DnsName}}/home"
               method1 = 'GET'
@@ -118,7 +125,7 @@ Resources:
           from aws_synthetics.selenium import synthetics_webdriver as syn_webdriver
           from aws_synthetics.common import synthetics_logger as logger
           
-          def verify_request(method, url, post_data=None, headers={}):
+          def verify_request(method, url, post_data=None, headers={}, expected_status=None):
               parsed_url = urllib.parse.urlparse(url)
               user_agent = str(syn_webdriver.get_canary_user_agent_string())
               if "User-Agent" in headers:
@@ -134,8 +141,13 @@ Resources:
               response = conn.getresponse()
               logger.info(f"Status Code: {response.status}")
               logger.info(f"Response Headers: {json.dumps(response.headers.as_string())}")
-          
-              if not response.status or response.status < 200 or response.status > 299:
+
+              if expected_status is not None:
+                  status_ok = response.status == expected_status
+              else:
+                  status_ok = 200 <= response.status <= 299
+
+              if not status_ok:
                   try:
                       logger.error(f"Response: {response.read().decode()}")
                   finally:
@@ -147,13 +159,17 @@ Resources:
                           raise Exception(f"Failed with status code: {response.status}")
               logger.info(f"Response: {response.read().decode()}")
               logger.info("HTTP request successfully executed.")
+              status = response.status
               conn.close()
+              return status
           def main():
-              url1 = "http://{{resolve:secretsmanager:Alb-${AWS::Region}${Env}:SecretString:DnsName}}/cart"
-              method1 = 'GET'
-              postData1 = ""
-              headers1 = {}
-              verify_request(method1, url1, None, headers1)
+              base = "http://{{resolve:secretsmanager:Alb-${AWS::Region}${Env}:SecretString:DnsName}}"
+              session = {"X-Session-ID": "canary-cart"}
+              form_headers = {"Content-Type": "application/x-www-form-urlencoded", "X-Session-ID": "canary-cart"}
+              body = "productId=6d62d909-f957-430e-8689-b5129c0bb75e"
+              verify_request('POST', f"{base}/cart", body, {**form_headers}, expected_status=303)
+              verify_request('GET', f"{base}/cart", None, {**session})
+              verify_request('POST', f"{base}/cart/remove", body, {**form_headers}, expected_status=303)
               logger.info("Canary successfully executed.")
           def handler(event, context):
               logger.info("Selenium Python API canary.")
@@ -192,7 +208,7 @@ Resources:
           from aws_synthetics.selenium import synthetics_webdriver as syn_webdriver
           from aws_synthetics.common import synthetics_logger as logger
           
-          def verify_request(method, url, post_data=None, headers={}):
+          def verify_request(method, url, post_data=None, headers={}, expected_status=None):
               parsed_url = urllib.parse.urlparse(url)
               user_agent = str(syn_webdriver.get_canary_user_agent_string())
               if "User-Agent" in headers:
@@ -208,8 +224,13 @@ Resources:
               response = conn.getresponse()
               logger.info(f"Status Code: {response.status}")
               logger.info(f"Response Headers: {json.dumps(response.headers.as_string())}")
-          
-              if not response.status or response.status < 200 or response.status > 299:
+
+              if expected_status is not None:
+                  status_ok = response.status == expected_status
+              else:
+                  status_ok = 200 <= response.status <= 299
+
+              if not status_ok:
                   try:
                       logger.error(f"Response: {response.read().decode()}")
                   finally:
@@ -221,13 +242,13 @@ Resources:
                           raise Exception(f"Failed with status code: {response.status}")
               logger.info(f"Response: {response.read().decode()}")
               logger.info("HTTP request successfully executed.")
+              status = response.status
               conn.close()
+              return status
           def main():
-              url1 = "http://{{resolve:secretsmanager:Alb-${AWS::Region}${Env}:SecretString:DnsName}}/catalog"
-              method1 = 'GET'
-              postData1 = ""
-              headers1 = {}
-              verify_request(method1, url1, None, headers1)
+              base = "http://{{resolve:secretsmanager:Alb-${AWS::Region}${Env}:SecretString:DnsName}}"
+              verify_request('GET', f"{base}/catalog", None, {})
+              verify_request('GET', f"{base}/catalog/6d62d909-f957-430e-8689-b5129c0bb75e", None, {})
               logger.info("Canary successfully executed.")
           def handler(event, context):
               logger.info("Selenium Python API canary.")
@@ -266,7 +287,7 @@ Resources:
           from aws_synthetics.selenium import synthetics_webdriver as syn_webdriver
           from aws_synthetics.common import synthetics_logger as logger
           
-          def verify_request(method, url, post_data=None, headers={}):
+          def verify_request(method, url, post_data=None, headers={}, expected_status=None):
               parsed_url = urllib.parse.urlparse(url)
               user_agent = str(syn_webdriver.get_canary_user_agent_string())
               if "User-Agent" in headers:
@@ -282,8 +303,13 @@ Resources:
               response = conn.getresponse()
               logger.info(f"Status Code: {response.status}")
               logger.info(f"Response Headers: {json.dumps(response.headers.as_string())}")
-          
-              if not response.status or response.status < 200 or response.status > 299:
+
+              if expected_status is not None:
+                  status_ok = response.status == expected_status
+              else:
+                  status_ok = 200 <= response.status <= 299
+
+              if not status_ok:
                   try:
                       logger.error(f"Response: {response.read().decode()}")
                   finally:
@@ -295,13 +321,19 @@ Resources:
                           raise Exception(f"Failed with status code: {response.status}")
               logger.info(f"Response: {response.read().decode()}")
               logger.info("HTTP request successfully executed.")
+              status = response.status
               conn.close()
+              return status
           def main():
-              url1 = "http://{{resolve:secretsmanager:Alb-${AWS::Region}${Env}:SecretString:DnsName}}/orders"
-              method1 = 'GET'
-              postData1 = ""
-              headers1 = {}
-              verify_request(method1, url1, None, headers1)
+              base = "http://{{resolve:secretsmanager:Alb-${AWS::Region}${Env}:SecretString:DnsName}}"
+              session = {"X-Session-ID": "canary-order"}
+              form_headers = {"Content-Type": "application/x-www-form-urlencoded", "X-Session-ID": "canary-order"}
+              verify_request('POST', f"{base}/cart", "productId=a0a4f044-b040-410d-8ead-4de0446aec7e", {**form_headers}, expected_status=303)
+              verify_request('POST', f"{base}/checkout", "firstName=Canary&lastName=Test&email=canary@test.local&address1=123+Test+St&city=Anytown&state=WA&zip=98101", {**form_headers})
+              verify_request('POST', f"{base}/checkout/delivery", "token=priority-mail", {**form_headers})
+              verify_request('POST', f"{base}/checkout/payment", "", {**form_headers})
+              verify_request('POST', f"{base}/checkout/confirm", "", {**form_headers})
+              verify_request('GET', f"{base}/orders", None, {})
               logger.info("Canary successfully executed.")
           def handler(event, context):
               logger.info("Selenium Python API canary.")
@@ -312,7 +344,7 @@ Resources:
         Expression: 'rate(1 minute)'
         DurationInSeconds: 0
       RunConfig:
-        TimeoutInSeconds: 20
+        TimeoutInSeconds: 30
       FailureRetentionPeriod: 1
       SuccessRetentionPeriod: 1
       StartCanaryAfterCreation: true
@@ -341,7 +373,7 @@ Resources:
           from aws_synthetics.selenium import synthetics_webdriver as syn_webdriver
           from aws_synthetics.common import synthetics_logger as logger
           
-          def verify_request(method, url, post_data=None, headers={}):
+          def verify_request(method, url, post_data=None, headers={}, expected_status=None):
               parsed_url = urllib.parse.urlparse(url)
               user_agent = str(syn_webdriver.get_canary_user_agent_string())
               if "User-Agent" in headers:
@@ -357,8 +389,13 @@ Resources:
               response = conn.getresponse()
               logger.info(f"Status Code: {response.status}")
               logger.info(f"Response Headers: {json.dumps(response.headers.as_string())}")
-          
-              if not response.status or response.status < 200 or response.status > 299:
+
+              if expected_status is not None:
+                  status_ok = response.status == expected_status
+              else:
+                  status_ok = 200 <= response.status <= 299
+
+              if not status_ok:
                   try:
                       logger.error(f"Response: {response.read().decode()}")
                   finally:
@@ -370,7 +407,9 @@ Resources:
                           raise Exception(f"Failed with status code: {response.status}")
               logger.info(f"Response: {response.read().decode()}")
               logger.info("HTTP request successfully executed.")
+              status = response.status
               conn.close()
+              return status
           def main():
               url1 = "http://{{resolve:secretsmanager:Alb-${RemoteRegion}${Env}:SecretString:DnsName}}/home"
               method1 = 'GET'
@@ -416,7 +455,7 @@ Resources:
           from aws_synthetics.selenium import synthetics_webdriver as syn_webdriver
           from aws_synthetics.common import synthetics_logger as logger
           
-          def verify_request(method, url, post_data=None, headers={}):
+          def verify_request(method, url, post_data=None, headers={}, expected_status=None):
               parsed_url = urllib.parse.urlparse(url)
               user_agent = str(syn_webdriver.get_canary_user_agent_string())
               if "User-Agent" in headers:
@@ -432,8 +471,13 @@ Resources:
               response = conn.getresponse()
               logger.info(f"Status Code: {response.status}")
               logger.info(f"Response Headers: {json.dumps(response.headers.as_string())}")
-          
-              if not response.status or response.status < 200 or response.status > 299:
+
+              if expected_status is not None:
+                  status_ok = response.status == expected_status
+              else:
+                  status_ok = 200 <= response.status <= 299
+
+              if not status_ok:
                   try:
                       logger.error(f"Response: {response.read().decode()}")
                   finally:
@@ -445,13 +489,17 @@ Resources:
                           raise Exception(f"Failed with status code: {response.status}")
               logger.info(f"Response: {response.read().decode()}")
               logger.info("HTTP request successfully executed.")
+              status = response.status
               conn.close()
+              return status
           def main():
-              url1 = "http://{{resolve:secretsmanager:Alb-${RemoteRegion}${Env}:SecretString:DnsName}}/cart"
-              method1 = 'GET'
-              postData1 = ""
-              headers1 = {}
-              verify_request(method1, url1, None, headers1)
+              base = "http://{{resolve:secretsmanager:Alb-${RemoteRegion}${Env}:SecretString:DnsName}}"
+              session = {"X-Session-ID": "canary-cart"}
+              form_headers = {"Content-Type": "application/x-www-form-urlencoded", "X-Session-ID": "canary-cart"}
+              body = "productId=6d62d909-f957-430e-8689-b5129c0bb75e"
+              verify_request('POST', f"{base}/cart", body, {**form_headers}, expected_status=303)
+              verify_request('GET', f"{base}/cart", None, {**session})
+              verify_request('POST', f"{base}/cart/remove", body, {**form_headers}, expected_status=303)
               logger.info("Canary successfully executed.")
           def handler(event, context):
               logger.info("Selenium Python API canary.")
@@ -491,7 +539,7 @@ Resources:
           from aws_synthetics.selenium import synthetics_webdriver as syn_webdriver
           from aws_synthetics.common import synthetics_logger as logger
           
-          def verify_request(method, url, post_data=None, headers={}):
+          def verify_request(method, url, post_data=None, headers={}, expected_status=None):
               parsed_url = urllib.parse.urlparse(url)
               user_agent = str(syn_webdriver.get_canary_user_agent_string())
               if "User-Agent" in headers:
@@ -507,8 +555,13 @@ Resources:
               response = conn.getresponse()
               logger.info(f"Status Code: {response.status}")
               logger.info(f"Response Headers: {json.dumps(response.headers.as_string())}")
-          
-              if not response.status or response.status < 200 or response.status > 299:
+
+              if expected_status is not None:
+                  status_ok = response.status == expected_status
+              else:
+                  status_ok = 200 <= response.status <= 299
+
+              if not status_ok:
                   try:
                       logger.error(f"Response: {response.read().decode()}")
                   finally:
@@ -520,13 +573,13 @@ Resources:
                           raise Exception(f"Failed with status code: {response.status}")
               logger.info(f"Response: {response.read().decode()}")
               logger.info("HTTP request successfully executed.")
+              status = response.status
               conn.close()
+              return status
           def main():
-              url1 = "http://{{resolve:secretsmanager:Alb-${RemoteRegion}${Env}:SecretString:DnsName}}/catalog"
-              method1 = 'GET'
-              postData1 = ""
-              headers1 = {}
-              verify_request(method1, url1, None, headers1)
+              base = "http://{{resolve:secretsmanager:Alb-${RemoteRegion}${Env}:SecretString:DnsName}}"
+              verify_request('GET', f"{base}/catalog", None, {})
+              verify_request('GET', f"{base}/catalog/6d62d909-f957-430e-8689-b5129c0bb75e", None, {})
               logger.info("Canary successfully executed.")
           def handler(event, context):
               logger.info("Selenium Python API canary.")
@@ -566,7 +619,7 @@ Resources:
           from aws_synthetics.selenium import synthetics_webdriver as syn_webdriver
           from aws_synthetics.common import synthetics_logger as logger
           
-          def verify_request(method, url, post_data=None, headers={}):
+          def verify_request(method, url, post_data=None, headers={}, expected_status=None):
               parsed_url = urllib.parse.urlparse(url)
               user_agent = str(syn_webdriver.get_canary_user_agent_string())
               if "User-Agent" in headers:
@@ -582,8 +635,13 @@ Resources:
               response = conn.getresponse()
               logger.info(f"Status Code: {response.status}")
               logger.info(f"Response Headers: {json.dumps(response.headers.as_string())}")
-          
-              if not response.status or response.status < 200 or response.status > 299:
+
+              if expected_status is not None:
+                  status_ok = response.status == expected_status
+              else:
+                  status_ok = 200 <= response.status <= 299
+
+              if not status_ok:
                   try:
                       logger.error(f"Response: {response.read().decode()}")
                   finally:
@@ -595,13 +653,19 @@ Resources:
                           raise Exception(f"Failed with status code: {response.status}")
               logger.info(f"Response: {response.read().decode()}")
               logger.info("HTTP request successfully executed.")
+              status = response.status
               conn.close()
+              return status
           def main():
-              url1 = "http://{{resolve:secretsmanager:Alb-${RemoteRegion}${Env}:SecretString:DnsName}}/orders"
-              method1 = 'GET'
-              postData1 = ""
-              headers1 = {}
-              verify_request(method1, url1, None, headers1)
+              base = "http://{{resolve:secretsmanager:Alb-${RemoteRegion}${Env}:SecretString:DnsName}}"
+              session = {"X-Session-ID": "canary-order"}
+              form_headers = {"Content-Type": "application/x-www-form-urlencoded", "X-Session-ID": "canary-order"}
+              verify_request('POST', f"{base}/cart", "productId=a0a4f044-b040-410d-8ead-4de0446aec7e", {**form_headers}, expected_status=303)
+              verify_request('POST', f"{base}/checkout", "firstName=Canary&lastName=Test&email=canary@test.local&address1=123+Test+St&city=Anytown&state=WA&zip=98101", {**form_headers})
+              verify_request('POST', f"{base}/checkout/delivery", "token=priority-mail", {**form_headers})
+              verify_request('POST', f"{base}/checkout/payment", "", {**form_headers})
+              verify_request('POST', f"{base}/checkout/confirm", "", {**form_headers})
+              verify_request('GET', f"{base}/orders", None, {})
               logger.info("Canary successfully executed.")
           def handler(event, context):
               logger.info("Selenium Python API canary.")
@@ -612,7 +676,7 @@ Resources:
         Expression: 'rate(1 minute)'
         DurationInSeconds: 0
       RunConfig:
-        TimeoutInSeconds: 20
+        TimeoutInSeconds: 30
       FailureRetentionPeriod: 1
       SuccessRetentionPeriod: 1
       StartCanaryAfterCreation: true
@@ -641,7 +705,7 @@ Resources:
           from aws_synthetics.selenium import synthetics_webdriver as syn_webdriver
           from aws_synthetics.common import synthetics_logger as logger
           
-          def verify_request(method, url, post_data=None, headers={}):
+          def verify_request(method, url, post_data=None, headers={}, expected_status=None):
               parsed_url = urllib.parse.urlparse(url)
               user_agent = str(syn_webdriver.get_canary_user_agent_string())
               if "User-Agent" in headers:
@@ -657,8 +721,13 @@ Resources:
               response = conn.getresponse()
               logger.info(f"Status Code: {response.status}")
               logger.info(f"Response Headers: {json.dumps(response.headers.as_string())}")
-          
-              if not response.status or response.status < 200 or response.status > 299:
+
+              if expected_status is not None:
+                  status_ok = response.status == expected_status
+              else:
+                  status_ok = 200 <= response.status <= 299
+
+              if not status_ok:
                   try:
                       logger.error(f"Response: {response.read().decode()}")
                   finally:
@@ -670,7 +739,9 @@ Resources:
                           raise Exception(f"Failed with status code: {response.status}")
               logger.info(f"Response: {response.read().decode()}")
               logger.info("HTTP request successfully executed.")
+              status = response.status
               conn.close()
+              return status
           def main():
               url1 = "http://{{resolve:secretsmanager:DNSRecordSecret${Env}}}/home"
               method1 = 'GET'
@@ -716,7 +787,7 @@ Resources:
           from aws_synthetics.selenium import synthetics_webdriver as syn_webdriver
           from aws_synthetics.common import synthetics_logger as logger
           
-          def verify_request(method, url, post_data=None, headers={}):
+          def verify_request(method, url, post_data=None, headers={}, expected_status=None):
               parsed_url = urllib.parse.urlparse(url)
               user_agent = str(syn_webdriver.get_canary_user_agent_string())
               if "User-Agent" in headers:
@@ -732,8 +803,13 @@ Resources:
               response = conn.getresponse()
               logger.info(f"Status Code: {response.status}")
               logger.info(f"Response Headers: {json.dumps(response.headers.as_string())}")
-          
-              if not response.status or response.status < 200 or response.status > 299:
+
+              if expected_status is not None:
+                  status_ok = response.status == expected_status
+              else:
+                  status_ok = 200 <= response.status <= 299
+
+              if not status_ok:
                   try:
                       logger.error(f"Response: {response.read().decode()}")
                   finally:
@@ -745,13 +821,17 @@ Resources:
                           raise Exception(f"Failed with status code: {response.status}")
               logger.info(f"Response: {response.read().decode()}")
               logger.info("HTTP request successfully executed.")
+              status = response.status
               conn.close()
+              return status
           def main():
-              url1 = "http://{{resolve:secretsmanager:Alb-${RemoteRegion}${Env}:SecretString:DnsName}}/cart"
-              method1 = 'GET'
-              postData1 = ""
-              headers1 = {}
-              verify_request(method1, url1, None, headers1)
+              base = "http://{{resolve:secretsmanager:DNSRecordSecret${Env}}}"
+              session = {"X-Session-ID": "canary-cart"}
+              form_headers = {"Content-Type": "application/x-www-form-urlencoded", "X-Session-ID": "canary-cart"}
+              body = "productId=6d62d909-f957-430e-8689-b5129c0bb75e"
+              verify_request('POST', f"{base}/cart", body, {**form_headers}, expected_status=303)
+              verify_request('GET', f"{base}/cart", None, {**session})
+              verify_request('POST', f"{base}/cart/remove", body, {**form_headers}, expected_status=303)
               logger.info("Canary successfully executed.")
           def handler(event, context):
               logger.info("Selenium Python API canary.")
@@ -791,7 +871,7 @@ Resources:
           from aws_synthetics.selenium import synthetics_webdriver as syn_webdriver
           from aws_synthetics.common import synthetics_logger as logger
           
-          def verify_request(method, url, post_data=None, headers={}):
+          def verify_request(method, url, post_data=None, headers={}, expected_status=None):
               parsed_url = urllib.parse.urlparse(url)
               user_agent = str(syn_webdriver.get_canary_user_agent_string())
               if "User-Agent" in headers:
@@ -807,8 +887,13 @@ Resources:
               response = conn.getresponse()
               logger.info(f"Status Code: {response.status}")
               logger.info(f"Response Headers: {json.dumps(response.headers.as_string())}")
-          
-              if not response.status or response.status < 200 or response.status > 299:
+
+              if expected_status is not None:
+                  status_ok = response.status == expected_status
+              else:
+                  status_ok = 200 <= response.status <= 299
+
+              if not status_ok:
                   try:
                       logger.error(f"Response: {response.read().decode()}")
                   finally:
@@ -820,13 +905,13 @@ Resources:
                           raise Exception(f"Failed with status code: {response.status}")
               logger.info(f"Response: {response.read().decode()}")
               logger.info("HTTP request successfully executed.")
+              status = response.status
               conn.close()
+              return status
           def main():
-              url1 = "http://{{resolve:secretsmanager:DNSRecordSecret${Env}}}/catalog"
-              method1 = 'GET'
-              postData1 = ""
-              headers1 = {}
-              verify_request(method1, url1, None, headers1)
+              base = "http://{{resolve:secretsmanager:DNSRecordSecret${Env}}}"
+              verify_request('GET', f"{base}/catalog", None, {})
+              verify_request('GET', f"{base}/catalog/6d62d909-f957-430e-8689-b5129c0bb75e", None, {})
               logger.info("Canary successfully executed.")
           def handler(event, context):
               logger.info("Selenium Python API canary.")
@@ -866,7 +951,7 @@ Resources:
           from aws_synthetics.selenium import synthetics_webdriver as syn_webdriver
           from aws_synthetics.common import synthetics_logger as logger
           
-          def verify_request(method, url, post_data=None, headers={}):
+          def verify_request(method, url, post_data=None, headers={}, expected_status=None):
               parsed_url = urllib.parse.urlparse(url)
               user_agent = str(syn_webdriver.get_canary_user_agent_string())
               if "User-Agent" in headers:
@@ -882,8 +967,13 @@ Resources:
               response = conn.getresponse()
               logger.info(f"Status Code: {response.status}")
               logger.info(f"Response Headers: {json.dumps(response.headers.as_string())}")
-          
-              if not response.status or response.status < 200 or response.status > 299:
+
+              if expected_status is not None:
+                  status_ok = response.status == expected_status
+              else:
+                  status_ok = 200 <= response.status <= 299
+
+              if not status_ok:
                   try:
                       logger.error(f"Response: {response.read().decode()}")
                   finally:
@@ -895,13 +985,19 @@ Resources:
                           raise Exception(f"Failed with status code: {response.status}")
               logger.info(f"Response: {response.read().decode()}")
               logger.info("HTTP request successfully executed.")
+              status = response.status
               conn.close()
+              return status
           def main():
-              url1 = "http://{{resolve:secretsmanager:DNSRecordSecret${Env}}}/orders"
-              method1 = 'GET'
-              postData1 = ""
-              headers1 = {}
-              verify_request(method1, url1, None, headers1)
+              base = "http://{{resolve:secretsmanager:DNSRecordSecret${Env}}}"
+              session = {"X-Session-ID": "canary-order"}
+              form_headers = {"Content-Type": "application/x-www-form-urlencoded", "X-Session-ID": "canary-order"}
+              verify_request('POST', f"{base}/cart", "productId=a0a4f044-b040-410d-8ead-4de0446aec7e", {**form_headers}, expected_status=303)
+              verify_request('POST', f"{base}/checkout", "firstName=Canary&lastName=Test&email=canary@test.local&address1=123+Test+St&city=Anytown&state=WA&zip=98101", {**form_headers})
+              verify_request('POST', f"{base}/checkout/delivery", "token=priority-mail", {**form_headers})
+              verify_request('POST', f"{base}/checkout/payment", "", {**form_headers})
+              verify_request('POST', f"{base}/checkout/confirm", "", {**form_headers})
+              verify_request('GET', f"{base}/orders", None, {})
               logger.info("Canary successfully executed.")
           def handler(event, context):
               logger.info("Selenium Python API canary.")
@@ -912,7 +1008,7 @@ Resources:
         Expression: 'rate(1 minute)'
         DurationInSeconds: 0
       RunConfig:
-        TimeoutInSeconds: 20
+        TimeoutInSeconds: 30
       FailureRetentionPeriod: 1
       SuccessRetentionPeriod: 1
       StartCanaryAfterCreation: true
