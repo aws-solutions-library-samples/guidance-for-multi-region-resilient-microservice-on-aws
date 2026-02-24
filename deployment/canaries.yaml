@@ -321,19 +321,20 @@ Resources:
                           raise Exception(f"Failed with status code: {response.status}")
               logger.info(f"Response: {response.read().decode()}")
               logger.info("HTTP request successfully executed.")
-              status = response.status
+              resp_headers = dict(response.headers)
               conn.close()
-              return status
+              return resp_headers
           def main():
               base = "http://{{resolve:secretsmanager:Alb-${AWS::Region}${Env}:SecretString:DnsName}}"
-              session = {"X-Session-ID": "canary-order"}
-              form_headers = {"Content-Type": "application/x-www-form-urlencoded", "X-Session-ID": "canary-order"}
-              verify_request('POST', f"{base}/cart", "productId=a0a4f044-b040-410d-8ead-4de0446aec7e", {**form_headers}, expected_status=303)
-              verify_request('POST', f"{base}/checkout", "firstName=Canary&lastName=Test&email=canary@test.local&address1=123+Test+St&city=Anytown&state=WA&zip=98101", {**form_headers})
-              verify_request('POST', f"{base}/checkout/delivery", "token=priority-mail", {**form_headers})
-              verify_request('POST', f"{base}/checkout/payment", "", {**form_headers})
-              verify_request('POST', f"{base}/checkout/confirm", "", {**form_headers})
-              verify_request('GET', f"{base}/orders", None, {})
+              form_headers = {"Content-Type": "application/x-www-form-urlencoded"}
+              cart_headers = verify_request('POST', f"{base}/cart", "productId=a0a4f044-b040-410d-8ead-4de0446aec7e", {**form_headers}, expected_status=303)
+              cookie = cart_headers.get("set-cookie", "").split(";")[0]
+              session_headers = {**form_headers, "Cookie": cookie}
+              verify_request('POST', f"{base}/checkout", "firstName=Canary&lastName=Test&email=canary@test.local&address1=123+Test+St&city=Anytown&state=WA&zip=98101", {**session_headers})
+              verify_request('POST', f"{base}/checkout/delivery", "token=priority-mail", {**session_headers})
+              verify_request('POST', f"{base}/checkout/payment", "", {**session_headers})
+              verify_request('POST', f"{base}/checkout/confirm", "", {**session_headers})
+              verify_request('GET', f"{base}/orders", None, {"Cookie": cookie})
               logger.info("Canary successfully executed.")
           def handler(event, context):
               logger.info("Selenium Python API canary.")
@@ -653,19 +654,20 @@ Resources:
                           raise Exception(f"Failed with status code: {response.status}")
               logger.info(f"Response: {response.read().decode()}")
               logger.info("HTTP request successfully executed.")
-              status = response.status
+              resp_headers = dict(response.headers)
               conn.close()
-              return status
+              return resp_headers
           def main():
               base = "http://{{resolve:secretsmanager:Alb-${RemoteRegion}${Env}:SecretString:DnsName}}"
-              session = {"X-Session-ID": "canary-order"}
-              form_headers = {"Content-Type": "application/x-www-form-urlencoded", "X-Session-ID": "canary-order"}
-              verify_request('POST', f"{base}/cart", "productId=a0a4f044-b040-410d-8ead-4de0446aec7e", {**form_headers}, expected_status=303)
-              verify_request('POST', f"{base}/checkout", "firstName=Canary&lastName=Test&email=canary@test.local&address1=123+Test+St&city=Anytown&state=WA&zip=98101", {**form_headers})
-              verify_request('POST', f"{base}/checkout/delivery", "token=priority-mail", {**form_headers})
-              verify_request('POST', f"{base}/checkout/payment", "", {**form_headers})
-              verify_request('POST', f"{base}/checkout/confirm", "", {**form_headers})
-              verify_request('GET', f"{base}/orders", None, {})
+              form_headers = {"Content-Type": "application/x-www-form-urlencoded"}
+              cart_hdrs = verify_request('POST', f"{base}/cart", "productId=a0a4f044-b040-410d-8ead-4de0446aec7e", {**form_headers}, expected_status=303)
+              cookie = cart_hdrs.get("set-cookie", "").split(";")[0]
+              sh = {**form_headers, "Cookie": cookie}
+              verify_request('POST', f"{base}/checkout", "firstName=Canary&lastName=Test&email=canary@test.local&address1=123+Test+St&city=Anytown&state=WA&zip=98101", {**sh})
+              verify_request('POST', f"{base}/checkout/delivery", "token=priority-mail", {**sh})
+              verify_request('POST', f"{base}/checkout/payment", "", {**sh})
+              verify_request('POST', f"{base}/checkout/confirm", "", {**sh})
+              verify_request('GET', f"{base}/orders", None, {"Cookie": cookie})
               logger.info("Canary successfully executed.")
           def handler(event, context):
               logger.info("Selenium Python API canary.")
@@ -985,19 +987,20 @@ Resources:
                           raise Exception(f"Failed with status code: {response.status}")
               logger.info(f"Response: {response.read().decode()}")
               logger.info("HTTP request successfully executed.")
-              status = response.status
+              resp_headers = dict(response.headers)
               conn.close()
-              return status
+              return resp_headers
           def main():
               base = "http://{{resolve:secretsmanager:DNSRecordSecret${Env}}}"
-              session = {"X-Session-ID": "canary-order"}
-              form_headers = {"Content-Type": "application/x-www-form-urlencoded", "X-Session-ID": "canary-order"}
-              verify_request('POST', f"{base}/cart", "productId=a0a4f044-b040-410d-8ead-4de0446aec7e", {**form_headers}, expected_status=303)
-              verify_request('POST', f"{base}/checkout", "firstName=Canary&lastName=Test&email=canary@test.local&address1=123+Test+St&city=Anytown&state=WA&zip=98101", {**form_headers})
-              verify_request('POST', f"{base}/checkout/delivery", "token=priority-mail", {**form_headers})
-              verify_request('POST', f"{base}/checkout/payment", "", {**form_headers})
-              verify_request('POST', f"{base}/checkout/confirm", "", {**form_headers})
-              verify_request('GET', f"{base}/orders", None, {})
+              form_headers = {"Content-Type": "application/x-www-form-urlencoded"}
+              cart_hdrs = verify_request('POST', f"{base}/cart", "productId=a0a4f044-b040-410d-8ead-4de0446aec7e", {**form_headers}, expected_status=303)
+              cookie = cart_hdrs.get("set-cookie", "").split(";")[0]
+              sh = {**form_headers, "Cookie": cookie}
+              verify_request('POST', f"{base}/checkout", "firstName=Canary&lastName=Test&email=canary@test.local&address1=123+Test+St&city=Anytown&state=WA&zip=98101", {**sh})
+              verify_request('POST', f"{base}/checkout/delivery", "token=priority-mail", {**sh})
+              verify_request('POST', f"{base}/checkout/payment", "", {**sh})
+              verify_request('POST', f"{base}/checkout/confirm", "", {**sh})
+              verify_request('GET', f"{base}/orders", None, {"Cookie": cookie})
               logger.info("Canary successfully executed.")
           def handler(event, context):
               logger.info("Selenium Python API canary.")
