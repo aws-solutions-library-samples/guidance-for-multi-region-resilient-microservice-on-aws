@@ -286,7 +286,7 @@ dsql-vpc-endpoint: orders-dsql-db primary_infrastructure
 		--secret-id mr-app/orders-dsql-cluster$(ENV) \
 		--region $(PRIMARY_REGION) --query "SecretString" --output text))
 	$(eval SVC_NAME:=$(shell aws dsql get-vpc-endpoint-service-name \
-		--cluster-identifier $(CLUSTER_ID) --region $(PRIMARY_REGION) \
+		--identifier $(CLUSTER_ID) --region $(PRIMARY_REGION) \
 		--query "serviceName" --output text))
 	$(eval VPC_ID:=$(shell aws secretsmanager get-secret-value \
 		--secret-id VpcId-$(PRIMARY_REGION)$(ENV) \
@@ -518,7 +518,7 @@ destroy-dsql-vpc-endpoint: destroy-apps-primary
 		--region $(PRIMARY_REGION) --query "SecretString" --output text 2>/dev/null) || true; \
 	if [ -n "$$CLUSTER_ID" ]; then \
 		SVC_NAME=$$(aws dsql get-vpc-endpoint-service-name \
-			--cluster-identifier $$CLUSTER_ID --region $(PRIMARY_REGION) \
+			--identifier $$CLUSTER_ID --region $(PRIMARY_REGION) \
 			--query "serviceName" --output text 2>/dev/null) || true; \
 		if [ -n "$$SVC_NAME" ]; then \
 			EP_IDS=$$(aws ec2 describe-vpc-endpoints \
