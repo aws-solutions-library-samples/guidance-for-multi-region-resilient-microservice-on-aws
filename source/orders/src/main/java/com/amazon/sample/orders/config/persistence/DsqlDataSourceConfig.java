@@ -48,6 +48,9 @@ public class DsqlDataSourceConfig {
     @Value("${spring.datasource.dsql.endpoint}")
     private String dsqlEndpoint;
 
+    @Value("${spring.datasource.dsql.auth-hostname:#{null}}")
+    private String dsqlAuthHostname;
+
     @Value("${spring.datasource.dsql.region}")
     private String dsqlRegion;
 
@@ -94,11 +97,12 @@ public class DsqlDataSourceConfig {
     }
 
     private String generateAuthToken() {
+        String hostname = (dsqlAuthHostname != null) ? dsqlAuthHostname : dsqlEndpoint;
         DsqlUtilities utilities = DsqlUtilities.builder()
                 .region(Region.of(dsqlRegion))
                 .credentialsProvider(DefaultCredentialsProvider.create())
                 .build();
         return utilities.generateDbConnectAdminAuthToken(builder ->
-                builder.hostname(dsqlEndpoint));
+                builder.hostname(hostname));
     }
 }

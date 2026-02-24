@@ -169,7 +169,7 @@ class TestDeployOrdering:
         assert is_before(makefile_targets, "orders-dsql-db", "primary_ecs")
         assert is_before(makefile_targets, "carts-db", "primary_ecs")
         assert is_before(makefile_targets, "standby_region_catalog-db", "standby_ecs")
-        assert is_before(makefile_targets, "orders-dsql-db-standby", "standby_ecs")
+        assert is_before(makefile_targets, "orders-dsql-db", "standby_ecs")
 
     def test_databases_after_infrastructure(self, makefile_targets):
         assert is_before(makefile_targets, "primary_infrastructure", "primary_region_catalog-db")

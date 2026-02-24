@@ -11,6 +11,7 @@ spring:
   datasource:
     dsql:
       endpoint: ${DSQL_ENDPOINT}
+      auth-hostname: ${DSQL_AUTH_HOSTNAME:${DSQL_ENDPOINT}}
       region: ${DSQL_REGION:${AWS_REGION:us-east-1}}
 
 logging:

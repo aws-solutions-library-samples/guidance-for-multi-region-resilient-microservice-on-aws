@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: 'Orders DSQL Cluster'
+Description: 'Orders DSQL Multi-Region Cluster'
 
 Parameters:
   Env:
@@ -10,12 +10,25 @@ Parameters:
     Type: AWS::SSM::Parameter::Value<String>
     Default: KmsKey
     Description: CMK Id
+  WitnessRegion:
+    Type: String
+    Description: Witness region for multi-region DSQL quorum
+  PeerClusterArns:
+    Type: CommaDelimitedList
+    Default: ''
+    Description: Comma-separated ARNs of peer clusters (empty on initial creation)
+
+Conditions:
+  HasPeers: !Not [!Equals [!Select [0, !Ref PeerClusterArns], '']]
 
 Resources:
   OrdersDsqlCluster:
     Type: AWS::DSQL::Cluster
     Properties:
       DeletionProtectionEnabled: false
+      MultiRegionProperties:
+        WitnessRegion: !Ref WitnessRegion
+        Clusters: !If [HasPeers, !Ref PeerClusterArns, !Ref 'AWS::NoValue']
       Tags:
         - Key: Name
           Value: !Sub 'orders-dsql-cluster${Env}'
@@ -44,3 +57,6 @@ Outputs:
   ClusterId:
     Description: DSQL Cluster Identifier
     Value: !Ref OrdersDsqlCluster
+  ClusterArn:
+    Description: DSQL Cluster ARN
+    Value: !GetAtt OrdersDsqlCluster.ResourceArn

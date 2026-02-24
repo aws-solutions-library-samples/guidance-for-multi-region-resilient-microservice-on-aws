@@ -205,7 +205,7 @@ standby_infrastructure: create-peer
 	@aws cloudformation deploy --template ./regionalBaseInfra.yaml --region ${STANDBY_REGION} \
 	--stack-name baseInfra${ENV} --capabilities CAPABILITY_IAM --parameter-overrides Env=${ENV} KmsKey=retail-store-ar${ENV}
 
-standby_ecs: build-images mirror-sidecar-images standby_region_catalog-db orders-dsql-db-standby
+standby_ecs: build-images mirror-sidecar-images standby_region_catalog-db orders-dsql-db dsql-vpc-endpoint-standby
 	@echo "Deploy ECS Services in ${STANDBY_REGION}"
 	@aws cloudformation deploy --template ./ecs.yaml --region ${STANDBY_REGION} \
 	--stack-name apps${ENV} --capabilities CAPABILITY_IAM --parameter-overrides Env=${ENV} Tag=${TAG} KmsKey=retail-store-ar${ENV}
@@ -268,17 +268,35 @@ standby_region_catalog-db: standby_infrastructure primary_region_catalog-db
 	--region ${STANDBY_REGION} --stack-name catalog-db-stack${ENV} --capabilities CAPABILITY_IAM \
 	--parameter-overrides Env=${ENV} NamingPrefix=catalog DBSecretArn=${result} DatabaseName=catalog KmsKey=retail-store-ar${ENV}
 
-orders-dsql-db: primary_infrastructure
-	@echo "Creating Orders service DSQL cluster..."
+orders-dsql-db: primary_infrastructure standby_infrastructure
+	@echo "Phase 1: Creating DSQL clusters in both regions..."
 	@aws cloudformation deploy --template ./database/dsql/orders-dsql-cluster.yml \
 	--region ${PRIMARY_REGION} --stack-name orders-dsql-stack${ENV} --capabilities CAPABILITY_IAM \
-	--parameter-overrides Env=${ENV} KmsKey=retail-store-ar${ENV}
-
-orders-dsql-db-standby: orders-dsql-db
-	@echo "Replicating DSQL endpoint parameter to ${STANDBY_REGION}..."
-	$(eval _DSQL_ENDPOINT:=$(shell aws ssm get-parameter --name orders-dsql-cluster-Endpoint$(ENV) --region $(PRIMARY_REGION) --query "Parameter.Value" --output text))
-	@aws ssm put-parameter --name orders-dsql-cluster-Endpoint$(ENV) --value "$(_DSQL_ENDPOINT)" \
-	--type String --region ${STANDBY_REGION} --overwrite --no-cli-pager
+	--parameter-overrides Env=${ENV} KmsKey=retail-store-ar${ENV} WitnessRegion=us-east-2
+	@aws cloudformation deploy --template ./database/dsql/orders-dsql-cluster.yml \
+	--region ${STANDBY_REGION} --stack-name orders-dsql-stack${ENV} --capabilities CAPABILITY_IAM \
+	--parameter-overrides Env=${ENV} KmsKey=retail-store-ar${ENV} WitnessRegion=us-east-2
+	@echo "Phase 2: Linking DSQL clusters..."
+	@PRIMARY_ARN=$$(aws cloudformation describe-stacks --stack-name orders-dsql-stack${ENV} \
+		--region ${PRIMARY_REGION} --query "Stacks[0].Outputs[?OutputKey=='ClusterArn'].OutputValue" --output text) && \
+	STANDBY_ARN=$$(aws cloudformation describe-stacks --stack-name orders-dsql-stack${ENV} \
+		--region ${STANDBY_REGION} --query "Stacks[0].Outputs[?OutputKey=='ClusterArn'].OutputValue" --output text) && \
+	echo "Linking $$PRIMARY_ARN <-> $$STANDBY_ARN" && \
+	aws cloudformation deploy --template ./database/dsql/orders-dsql-cluster.yml \
+	--region ${PRIMARY_REGION} --stack-name orders-dsql-stack${ENV} --capabilities CAPABILITY_IAM \
+	--parameter-overrides Env=${ENV} KmsKey=retail-store-ar${ENV} WitnessRegion=us-east-2 \
+	"PeerClusterArns=$$PRIMARY_ARN,$$STANDBY_ARN" && \
+	aws cloudformation deploy --template ./database/dsql/orders-dsql-cluster.yml \
+	--region ${STANDBY_REGION} --stack-name orders-dsql-stack${ENV} --capabilities CAPABILITY_IAM \
+	--parameter-overrides Env=${ENV} KmsKey=retail-store-ar${ENV} WitnessRegion=us-east-2 \
+	"PeerClusterArns=$$PRIMARY_ARN,$$STANDBY_ARN"
+	@echo "Storing public endpoints for auth token generation..."
+	$(eval _PUB_PRIMARY:=$(shell aws ssm get-parameter --name orders-dsql-cluster-Endpoint$(ENV) --region $(PRIMARY_REGION) --query "Parameter.Value" --output text))
+	$(eval _PUB_STANDBY:=$(shell aws ssm get-parameter --name orders-dsql-cluster-Endpoint$(ENV) --region $(STANDBY_REGION) --query "Parameter.Value" --output text))
+	@aws ssm put-parameter --name orders-dsql-cluster-PublicEndpoint$(ENV) --value "$(strip $(_PUB_PRIMARY))" \
+		--type String --region ${PRIMARY_REGION} --overwrite --no-cli-pager
+	@aws ssm put-parameter --name orders-dsql-cluster-PublicEndpoint$(ENV) --value "$(strip $(_PUB_STANDBY))" \
+		--type String --region ${STANDBY_REGION} --overwrite --no-cli-pager
 
 dsql-vpc-endpoint: orders-dsql-db primary_infrastructure
 	@echo "Creating DSQL connection VPC endpoint in ${PRIMARY_REGION}..."
@@ -315,6 +333,52 @@ dsql-vpc-endpoint: orders-dsql-db primary_infrastructure
 			--tag-specifications 'ResourceType=vpc-endpoint,Tags=[{Key=Name,Value=DSQL Connection Endpoint},{Key=dsql-cluster-id,Value=$(CLUSTER_ID)}]' \
 			--region $(PRIMARY_REGION) --no-cli-pager; \
 	fi
+	@echo "Updating DSQL endpoint to PrivateLink hostname in ${PRIMARY_REGION}..."
+	$(eval SVC_ID:=$(shell echo $(SVC_NAME) | sed 's/com.amazonaws.$(PRIMARY_REGION).//'))
+	@aws ssm put-parameter --name orders-dsql-cluster-Endpoint$(ENV) \
+		--value "$(CLUSTER_ID).$(SVC_ID).$(PRIMARY_REGION).on.aws" \
+		--type String --region $(PRIMARY_REGION) --overwrite --no-cli-pager
+
+dsql-vpc-endpoint-standby: orders-dsql-db standby_infrastructure
+	@echo "Creating DSQL connection VPC endpoint in ${STANDBY_REGION}..."
+	$(eval CLUSTER_ID:=$(shell aws secretsmanager get-secret-value \
+		--secret-id mr-app/orders-dsql-cluster$(ENV) \
+		--region $(STANDBY_REGION) --query "SecretString" --output text))
+	$(eval SVC_NAME:=$(shell aws dsql get-vpc-endpoint-service-name \
+		--identifier $(CLUSTER_ID) --region $(STANDBY_REGION) \
+		--query "serviceName" --output text))
+	$(eval VPC_ID:=$(shell aws secretsmanager get-secret-value \
+		--secret-id VpcId-$(STANDBY_REGION)$(ENV) \
+		--region $(STANDBY_REGION) --query "SecretString" --output text))
+	$(eval SUBNET1:=$(shell aws ssm get-parameter --name Subnet1$(ENV) \
+		--region $(STANDBY_REGION) --query "Parameter.Value" --output text))
+	$(eval SUBNET2:=$(shell aws ssm get-parameter --name Subnet2$(ENV) \
+		--region $(STANDBY_REGION) --query "Parameter.Value" --output text))
+	$(eval SUBNET3:=$(shell aws ssm get-parameter --name Subnet3$(ENV) \
+		--region $(STANDBY_REGION) --query "Parameter.Value" --output text))
+	$(eval DSQL_SG:=$(shell aws ssm get-parameter --name VPCEndpointDSQLSGId$(ENV) \
+		--region $(STANDBY_REGION) --query "Parameter.Value" --output text))
+	@EXISTING=$$(aws ec2 describe-vpc-endpoints \
+		--filters Name=service-name,Values=$(SVC_NAME) Name=vpc-id,Values=$(VPC_ID) \
+		--region $(STANDBY_REGION) \
+		--query 'VpcEndpoints[?State!=`deleted`].VpcEndpointId' --output text); \
+	if [ -n "$$EXISTING" ]; then \
+		echo "DSQL connection VPC endpoint already exists in $(STANDBY_REGION): $$EXISTING"; \
+	else \
+		echo "Creating DSQL connection VPC endpoint for cluster $(CLUSTER_ID)..."; \
+		aws ec2 create-vpc-endpoint --vpc-id $(VPC_ID) --service-name $(SVC_NAME) \
+			--vpc-endpoint-type Interface \
+			--subnet-ids $(SUBNET1) $(SUBNET2) $(SUBNET3) \
+			--security-group-ids $(DSQL_SG) \
+			--private-dns-enabled \
+			--tag-specifications 'ResourceType=vpc-endpoint,Tags=[{Key=Name,Value=DSQL Connection Endpoint},{Key=dsql-cluster-id,Value=$(CLUSTER_ID)}]' \
+			--region $(STANDBY_REGION) --no-cli-pager; \
+	fi
+	@echo "Updating DSQL endpoint to PrivateLink hostname in ${STANDBY_REGION}..."
+	$(eval SVC_ID_S:=$(shell echo $(SVC_NAME) | sed 's/com.amazonaws.$(STANDBY_REGION).//'))
+	@aws ssm put-parameter --name orders-dsql-cluster-Endpoint$(ENV) \
+		--value "$(CLUSTER_ID).$(SVC_ID_S).$(STANDBY_REGION).on.aws" \
+		--type String --region $(STANDBY_REGION) --overwrite --no-cli-pager
 
 carts-db: primary_infrastructure
 	@echo "Verifying if the AWSServiceRoleForDynamoDBReplication exists; if not; this will be created for you..."
@@ -535,6 +599,30 @@ destroy-dsql-vpc-endpoint: destroy-apps-primary
 		fi; \
 	fi
 
+destroy-dsql-vpc-endpoint-standby: destroy-apps-standby
+	@echo "Deleting DSQL connection VPC endpoint in ${STANDBY_REGION}..."
+	@CLUSTER_ID=$$(aws secretsmanager get-secret-value \
+		--secret-id mr-app/orders-dsql-cluster$(ENV) \
+		--region $(STANDBY_REGION) --query "SecretString" --output text 2>/dev/null) || true; \
+	if [ -n "$$CLUSTER_ID" ]; then \
+		SVC_NAME=$$(aws dsql get-vpc-endpoint-service-name \
+			--identifier $$CLUSTER_ID --region $(STANDBY_REGION) \
+			--query "serviceName" --output text 2>/dev/null) || true; \
+		if [ -n "$$SVC_NAME" ]; then \
+			EP_IDS=$$(aws ec2 describe-vpc-endpoints \
+				--filters Name=service-name,Values=$$SVC_NAME \
+				--region $(STANDBY_REGION) \
+				--query 'VpcEndpoints[?State!=`deleted`].VpcEndpointId' --output text 2>/dev/null); \
+			if [ -n "$$EP_IDS" ]; then \
+				echo "Deleting DSQL connection VPC endpoints: $$EP_IDS"; \
+				aws ec2 delete-vpc-endpoints --vpc-endpoint-ids $$EP_IDS \
+					--region $(STANDBY_REGION) --no-cli-pager; \
+			else \
+				echo "No DSQL connection VPC endpoints found"; \
+			fi; \
+		fi; \
+	fi
+
 destroy-databases-primary: destroy-apps-primary destroy-databases-standby destroy-secrets-rotation destroy-crdr-roles destroy-dsql-vpc-endpoint
 	@echo "Deleting databases in ${PRIMARY_REGION}..."
 	@aws cloudformation delete-stack --stack-name catalog-db-stack${ENV} --region ${PRIMARY_REGION}
@@ -545,12 +633,13 @@ destroy-databases-primary: destroy-apps-primary destroy-databases-standby destro
 	@aws cloudformation wait stack-delete-complete --stack-name orders-dsql-stack${ENV} --region ${PRIMARY_REGION}
 	@aws cloudformation wait stack-delete-complete --stack-name carts-db-stack${ENV} --region ${PRIMARY_REGION}
 
-destroy-databases-standby: destroy-apps-standby destroy-restore-reconciliation-ssm destroy-crdr-roles
+destroy-databases-standby: destroy-apps-standby destroy-restore-reconciliation-ssm destroy-crdr-roles destroy-dsql-vpc-endpoint-standby
 	@echo "Deleting databases in ${STANDBY_REGION}..."
 	@aws cloudformation delete-stack --stack-name catalog-db-stack${ENV} --region ${STANDBY_REGION}
-	@aws ssm delete-parameter --name orders-dsql-cluster-Endpoint$(ENV) --region ${STANDBY_REGION} --no-cli-pager 2>/dev/null || true
+	@aws cloudformation delete-stack --stack-name orders-dsql-stack${ENV} --region ${STANDBY_REGION}
 
 	@aws cloudformation wait stack-delete-complete --stack-name catalog-db-stack${ENV} --region ${STANDBY_REGION}
+	@aws cloudformation wait stack-delete-complete --stack-name orders-dsql-stack${ENV} --region ${STANDBY_REGION}
 
 destroy-client-primary:
 	@echo "Deleting client in ${PRIMARY_REGION}"

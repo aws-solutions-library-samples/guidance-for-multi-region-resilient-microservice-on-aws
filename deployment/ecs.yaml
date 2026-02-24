@@ -221,6 +221,14 @@ Resources:
       FromPort: 443
       ToPort: 443
       SourceSecurityGroupId: !GetAtt sgTask.GroupId
+  VPCEndpointDSQLSecurityGroupIngress5432:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Sub '{{resolve:ssm:VPCEndpointDSQLSGId${Env}}}'
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      SourceSecurityGroupId: !GetAtt sgTask.GroupId
   sgAlb:
     Type: AWS::EC2::SecurityGroup
     Properties: 
@@ -644,7 +652,7 @@ Resources:
                   - "ssm:GetParameters"
               - Effect: "Allow"
                 Resource:
-                  - !Sub 'arn:aws:dsql:${PrimaryRegion}:${AWS::AccountId}:cluster/*'
+                  - !Sub 'arn:aws:dsql:${AWS::Region}:${AWS::AccountId}:cluster/*'
                 Action:
                   - "dsql:DbConnectAdmin"
   OrdersTaskDefinition:
@@ -708,8 +716,10 @@ Resources:
               Value: dsql,rabbitmq
             - Name: DSQL_ENDPOINT
               Value: !Sub '{{resolve:ssm:orders-dsql-cluster-Endpoint${Env}}}'
+            - Name: DSQL_AUTH_HOSTNAME
+              Value: !Sub '{{resolve:ssm:orders-dsql-cluster-PublicEndpoint${Env}}}'
             - Name: DSQL_REGION
-              Value: !Ref PrimaryRegion
+              Value: !Ref AWS::Region
             - Name: AWS_REGION
               Value: !Ref AWS::Region
             - Name: OTEL_RESOURCE_ATTRIBUTES
