@@ -224,6 +224,12 @@ class TestDestroyOrdering:
         assert is_before(makefile_targets, "destroy-canaries-primary", "destroy-apps-standby")
         assert is_before(makefile_targets, "destroy-canaries-standby", "destroy-apps-standby")
 
+    def test_global_routing_before_apps(self, makefile_targets):
+        """gr stack Route53 records resolve ALB DNS secrets from the apps stack.
+        Global routing must be deleted before apps (which own the secrets)."""
+        assert is_before(makefile_targets, "destroy-global_routing", "destroy-apps-primary")
+        assert is_before(makefile_targets, "destroy-global_routing", "destroy-apps-standby")
+
     # -- Standard reverse-deploy ordering --
 
     def test_apps_before_ecr_cleanup(self, makefile_targets):
@@ -297,10 +303,6 @@ class TestParallelism:
 
     def test_destroy_apps_and_clients_parallel(self, makefile_targets):
         assert are_independent(makefile_targets, "destroy-apps-primary", "destroy-client-primary")
-
-    def test_destroy_apps_and_global_routing_parallel(self, makefile_targets):
-        """Apps and global routing are decoupled for parallel deletion."""
-        assert are_independent(makefile_targets, "destroy-apps-primary", "destroy-global_routing")
 
     def test_destroy_chaos_and_apps_parallel(self, makefile_targets):
         assert are_independent(makefile_targets, "destroy-chaos-engineering", "destroy-apps-primary")

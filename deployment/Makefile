@@ -379,7 +379,7 @@ destroy-peer_primary: destroy-peer_standby
 	@aws cloudformation delete-stack --stack-name baseVpc${ENV} --region ${PRIMARY_REGION}
 	@aws cloudformation wait stack-delete-complete --stack-name baseVpc${ENV} --region ${PRIMARY_REGION}
 
-destroy-apps-primary: destroy-canaries-primary destroy-canaries-standby
+destroy-apps-primary: destroy-canaries-primary destroy-canaries-standby destroy-global_routing
 	@echo "Cleaning up S3 Buckets in ${PRIMARY_REGION}..."
 	$(eval result:=$(shell aws ssm get-parameter --name canaryBucketName$(ENV) --region $(PRIMARY_REGION) --query "Parameter.Value" --output text ))
 	./cleanup.sh $(result)
@@ -388,7 +388,7 @@ destroy-apps-primary: destroy-canaries-primary destroy-canaries-standby
 	@aws cloudformation delete-stack --stack-name apps${ENV} --region ${PRIMARY_REGION}
 	@aws cloudformation wait stack-delete-complete --stack-name apps${ENV} --region ${PRIMARY_REGION}
 
-destroy-apps-standby: destroy-canaries-primary destroy-canaries-standby
+destroy-apps-standby: destroy-canaries-primary destroy-canaries-standby destroy-global_routing
 	@echo "Cleaning up S3 Buckets in ${STANDBY_REGION}..."
 	$(eval result:=$(shell aws ssm get-parameter --name canaryBucketName$(ENV) --region $(STANDBY_REGION) --query "Parameter.Value" --output text ))
 	./cleanup.sh $(result)
