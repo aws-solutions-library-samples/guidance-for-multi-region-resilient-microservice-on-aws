@@ -330,6 +330,7 @@ Resources:
               cart_headers = verify_request('POST', f"{base}/cart", "productId=a0a4f044-b040-410d-8ead-4de0446aec7e", {**form_headers}, expected_status=303)
               cookie = cart_headers.get("set-cookie", "").split(";")[0]
               session_headers = {**form_headers, "Cookie": cookie}
+              verify_request('GET', f"{base}/checkout", None, {"Cookie": cookie})
               verify_request('POST', f"{base}/checkout", "firstName=Canary&lastName=Test&email=canary@test.local&address1=123+Test+St&city=Anytown&state=WA&zip=98101", {**session_headers})
               verify_request('POST', f"{base}/checkout/delivery", "token=priority-mail", {**session_headers})
               verify_request('POST', f"{base}/checkout/payment", "", {**session_headers})
@@ -663,6 +664,7 @@ Resources:
               cart_hdrs = verify_request('POST', f"{base}/cart", "productId=a0a4f044-b040-410d-8ead-4de0446aec7e", {**form_headers}, expected_status=303)
               cookie = cart_hdrs.get("set-cookie", "").split(";")[0]
               sh = {**form_headers, "Cookie": cookie}
+              verify_request('GET', f"{base}/checkout", None, {"Cookie": cookie})
               verify_request('POST', f"{base}/checkout", "firstName=Canary&lastName=Test&email=canary@test.local&address1=123+Test+St&city=Anytown&state=WA&zip=98101", {**sh})
               verify_request('POST', f"{base}/checkout/delivery", "token=priority-mail", {**sh})
               verify_request('POST', f"{base}/checkout/payment", "", {**sh})
@@ -996,6 +998,7 @@ Resources:
               cart_hdrs = verify_request('POST', f"{base}/cart", "productId=a0a4f044-b040-410d-8ead-4de0446aec7e", {**form_headers}, expected_status=303)
               cookie = cart_hdrs.get("set-cookie", "").split(";")[0]
               sh = {**form_headers, "Cookie": cookie}
+              verify_request('GET', f"{base}/checkout", None, {"Cookie": cookie})
               verify_request('POST', f"{base}/checkout", "firstName=Canary&lastName=Test&email=canary@test.local&address1=123+Test+St&city=Anytown&state=WA&zip=98101", {**sh})
               verify_request('POST', f"{base}/checkout/delivery", "token=priority-mail", {**sh})
               verify_request('POST', f"{base}/checkout/payment", "", {**sh})
