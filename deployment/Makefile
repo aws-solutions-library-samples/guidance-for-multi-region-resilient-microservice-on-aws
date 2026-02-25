@@ -419,16 +419,30 @@ restore-reconciliation: primary_infrastructure standby_infrastructure standby_re
 	@aws cloudformation package --template-file ./database/crdr-reconciliation/src/restore-reconcile-catalog-ssm.yaml --region ${STANDBY_REGION} --s3-bucket $(result) --output-template-file ./database/crdr-reconciliation/src/out.yaml
 	@aws cloudformation deploy --template-file ./database/crdr-reconciliation/src/out.yaml --stack-name reconciliation-catalog-ssm${ENV} --region ${STANDBY_REGION} --capabilities CAPABILITY_NAMED_IAM --parameter-overrides Env=${ENV}
 
-monitoring: restore-reconciliation
+monitoring: restore-reconciliation arc-dns-status
 	@echo "Deploy the Monitoring Dashboard"
 	$(eval _PRIMARY_CLUSTER:=$(shell aws cloudformation describe-stack-resource --stack-name apps$(ENV) --logical-resource-id EcsCluster --region $(PRIMARY_REGION) --query 'StackResourceDetail.PhysicalResourceId' --output text))
 	$(eval _STANDBY_CLUSTER:=$(shell aws cloudformation describe-stack-resource --stack-name apps$(ENV) --logical-resource-id EcsCluster --region $(STANDBY_REGION) --query 'StackResourceDetail.PhysicalResourceId' --output text))
-	$(eval _PRIMARY_HC:=$(shell aws cloudformation describe-stacks --stack-name gr$(ENV) --region $(PRIMARY_REGION) --query "Stacks[0].Parameters[?ParameterKey=='PrimaryHealthCheckId'].ParameterValue" --output text))
-	$(eval _STANDBY_HC:=$(shell aws cloudformation describe-stacks --stack-name gr$(ENV) --region $(PRIMARY_REGION) --query "Stacks[0].Parameters[?ParameterKey=='StandbyHealthCheckId'].ParameterValue" --output text))
 	@aws cloudformation deploy --region ${PRIMARY_REGION} --template ./monitoring.yml \
 	--stack-name monitoring${ENV} --capabilities CAPABILITY_NAMED_IAM --parameter-overrides PrimaryRegion=${PRIMARY_REGION} Env=${ENV} SecondaryRegion=${STANDBY_REGION} \
-	PrimaryEcsCluster=$(_PRIMARY_CLUSTER) SecondaryEcsCluster=$(_STANDBY_CLUSTER) \
-	PrimaryHealthCheckId=$(_PRIMARY_HC) SecondaryHealthCheckId=$(_STANDBY_HC)
+	PrimaryEcsCluster=$(_PRIMARY_CLUSTER) SecondaryEcsCluster=$(_STANDBY_CLUSTER)
+	@aws cloudformation deploy --region ${STANDBY_REGION} --template ./monitoring.yml \
+	--stack-name monitoring${ENV} --capabilities CAPABILITY_NAMED_IAM --parameter-overrides PrimaryRegion=${PRIMARY_REGION} Env=${ENV} SecondaryRegion=${STANDBY_REGION} \
+	PrimaryEcsCluster=$(_PRIMARY_CLUSTER) SecondaryEcsCluster=$(_STANDBY_CLUSTER)
+
+arc-dns-status: region-switch
+	@echo "Deploy ARC DNS status Lambda"
+	$(eval _DNS_NAME:=$(shell aws secretsmanager get-secret-value --secret-id DNSRecordSecret$(ENV) --region $(PRIMARY_REGION) --query 'SecretString' --output text))
+	$(eval _PRIMARY_ALB:=$(shell aws elbv2 describe-load-balancers --region $(PRIMARY_REGION) --query 'LoadBalancers[?contains(LoadBalancerName,`apps-Alb`)].DNSName' --output text))
+	$(eval _STANDBY_ALB:=$(shell aws elbv2 describe-load-balancers --region $(STANDBY_REGION) --query 'LoadBalancers[?contains(LoadBalancerName,`apps-Alb`)].DNSName' --output text))
+	$(eval _SUBNET:=$(shell aws ssm get-parameter --name Subnet1$(ENV) --region $(PRIMARY_REGION) --query 'Parameter.Value' --output text))
+	$(eval _SG:=$(shell aws ssm get-parameter --name canarySgId$(ENV) --region $(PRIMARY_REGION) --query 'Parameter.Value' --output text))
+	@aws cloudformation deploy --region ${PRIMARY_REGION} --template ./arc-dns-status.yaml \
+	--stack-name arc-dns-status${ENV} --capabilities CAPABILITY_IAM \
+	--parameter-overrides Env=${ENV} DnsName=$(_DNS_NAME) \
+	PrimaryRegion=${PRIMARY_REGION} SecondaryRegion=${STANDBY_REGION} \
+	PrimaryAlbDns=$(_PRIMARY_ALB) SecondaryAlbDns=$(_STANDBY_ALB) \
+	SubnetId=$(_SUBNET) SecurityGroupId=$(_SG)
 
 secrets-rotation: primary_region_catalog-db
 	@echo "Creating secrets rotation resources in ${PRIMARY_REGION}"

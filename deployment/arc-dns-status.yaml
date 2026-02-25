@@ -1,0 +1,120 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Lambda that resolves the app DNS name from within the VPC and publishes per-region active status metrics"
+
+Parameters:
+  Env:
+    Type: String
+    Default: ''
+  DnsName:
+    Type: String
+    Description: The application DNS name to resolve (e.g. store.demo.io)
+  PrimaryRegion:
+    Type: String
+    Default: "us-east-1"
+  SecondaryRegion:
+    Type: String
+    Default: "us-west-2"
+  PrimaryAlbDns:
+    Type: String
+    Description: ALB DNS name for primary region
+  SecondaryAlbDns:
+    Type: String
+    Description: ALB DNS name for secondary region
+  SubnetId:
+    Type: String
+    Description: VPC subnet for the Lambda
+  SecurityGroupId:
+    Type: String
+    Description: Security group for the Lambda
+
+Resources:
+  DnsStatusRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+        - PolicyName: put-metrics
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: cloudwatch:PutMetricData
+                Resource: "*"
+
+  DnsStatusFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub app-dns-status${Env}
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !GetAtt DnsStatusRole.Arn
+      Timeout: 30
+      VpcConfig:
+        SubnetIds: [!Ref SubnetId]
+        SecurityGroupIds: [!Ref SecurityGroupId]
+      Environment:
+        Variables:
+          DNS_NAME: !Ref DnsName
+          PRIMARY_REGION: !Ref PrimaryRegion
+          SECONDARY_REGION: !Ref SecondaryRegion
+          PRIMARY_ALB_DNS: !Ref PrimaryAlbDns
+          SECONDARY_ALB_DNS: !Ref SecondaryAlbDns
+      Code:
+        ZipFile: |
+          import socket, boto3, os
+
+          def resolve(name):
+              try:
+                  return set(r[4][0] for r in socket.getaddrinfo(name, 80))
+              except Exception:
+                  return set()
+
+          def handler(event, context):
+              dns_ips = resolve(os.environ['DNS_NAME'])
+              primary_ips = resolve(os.environ['PRIMARY_ALB_DNS'])
+              secondary_ips = resolve(os.environ['SECONDARY_ALB_DNS'])
+
+              metrics = [
+                  {
+                      'MetricName': 'RegionDNSActive',
+                      'Dimensions': [{'Name': 'Region', 'Value': os.environ['PRIMARY_REGION']}],
+                      'Value': 1.0 if dns_ips & primary_ips else 0.0,
+                      'Unit': 'None'
+                  },
+                  {
+                      'MetricName': 'RegionDNSActive',
+                      'Dimensions': [{'Name': 'Region', 'Value': os.environ['SECONDARY_REGION']}],
+                      'Value': 1.0 if dns_ips & secondary_ips else 0.0,
+                      'Unit': 'None'
+                  }
+              ]
+
+              boto3.client('cloudwatch').put_metric_data(
+                  Namespace='ARC/DNSStatus', MetricData=metrics
+              )
+              return {'dns_ips': list(dns_ips), 'primary_ips': list(primary_ips),
+                      'secondary_ips': list(secondary_ips), 'metrics': metrics}
+
+  DnsStatusSchedule:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: rate(1 minute)
+      State: ENABLED
+      Targets:
+        - Id: DnsStatusFunction
+          Arn: !GetAtt DnsStatusFunction.Arn
+
+  DnsStatusPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref DnsStatusFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt DnsStatusSchedule.Arn
