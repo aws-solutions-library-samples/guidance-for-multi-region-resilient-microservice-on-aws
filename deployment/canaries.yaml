@@ -159,17 +159,17 @@ Resources:
                           raise Exception(f"Failed with status code: {response.status}")
               logger.info(f"Response: {response.read().decode()}")
               logger.info("HTTP request successfully executed.")
-              status = response.status
+              resp_headers = dict(response.headers)
               conn.close()
-              return status
+              return resp_headers
           def main():
               base = "http://{{resolve:secretsmanager:Alb-${AWS::Region}${Env}:SecretString:DnsName}}"
-              session = {"X-Session-ID": "canary-cart"}
-              form_headers = {"Content-Type": "application/x-www-form-urlencoded", "X-Session-ID": "canary-cart"}
+              form_headers = {"Content-Type": "application/x-www-form-urlencoded"}
               body = "productId=6d62d909-f957-430e-8689-b5129c0bb75e"
-              verify_request('POST', f"{base}/cart", body, {**form_headers}, expected_status=303)
-              verify_request('GET', f"{base}/cart", None, {**session})
-              verify_request('POST', f"{base}/cart/remove", body, {**form_headers}, expected_status=303)
+              cart_hdrs = verify_request('POST', f"{base}/cart", body, {**form_headers}, expected_status=303)
+              cookie = cart_hdrs.get("set-cookie", "").split(";")[0]
+              verify_request('GET', f"{base}/cart", None, {"Cookie": cookie})
+              verify_request('POST', f"{base}/cart/remove", body, {**form_headers, "Cookie": cookie}, expected_status=303)
               logger.info("Canary successfully executed.")
           def handler(event, context):
               logger.info("Selenium Python API canary.")
@@ -491,17 +491,17 @@ Resources:
                           raise Exception(f"Failed with status code: {response.status}")
               logger.info(f"Response: {response.read().decode()}")
               logger.info("HTTP request successfully executed.")
-              status = response.status
+              resp_headers = dict(response.headers)
               conn.close()
-              return status
+              return resp_headers
           def main():
               base = "http://{{resolve:secretsmanager:Alb-${RemoteRegion}${Env}:SecretString:DnsName}}"
-              session = {"X-Session-ID": "canary-cart"}
-              form_headers = {"Content-Type": "application/x-www-form-urlencoded", "X-Session-ID": "canary-cart"}
+              form_headers = {"Content-Type": "application/x-www-form-urlencoded"}
               body = "productId=6d62d909-f957-430e-8689-b5129c0bb75e"
-              verify_request('POST', f"{base}/cart", body, {**form_headers}, expected_status=303)
-              verify_request('GET', f"{base}/cart", None, {**session})
-              verify_request('POST', f"{base}/cart/remove", body, {**form_headers}, expected_status=303)
+              cart_hdrs = verify_request('POST', f"{base}/cart", body, {**form_headers}, expected_status=303)
+              cookie = cart_hdrs.get("set-cookie", "").split(";")[0]
+              verify_request('GET', f"{base}/cart", None, {"Cookie": cookie})
+              verify_request('POST', f"{base}/cart/remove", body, {**form_headers, "Cookie": cookie}, expected_status=303)
               logger.info("Canary successfully executed.")
           def handler(event, context):
               logger.info("Selenium Python API canary.")
@@ -825,17 +825,17 @@ Resources:
                           raise Exception(f"Failed with status code: {response.status}")
               logger.info(f"Response: {response.read().decode()}")
               logger.info("HTTP request successfully executed.")
-              status = response.status
+              resp_headers = dict(response.headers)
               conn.close()
-              return status
+              return resp_headers
           def main():
               base = "http://{{resolve:secretsmanager:DNSRecordSecret${Env}}}"
-              session = {"X-Session-ID": "canary-cart"}
-              form_headers = {"Content-Type": "application/x-www-form-urlencoded", "X-Session-ID": "canary-cart"}
+              form_headers = {"Content-Type": "application/x-www-form-urlencoded"}
               body = "productId=6d62d909-f957-430e-8689-b5129c0bb75e"
-              verify_request('POST', f"{base}/cart", body, {**form_headers}, expected_status=303)
-              verify_request('GET', f"{base}/cart", None, {**session})
-              verify_request('POST', f"{base}/cart/remove", body, {**form_headers}, expected_status=303)
+              cart_hdrs = verify_request('POST', f"{base}/cart", body, {**form_headers}, expected_status=303)
+              cookie = cart_hdrs.get("set-cookie", "").split(";")[0]
+              verify_request('GET', f"{base}/cart", None, {"Cookie": cookie})
+              verify_request('POST', f"{base}/cart/remove", body, {**form_headers, "Cookie": cookie}, expected_status=303)
               logger.info("Canary successfully executed.")
           def handler(event, context):
               logger.info("Selenium Python API canary.")
