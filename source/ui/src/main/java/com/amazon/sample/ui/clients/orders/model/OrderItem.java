@@ -33,6 +33,7 @@ package com.amazon.sample.ui.clients.orders.model;
 
 import java.util.Objects;
 import java.util.Arrays;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -44,6 +45,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 /**
  * OrderItem
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 @JsonPropertyOrder({
   OrderItem.JSON_PROPERTY_PRICE,
   OrderItem.JSON_PROPERTY_PRODUCT_ID,
