@@ -21,6 +21,7 @@ package com.amazon.sample.orders.web.payload;
 import com.amazon.sample.orders.entities.OrderEntity;
 import com.amazon.sample.orders.entities.OrderItemEntity;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface OrderMapper {
@@ -32,5 +33,6 @@ public interface OrderMapper {
 
     OrderEntity toOrderEntity(Order order);
 
+    @Mapping(target = "id.productId", source = "productId")
     OrderItemEntity toOrderItemEntity(OrderItem item);
 }
