@@ -48,7 +48,7 @@ Resources:
               }
             },
                         {
-              "height": 6, "width": 12, "y": 7, "x": 0,
+              "height": 6, "width": 6, "y": 1, "x": 12,
               "type": "metric",
               "properties": {
                 "metrics": [[ "ecommerce", "OrdersCreated${Env}", { "region": "${PrimaryRegion}" } ]],
@@ -59,7 +59,7 @@ Resources:
               }
             },
             {
-              "height": 6, "width": 12, "y": 7, "x": 12,
+              "height": 6, "width": 6, "y": 1, "x": 18,
               "type": "metric",
               "properties": {
                 "metrics": [[ "ecommerce", "OrdersCreated${Env}", { "region": "${SecondaryRegion}" } ]],
@@ -70,11 +70,11 @@ Resources:
               }
             },
             {
-              "type": "text", "height": 1, "width": 24, "y": 13, "x": 0,
+              "type": "text", "height": 1, "width": 24, "y": 7, "x": 0,
               "properties": { "markdown": "## Canary Success Rate by Journey" }
             },
             {
-              "height": 6, "width": 6, "y": 14, "x": 0,
+              "height": 6, "width": 6, "y": 8, "x": 0,
               "type": "metric",
               "properties": {
                 "title": "Home - Success % (${PrimaryRegion})",
@@ -90,7 +90,7 @@ Resources:
               }
             },
             {
-              "height": 6, "width": 6, "y": 14, "x": 6,
+              "height": 6, "width": 6, "y": 8, "x": 6,
               "type": "metric",
               "properties": {
                 "title": "Catalog - Success % (${PrimaryRegion})",
@@ -106,7 +106,7 @@ Resources:
               }
             },
             {
-              "height": 6, "width": 6, "y": 14, "x": 12,
+              "height": 6, "width": 6, "y": 8, "x": 12,
               "type": "metric",
               "properties": {
                 "title": "Cart - Success % (${PrimaryRegion})",
@@ -122,7 +122,7 @@ Resources:
               }
             },
             {
-              "height": 6, "width": 6, "y": 14, "x": 18,
+              "height": 6, "width": 6, "y": 8, "x": 18,
               "type": "metric",
               "properties": {
                 "title": "Orders - Success % (${PrimaryRegion})",
@@ -138,7 +138,7 @@ Resources:
               }
             },
             {
-              "height": 6, "width": 6, "y": 20, "x": 0,
+              "height": 6, "width": 6, "y": 14, "x": 0,
               "type": "metric",
               "properties": {
                 "title": "Home - Success % (${SecondaryRegion})",
@@ -154,7 +154,7 @@ Resources:
               }
             },
             {
-              "height": 6, "width": 6, "y": 20, "x": 6,
+              "height": 6, "width": 6, "y": 14, "x": 6,
               "type": "metric",
               "properties": {
                 "title": "Catalog - Success % (${SecondaryRegion})",
@@ -170,7 +170,7 @@ Resources:
               }
             },
             {
-              "height": 6, "width": 6, "y": 20, "x": 12,
+              "height": 6, "width": 6, "y": 14, "x": 12,
               "type": "metric",
               "properties": {
                 "title": "Cart - Success % (${SecondaryRegion})",
@@ -186,7 +186,7 @@ Resources:
               }
             },
             {
-              "height": 6, "width": 6, "y": 20, "x": 18,
+              "height": 6, "width": 6, "y": 14, "x": 18,
               "type": "metric",
               "properties": {
                 "title": "Orders - Success % (${SecondaryRegion})",
@@ -202,11 +202,11 @@ Resources:
               }
             },
             {
-              "type": "text", "height": 1, "width": 24, "y": 26, "x": 0,
+              "type": "text", "height": 1, "width": 24, "y": 20, "x": 0,
               "properties": { "markdown": "## Canary Response Time by Journey" }
             },
             {
-              "height": 6, "width": 6, "y": 27, "x": 0,
+              "height": 6, "width": 6, "y": 21, "x": 0,
               "type": "metric",
               "properties": {
                 "title": "Home - Duration ms (${PrimaryRegion})",
@@ -224,7 +224,7 @@ Resources:
               }
             },
             {
-              "height": 6, "width": 6, "y": 27, "x": 6,
+              "height": 6, "width": 6, "y": 21, "x": 6,
               "type": "metric",
               "properties": {
                 "title": "Catalog - Duration ms (${PrimaryRegion})",
@@ -242,7 +242,7 @@ Resources:
               }
             },
             {
-              "height": 6, "width": 6, "y": 27, "x": 12,
+              "height": 6, "width": 6, "y": 21, "x": 12,
               "type": "metric",
               "properties": {
                 "title": "Cart - Duration ms (${PrimaryRegion})",
@@ -260,7 +260,7 @@ Resources:
               }
             },
             {
-              "height": 6, "width": 6, "y": 27, "x": 18,
+              "height": 6, "width": 6, "y": 21, "x": 18,
               "type": "metric",
               "properties": {
                 "title": "Orders - Duration ms (${PrimaryRegion})",
@@ -278,7 +278,7 @@ Resources:
               }
             },
             {
-              "height": 6, "width": 6, "y": 33, "x": 0,
+              "height": 6, "width": 6, "y": 27, "x": 0,
               "type": "metric",
               "properties": {
                 "title": "Home - Duration ms (${SecondaryRegion})",
@@ -296,7 +296,7 @@ Resources:
               }
             },
             {
-              "height": 6, "width": 6, "y": 33, "x": 6,
+              "height": 6, "width": 6, "y": 27, "x": 6,
               "type": "metric",
               "properties": {
                 "title": "Catalog - Duration ms (${SecondaryRegion})",
@@ -314,7 +314,7 @@ Resources:
               }
             },
             {
-              "height": 6, "width": 6, "y": 33, "x": 12,
+              "height": 6, "width": 6, "y": 27, "x": 12,
               "type": "metric",
               "properties": {
                 "title": "Cart - Duration ms (${SecondaryRegion})",
@@ -332,7 +332,7 @@ Resources:
               }
             },
             {
-              "height": 6, "width": 6, "y": 33, "x": 18,
+              "height": 6, "width": 6, "y": 27, "x": 18,
               "type": "metric",
               "properties": {
                 "title": "Orders - Duration ms (${SecondaryRegion})",
@@ -350,11 +350,11 @@ Resources:
               }
             },
             {
-              "type": "text", "height": 1, "width": 24, "y": 39, "x": 0,
+              "type": "text", "height": 1, "width": 24, "y": 33, "x": 0,
               "properties": { "markdown": "## Application Signals - All Traffic (Success Rate)" }
             },
             {
-              "height": 6, "width": 6, "y": 40, "x": 0,
+              "height": 6, "width": 6, "y": 34, "x": 0,
               "type": "metric",
               "properties": {
                 "title": "Home Success Rate (${PrimaryRegion})",
@@ -371,7 +371,7 @@ Resources:
               }
             },
             {
-              "height": 6, "width": 6, "y": 40, "x": 6,
+              "height": 6, "width": 6, "y": 34, "x": 6,
               "type": "metric",
               "properties": {
                 "title": "Catalog Success Rate (${PrimaryRegion})",
@@ -388,7 +388,7 @@ Resources:
               }
             },
             {
-              "height": 6, "width": 6, "y": 40, "x": 12,
+              "height": 6, "width": 6, "y": 34, "x": 12,
               "type": "metric",
               "properties": {
                 "title": "Cart Success Rate (${PrimaryRegion})",
@@ -405,7 +405,7 @@ Resources:
               }
             },
             {
-              "height": 6, "width": 6, "y": 40, "x": 18,
+              "height": 6, "width": 6, "y": 34, "x": 18,
               "type": "metric",
               "properties": {
                 "title": "Orders Success Rate (${PrimaryRegion})",
@@ -422,7 +422,7 @@ Resources:
               }
             },
             {
-              "height": 6, "width": 6, "y": 46, "x": 0,
+              "height": 6, "width": 6, "y": 40, "x": 0,
               "type": "metric",
               "properties": {
                 "title": "Home Success Rate (${SecondaryRegion})",
@@ -439,7 +439,7 @@ Resources:
               }
             },
             {
-              "height": 6, "width": 6, "y": 46, "x": 6,
+              "height": 6, "width": 6, "y": 40, "x": 6,
               "type": "metric",
               "properties": {
                 "title": "Catalog Success Rate (${SecondaryRegion})",
@@ -456,7 +456,7 @@ Resources:
               }
             },
             {
-              "height": 6, "width": 6, "y": 46, "x": 12,
+              "height": 6, "width": 6, "y": 40, "x": 12,
               "type": "metric",
               "properties": {
                 "title": "Cart Success Rate (${SecondaryRegion})",
@@ -473,7 +473,7 @@ Resources:
               }
             },
             {
-              "height": 6, "width": 6, "y": 46, "x": 18,
+              "height": 6, "width": 6, "y": 40, "x": 18,
               "type": "metric",
               "properties": {
                 "title": "Orders Success Rate (${SecondaryRegion})",
@@ -490,11 +490,11 @@ Resources:
               }
             },
             {
-              "type": "text", "height": 1, "width": 24, "y": 52, "x": 0,
+              "type": "text", "height": 1, "width": 24, "y": 46, "x": 0,
               "properties": { "markdown": "## Application Signals - All Traffic (Latency p50/p90/p99)" }
             },
             {
-              "height": 6, "width": 6, "y": 53, "x": 0,
+              "height": 6, "width": 6, "y": 47, "x": 0,
               "type": "metric",
               "properties": {
                 "title": "Home Latency ms (${PrimaryRegion})",
@@ -508,7 +508,7 @@ Resources:
               }
             },
             {
-              "height": 6, "width": 6, "y": 53, "x": 6,
+              "height": 6, "width": 6, "y": 47, "x": 6,
               "type": "metric",
               "properties": {
                 "title": "Catalog Latency ms (${PrimaryRegion})",
@@ -522,7 +522,7 @@ Resources:
               }
             },
             {
-              "height": 6, "width": 6, "y": 53, "x": 12,
+              "height": 6, "width": 6, "y": 47, "x": 12,
               "type": "metric",
               "properties": {
                 "title": "Cart Latency ms (${PrimaryRegion})",
@@ -536,7 +536,7 @@ Resources:
               }
             },
             {
-              "height": 6, "width": 6, "y": 53, "x": 18,
+              "height": 6, "width": 6, "y": 47, "x": 18,
               "type": "metric",
               "properties": {
                 "title": "Orders Latency ms (${PrimaryRegion})",
@@ -550,7 +550,7 @@ Resources:
               }
             },
             {
-              "height": 6, "width": 6, "y": 59, "x": 0,
+              "height": 6, "width": 6, "y": 53, "x": 0,
               "type": "metric",
               "properties": {
                 "title": "Home Latency ms (${SecondaryRegion})",
@@ -564,7 +564,7 @@ Resources:
               }
             },
             {
-              "height": 6, "width": 6, "y": 59, "x": 6,
+              "height": 6, "width": 6, "y": 53, "x": 6,
               "type": "metric",
               "properties": {
                 "title": "Catalog Latency ms (${SecondaryRegion})",
@@ -578,7 +578,7 @@ Resources:
               }
             },
             {
-              "height": 6, "width": 6, "y": 59, "x": 12,
+              "height": 6, "width": 6, "y": 53, "x": 12,
               "type": "metric",
               "properties": {
                 "title": "Cart Latency ms (${SecondaryRegion})",
@@ -592,7 +592,7 @@ Resources:
               }
             },
             {
-              "height": 6, "width": 6, "y": 59, "x": 18,
+              "height": 6, "width": 6, "y": 53, "x": 18,
               "type": "metric",
               "properties": {
                 "title": "Orders Latency ms (${SecondaryRegion})",
