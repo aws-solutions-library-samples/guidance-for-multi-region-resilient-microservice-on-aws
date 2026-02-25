@@ -54,42 +54,6 @@ Resources:
               }
             },
             {
-              "height": 6, "width": 10, "y": 0, "x": 6,
-              "type": "metric",
-              "properties": {
-                "metrics": [
-                  [ "AWS/Lambda", "Invocations" ],
-                  [ ".", "Throttles" ],
-                  [ ".", "Duration" ],
-                  [ ".", "ConcurrentExecutions" ],
-                  [ ".", "ClaimedAccountConcurrency" ],
-                  [ ".", "Errors" ]
-                ],
-                "view": "timeSeries", "stacked": false,
-                "region": "${PrimaryRegion}",
-                "stat": "p99", "period": 60,
-                "title": "Lambda Metrics - ${PrimaryRegion}"
-              }
-            },
-            {
-              "height": 6, "width": 10, "y": 6, "x": 6,
-              "type": "metric",
-              "properties": {
-                "metrics": [
-                  [ "AWS/Lambda", "Invocations" ],
-                  [ ".", "Throttles" ],
-                  [ ".", "Duration" ],
-                  [ ".", "ConcurrentExecutions" ],
-                  [ ".", "ClaimedAccountConcurrency" ],
-                  [ ".", "Errors" ]
-                ],
-                "view": "timeSeries", "stacked": false,
-                "region": "${SecondaryRegion}",
-                "stat": "p99", "period": 60,
-                "title": "Lambda Metrics - ${SecondaryRegion}"
-              }
-            },
-            {
               "type": "text", "height": 1, "width": 24, "y": 12, "x": 0,
               "properties": { "markdown": "## Canary Success Rate by Journey" }
             },
