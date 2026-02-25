@@ -165,13 +165,14 @@ Resources:
           def main():
               import uuid
               base = "http://{{resolve:secretsmanager:Alb-${AWS::Region}${Env}:SecretString:DnsName}}"
-              form_headers = {"Content-Type": "application/x-www-form-urlencoded"}
               body = "productId=6d62d909-f957-430e-8689-b5129c0bb75e"
-              new_session = f"SESSIONID={{str(uuid.uuid4())}}"
-              cart_hdrs = verify_request('POST', f"{base}/cart", body, {{**form_headers, "Cookie": new_session}}, expected_status=303)
+              new_session = "SESSIONID=" + str(uuid.uuid4())
+              post_hdrs = {"Content-Type": "application/x-www-form-urlencoded", "Cookie": new_session}
+              cart_hdrs = verify_request('POST', f"{base}/cart", body, post_hdrs, expected_status=303)
               cookie = cart_hdrs.get("set-cookie", new_session).split(";")[0]
-              verify_request('GET', f"{base}/cart", None, {{"Cookie": cookie}})
-              verify_request('POST', f"{base}/cart/remove", body, {{**form_headers, "Cookie": cookie}}, expected_status=303)
+              post_hdrs["Cookie"] = cookie
+              verify_request('GET', f"{base}/cart", None, {"Cookie": cookie})
+              verify_request('POST', f"{base}/cart/remove", body, post_hdrs, expected_status=303)
               logger.info("Canary successfully executed.")
           def handler(event, context):
               logger.info("Selenium Python API canary.")
@@ -499,13 +500,14 @@ Resources:
           def main():
               import uuid
               base = "http://{{resolve:secretsmanager:Alb-${RemoteRegion}${Env}:SecretString:DnsName}}"
-              form_headers = {"Content-Type": "application/x-www-form-urlencoded"}
               body = "productId=6d62d909-f957-430e-8689-b5129c0bb75e"
-              new_session = f"SESSIONID={{str(uuid.uuid4())}}"
-              cart_hdrs = verify_request('POST', f"{base}/cart", body, {{**form_headers, "Cookie": new_session}}, expected_status=303)
+              new_session = "SESSIONID=" + str(uuid.uuid4())
+              post_hdrs = {"Content-Type": "application/x-www-form-urlencoded", "Cookie": new_session}
+              cart_hdrs = verify_request('POST', f"{base}/cart", body, post_hdrs, expected_status=303)
               cookie = cart_hdrs.get("set-cookie", new_session).split(";")[0]
-              verify_request('GET', f"{base}/cart", None, {{"Cookie": cookie}})
-              verify_request('POST', f"{base}/cart/remove", body, {{**form_headers, "Cookie": cookie}}, expected_status=303)
+              post_hdrs["Cookie"] = cookie
+              verify_request('GET', f"{base}/cart", None, {"Cookie": cookie})
+              verify_request('POST', f"{base}/cart/remove", body, post_hdrs, expected_status=303)
               logger.info("Canary successfully executed.")
           def handler(event, context):
               logger.info("Selenium Python API canary.")
@@ -835,13 +837,14 @@ Resources:
           def main():
               import uuid
               base = "http://{{resolve:secretsmanager:DNSRecordSecret${Env}}}"
-              form_headers = {"Content-Type": "application/x-www-form-urlencoded"}
               body = "productId=6d62d909-f957-430e-8689-b5129c0bb75e"
-              new_session = f"SESSIONID={{str(uuid.uuid4())}}"
-              cart_hdrs = verify_request('POST', f"{base}/cart", body, {{**form_headers, "Cookie": new_session}}, expected_status=303)
+              new_session = "SESSIONID=" + str(uuid.uuid4())
+              post_hdrs = {"Content-Type": "application/x-www-form-urlencoded", "Cookie": new_session}
+              cart_hdrs = verify_request('POST', f"{base}/cart", body, post_hdrs, expected_status=303)
               cookie = cart_hdrs.get("set-cookie", new_session).split(";")[0]
-              verify_request('GET', f"{base}/cart", None, {{"Cookie": cookie}})
-              verify_request('POST', f"{base}/cart/remove", body, {{**form_headers, "Cookie": cookie}}, expected_status=303)
+              post_hdrs["Cookie"] = cookie
+              verify_request('GET', f"{base}/cart", None, {"Cookie": cookie})
+              verify_request('POST', f"{base}/cart/remove", body, post_hdrs, expected_status=303)
               logger.info("Canary successfully executed.")
           def handler(event, context):
               logger.info("Selenium Python API canary.")
