@@ -22,6 +22,7 @@ import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBQueryExpression;
 import com.amazonaws.services.dynamodbv2.datamodeling.PaginatedQueryList;
+import com.amazonaws.services.dynamodbv2.model.AmazonDynamoDBException;
 import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
 import com.amazonaws.services.dynamodbv2.model.DeleteTableRequest;
 import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
@@ -34,6 +35,7 @@ import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 @Slf4j
 public class DynamoDBCartService implements CartService {
@@ -109,18 +111,16 @@ public class DynamoDBCartService implements CartService {
 
     @Override
     public ItemEntity add(String customerId, String itemId, int quantity, int unitPrice) {
-        DynamoItemEntity item = this.mapper.load(DynamoItemEntity.class, customerId, itemId);
-
-        if(item != null) {
-            item.setQuantity(item.getQuantity() + quantity);
-        }
-        else {
-            item = new DynamoItemEntity(customerId, itemId, 1, unitPrice);
-        }
-
-        this.mapper.save(item);
-
-        return item;
+        return withMrscRetry(() -> {
+            DynamoItemEntity item = this.mapper.load(DynamoItemEntity.class, customerId, itemId);
+            if(item != null) {
+                item.setQuantity(item.getQuantity() + quantity);
+            } else {
+                item = new DynamoItemEntity(customerId, itemId, 1, unitPrice);
+            }
+            this.mapper.save(item);
+            return item;
+        });
     }
 
     @Override
@@ -144,23 +144,41 @@ public class DynamoDBCartService implements CartService {
 
     @Override
     public void deleteItem(String customerId, String itemId) {
-        item(customerId, itemId).ifPresentOrElse(this.mapper::delete,
-        ()
-            -> log.warn("Item missing for delete {} -- {}", customerId, itemId));
+        withMrscRetry(() -> {
+            item(customerId, itemId).ifPresentOrElse(this.mapper::delete,
+                () -> log.warn("Item missing for delete {} -- {}", customerId, itemId));
+            return null;
+        });
     }
 
     @Override
     public Optional<DynamoItemEntity> update(String customerId, String itemId, int quantity, int unitPrice) {
-        return item(customerId, itemId).map(
+        return withMrscRetry(() -> item(customerId, itemId).map(
             item -> {
                 item.setQuantity(quantity);
                 item.setUnitPrice(unitPrice);
-
                 this.mapper.save(item);
-
                 return item;
             }
-        );
+        ));
+    }
+
+    private <T> T withMrscRetry(Supplier<T> operation) {
+        long delayMs = 50;
+        long deadlineMs = System.currentTimeMillis() + 15_000;
+        while (true) {
+            try {
+                return operation.get();
+            } catch (AmazonDynamoDBException e) {
+                if (!"ReplicatedWriteConflictException".equals(e.getErrorCode())
+                        || System.currentTimeMillis() + delayMs > deadlineMs) {
+                    throw e;
+                }
+                log.warn("MRSC write conflict, retrying in {}ms", delayMs);
+                try { Thread.sleep(delayMs); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); throw e; }
+                delayMs = Math.min(delayMs * 2, deadlineMs - System.currentTimeMillis());
+            }
+        }
     }
 
     @Override
