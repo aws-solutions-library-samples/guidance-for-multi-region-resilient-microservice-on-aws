@@ -291,11 +291,11 @@ orders-dsql-db: primary_infrastructure standby_infrastructure
 	--parameter-overrides Env=${ENV} KmsKey=retail-store-ar${ENV} WitnessRegion=us-east-2 \
 	"PeerClusterArns=$$PRIMARY_ARN,$$STANDBY_ARN"
 	@echo "Storing public endpoints for auth token generation..."
-	$(eval _PUB_PRIMARY:=$(shell aws ssm get-parameter --name orders-dsql-cluster-Endpoint$(ENV) --region $(PRIMARY_REGION) --query "Parameter.Value" --output text))
-	$(eval _PUB_STANDBY:=$(shell aws ssm get-parameter --name orders-dsql-cluster-Endpoint$(ENV) --region $(STANDBY_REGION) --query "Parameter.Value" --output text))
-	@aws ssm put-parameter --name orders-dsql-cluster-PublicEndpoint$(ENV) --value "$(strip $(_PUB_PRIMARY))" \
-		--type String --region ${PRIMARY_REGION} --overwrite --no-cli-pager
-	@aws ssm put-parameter --name orders-dsql-cluster-PublicEndpoint$(ENV) --value "$(strip $(_PUB_STANDBY))" \
+	@PUB_PRIMARY=$$(aws ssm get-parameter --name orders-dsql-cluster-Endpoint$(ENV) --region $(PRIMARY_REGION) --query "Parameter.Value" --output text) && \
+	PUB_STANDBY=$$(aws ssm get-parameter --name orders-dsql-cluster-Endpoint$(ENV) --region $(STANDBY_REGION) --query "Parameter.Value" --output text) && \
+	aws ssm put-parameter --name orders-dsql-cluster-PublicEndpoint$(ENV) --value "$$PUB_PRIMARY" \
+		--type String --region ${PRIMARY_REGION} --overwrite --no-cli-pager && \
+	aws ssm put-parameter --name orders-dsql-cluster-PublicEndpoint$(ENV) --value "$$PUB_STANDBY" \
 		--type String --region ${STANDBY_REGION} --overwrite --no-cli-pager
 
 dsql-vpc-endpoint: orders-dsql-db primary_infrastructure
@@ -423,9 +423,12 @@ monitoring: restore-reconciliation
 	@echo "Deploy the Monitoring Dashboard"
 	$(eval _PRIMARY_CLUSTER:=$(shell aws cloudformation describe-stack-resource --stack-name apps$(ENV) --logical-resource-id EcsCluster --region $(PRIMARY_REGION) --query 'StackResourceDetail.PhysicalResourceId' --output text))
 	$(eval _STANDBY_CLUSTER:=$(shell aws cloudformation describe-stack-resource --stack-name apps$(ENV) --logical-resource-id EcsCluster --region $(STANDBY_REGION) --query 'StackResourceDetail.PhysicalResourceId' --output text))
+	$(eval _PRIMARY_HC:=$(shell aws cloudformation describe-stacks --stack-name gr$(ENV) --region $(PRIMARY_REGION) --query "Stacks[0].Parameters[?ParameterKey=='PrimaryHealthCheckId'].ParameterValue" --output text))
+	$(eval _STANDBY_HC:=$(shell aws cloudformation describe-stacks --stack-name gr$(ENV) --region $(PRIMARY_REGION) --query "Stacks[0].Parameters[?ParameterKey=='StandbyHealthCheckId'].ParameterValue" --output text))
 	@aws cloudformation deploy --region ${PRIMARY_REGION} --template ./monitoring.yml \
 	--stack-name monitoring${ENV} --capabilities CAPABILITY_NAMED_IAM --parameter-overrides PrimaryRegion=${PRIMARY_REGION} Env=${ENV} SecondaryRegion=${STANDBY_REGION} \
-	PrimaryEcsCluster=$(_PRIMARY_CLUSTER) SecondaryEcsCluster=$(_STANDBY_CLUSTER)
+	PrimaryEcsCluster=$(_PRIMARY_CLUSTER) SecondaryEcsCluster=$(_STANDBY_CLUSTER) \
+	PrimaryHealthCheckId=$(_PRIMARY_HC) SecondaryHealthCheckId=$(_STANDBY_HC)
 
 secrets-rotation: primary_region_catalog-db
 	@echo "Creating secrets rotation resources in ${PRIMARY_REGION}"
