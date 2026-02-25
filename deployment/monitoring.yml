@@ -63,9 +63,9 @@ Resources:
               "properties": {
                 "title": "Users in West routing to: East",
                 "metrics": [
-                  [ "ARC/DNSStatus", "RoutingToEast", "SourceRegion", "${SecondaryRegion}", { "region": "${PrimaryRegion}", "label": "→ East", "color": "#ff7f0e" } ]
+                  [ "ARC/DNSStatus", "RoutingToEast", "SourceRegion", "${SecondaryRegion}", { "region": "${SecondaryRegion}", "label": "→ East", "color": "#ff7f0e" } ]
                 ],
-                "view": "singleValue", "region": "${PrimaryRegion}", "stat": "Minimum", "period": 60
+                "view": "singleValue", "region": "${SecondaryRegion}", "stat": "Minimum", "period": 60
               }
             },
             {
@@ -74,9 +74,9 @@ Resources:
               "properties": {
                 "title": "Users in West routing to: West",
                 "metrics": [
-                  [ "ARC/DNSStatus", "RoutingToWest", "SourceRegion", "${SecondaryRegion}", { "region": "${PrimaryRegion}", "label": "→ West", "color": "#2ca02c" } ]
+                  [ "ARC/DNSStatus", "RoutingToWest", "SourceRegion", "${SecondaryRegion}", { "region": "${SecondaryRegion}", "label": "→ West", "color": "#2ca02c" } ]
                 ],
-                "view": "singleValue", "region": "${PrimaryRegion}", "stat": "Minimum", "period": 60
+                "view": "singleValue", "region": "${SecondaryRegion}", "stat": "Minimum", "period": 60
               }
             },
                         {
