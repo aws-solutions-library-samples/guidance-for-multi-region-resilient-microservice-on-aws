@@ -5,9 +5,6 @@ Parameters:
   Env:
     Type: String
     Default: ''
-  DnsName:
-    Type: String
-    Description: The application DNS name to resolve (e.g. store.demo.io)
   PrimaryRegion:
     Type: String
     Default: "us-east-1"
@@ -61,46 +58,44 @@ Resources:
         SecurityGroupIds: [!Ref SecurityGroupId]
       Environment:
         Variables:
-          DNS_NAME: !Ref DnsName
           PRIMARY_REGION: !Ref PrimaryRegion
           SECONDARY_REGION: !Ref SecondaryRegion
           PRIMARY_ALB_DNS: !Ref PrimaryAlbDns
           SECONDARY_ALB_DNS: !Ref SecondaryAlbDns
       Code:
         ZipFile: |
-          import socket, boto3, os
+          import urllib.request, boto3, os
 
-          def resolve(name):
+          def check_alb(alb_dns):
               try:
-                  return set(r[4][0] for r in socket.getaddrinfo(name, 80))
+                  req = urllib.request.Request(
+                      f'http://{alb_dns}/actuator/health',
+                      headers={'User-Agent': 'dns-status-check'}
+                  )
+                  with urllib.request.urlopen(req, timeout=5) as r:
+                      return 1.0 if r.status < 500 else 0.0
               except Exception:
-                  return set()
+                  return 0.0
 
           def handler(event, context):
-              dns_ips = resolve(os.environ['DNS_NAME'])
-              primary_ips = resolve(os.environ['PRIMARY_ALB_DNS'])
-              secondary_ips = resolve(os.environ['SECONDARY_ALB_DNS'])
-
               metrics = [
                   {
                       'MetricName': 'RegionDNSActive',
                       'Dimensions': [{'Name': 'Region', 'Value': os.environ['PRIMARY_REGION']}],
-                      'Value': 1.0 if dns_ips & primary_ips else 0.0,
+                      'Value': check_alb(os.environ['PRIMARY_ALB_DNS']),
                       'Unit': 'None'
                   },
                   {
                       'MetricName': 'RegionDNSActive',
                       'Dimensions': [{'Name': 'Region', 'Value': os.environ['SECONDARY_REGION']}],
-                      'Value': 1.0 if dns_ips & secondary_ips else 0.0,
+                      'Value': check_alb(os.environ['SECONDARY_ALB_DNS']),
                       'Unit': 'None'
                   }
               ]
-
               boto3.client('cloudwatch').put_metric_data(
                   Namespace='ARC/DNSStatus', MetricData=metrics
               )
-              return {'dns_ips': list(dns_ips), 'primary_ips': list(primary_ips),
-                      'secondary_ips': list(secondary_ips), 'metrics': metrics}
+              return {'metrics': metrics}
 
   DnsStatusSchedule:
     Type: AWS::Events::Rule
