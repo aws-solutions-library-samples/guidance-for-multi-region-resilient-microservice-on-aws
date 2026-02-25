@@ -35,9 +35,11 @@ export class HttpOrdersService implements IOrdersService {
       lastName: checkout.request.shippingAddress.lastName,
       items: checkout.request.items.map(item => {
         return {
-          price: item.totalCost,
-          productId: item.id,
+          unitCost: item.totalCost,
+          id: item.id,
           quantity: item.quantity,
+          name: item.name,
+          totalCost: item.totalCost,
         };
       }),
     }).then((value) => {
