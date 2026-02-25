@@ -379,7 +379,7 @@ Resources:
               "properties": {
                 "title": "Home Success Rate (${PrimaryRegion})",
                 "metrics": [
-                  [ { "expression": "100*(1-(e1+f1)/MAX([r1,1]))", "label": "Success %", "id": "expr1" } ],
+                  [ { "expression": "100*(1-(e1+f1)/IF(r1>0,r1,1))", "label": "Success %", "id": "expr1" } ],
                   [ "ApplicationSignals", "Error", "Environment", "ecs:${PrimaryEcsCluster}", "Service", "ui", "Operation", "GET /home", { "region": "${PrimaryRegion}", "id": "e1", "visible": false } ],
                   [ "ApplicationSignals", "Fault", "Environment", "ecs:${PrimaryEcsCluster}", "Service", "ui", "Operation", "GET /home", { "region": "${PrimaryRegion}", "id": "f1", "visible": false } ],
                   [ "ApplicationSignals", "Latency", "Environment", "ecs:${PrimaryEcsCluster}", "Service", "ui", "Operation", "GET /home", { "region": "${PrimaryRegion}", "id": "r1", "visible": false, "stat": "SampleCount" } ]
@@ -396,7 +396,7 @@ Resources:
               "properties": {
                 "title": "Catalog Success Rate (${PrimaryRegion})",
                 "metrics": [
-                  [ { "expression": "100*(1-(e1+f1)/MAX([r1,1]))", "label": "Success %", "id": "expr1" } ],
+                  [ { "expression": "100*(1-(e1+f1)/IF(r1>0,r1,1))", "label": "Success %", "id": "expr1" } ],
                   [ "ApplicationSignals", "Error", "Environment", "ecs:${PrimaryEcsCluster}", "Service", "ui", "Operation", "GET /catalog", { "region": "${PrimaryRegion}", "id": "e1", "visible": false } ],
                   [ "ApplicationSignals", "Fault", "Environment", "ecs:${PrimaryEcsCluster}", "Service", "ui", "Operation", "GET /catalog", { "region": "${PrimaryRegion}", "id": "f1", "visible": false } ],
                   [ "ApplicationSignals", "Latency", "Environment", "ecs:${PrimaryEcsCluster}", "Service", "ui", "Operation", "GET /catalog", { "region": "${PrimaryRegion}", "id": "r1", "visible": false, "stat": "SampleCount" } ]
@@ -413,7 +413,7 @@ Resources:
               "properties": {
                 "title": "Cart Success Rate (${PrimaryRegion})",
                 "metrics": [
-                  [ { "expression": "100*(1-(e1+f1)/MAX([r1,1]))", "label": "Success %", "id": "expr1" } ],
+                  [ { "expression": "100*(1-(e1+f1)/IF(r1>0,r1,1))", "label": "Success %", "id": "expr1" } ],
                   [ "ApplicationSignals", "Error", "Environment", "ecs:${PrimaryEcsCluster}", "Service", "ui", "Operation", "GET /cart", { "region": "${PrimaryRegion}", "id": "e1", "visible": false } ],
                   [ "ApplicationSignals", "Fault", "Environment", "ecs:${PrimaryEcsCluster}", "Service", "ui", "Operation", "GET /cart", { "region": "${PrimaryRegion}", "id": "f1", "visible": false } ],
                   [ "ApplicationSignals", "Latency", "Environment", "ecs:${PrimaryEcsCluster}", "Service", "ui", "Operation", "GET /cart", { "region": "${PrimaryRegion}", "id": "r1", "visible": false, "stat": "SampleCount" } ]
@@ -430,7 +430,7 @@ Resources:
               "properties": {
                 "title": "Orders Success Rate (${PrimaryRegion})",
                 "metrics": [
-                  [ { "expression": "100*(1-(e1+f1)/MAX([r1,1]))", "label": "Success %", "id": "expr1" } ],
+                  [ { "expression": "100*(1-(e1+f1)/IF(r1>0,r1,1))", "label": "Success %", "id": "expr1" } ],
                   [ "ApplicationSignals", "Error", "Environment", "ecs:${PrimaryEcsCluster}", "Service", "ui", "Operation", "GET /orders", { "region": "${PrimaryRegion}", "id": "e1", "visible": false } ],
                   [ "ApplicationSignals", "Fault", "Environment", "ecs:${PrimaryEcsCluster}", "Service", "ui", "Operation", "GET /orders", { "region": "${PrimaryRegion}", "id": "f1", "visible": false } ],
                   [ "ApplicationSignals", "Latency", "Environment", "ecs:${PrimaryEcsCluster}", "Service", "ui", "Operation", "GET /orders", { "region": "${PrimaryRegion}", "id": "r1", "visible": false, "stat": "SampleCount" } ]
@@ -447,7 +447,7 @@ Resources:
               "properties": {
                 "title": "Home Success Rate (${SecondaryRegion})",
                 "metrics": [
-                  [ { "expression": "100*(1-(e1+f1)/MAX([r1,1]))", "label": "Success %", "id": "expr1" } ],
+                  [ { "expression": "100*(1-(e1+f1)/IF(r1>0,r1,1))", "label": "Success %", "id": "expr1" } ],
                   [ "ApplicationSignals", "Error", "Environment", "ecs:${SecondaryEcsCluster}", "Service", "ui", "Operation", "GET /home", { "region": "${SecondaryRegion}", "id": "e1", "visible": false } ],
                   [ "ApplicationSignals", "Fault", "Environment", "ecs:${SecondaryEcsCluster}", "Service", "ui", "Operation", "GET /home", { "region": "${SecondaryRegion}", "id": "f1", "visible": false } ],
                   [ "ApplicationSignals", "Latency", "Environment", "ecs:${SecondaryEcsCluster}", "Service", "ui", "Operation", "GET /home", { "region": "${SecondaryRegion}", "id": "r1", "visible": false, "stat": "SampleCount" } ]
@@ -464,7 +464,7 @@ Resources:
               "properties": {
                 "title": "Catalog Success Rate (${SecondaryRegion})",
                 "metrics": [
-                  [ { "expression": "100*(1-(e1+f1)/MAX([r1,1]))", "label": "Success %", "id": "expr1" } ],
+                  [ { "expression": "100*(1-(e1+f1)/IF(r1>0,r1,1))", "label": "Success %", "id": "expr1" } ],
                   [ "ApplicationSignals", "Error", "Environment", "ecs:${SecondaryEcsCluster}", "Service", "ui", "Operation", "GET /catalog", { "region": "${SecondaryRegion}", "id": "e1", "visible": false } ],
                   [ "ApplicationSignals", "Fault", "Environment", "ecs:${SecondaryEcsCluster}", "Service", "ui", "Operation", "GET /catalog", { "region": "${SecondaryRegion}", "id": "f1", "visible": false } ],
                   [ "ApplicationSignals", "Latency", "Environment", "ecs:${SecondaryEcsCluster}", "Service", "ui", "Operation", "GET /catalog", { "region": "${SecondaryRegion}", "id": "r1", "visible": false, "stat": "SampleCount" } ]
@@ -481,7 +481,7 @@ Resources:
               "properties": {
                 "title": "Cart Success Rate (${SecondaryRegion})",
                 "metrics": [
-                  [ { "expression": "100*(1-(e1+f1)/MAX([r1,1]))", "label": "Success %", "id": "expr1" } ],
+                  [ { "expression": "100*(1-(e1+f1)/IF(r1>0,r1,1))", "label": "Success %", "id": "expr1" } ],
                   [ "ApplicationSignals", "Error", "Environment", "ecs:${SecondaryEcsCluster}", "Service", "ui", "Operation", "GET /cart", { "region": "${SecondaryRegion}", "id": "e1", "visible": false } ],
                   [ "ApplicationSignals", "Fault", "Environment", "ecs:${SecondaryEcsCluster}", "Service", "ui", "Operation", "GET /cart", { "region": "${SecondaryRegion}", "id": "f1", "visible": false } ],
                   [ "ApplicationSignals", "Latency", "Environment", "ecs:${SecondaryEcsCluster}", "Service", "ui", "Operation", "GET /cart", { "region": "${SecondaryRegion}", "id": "r1", "visible": false, "stat": "SampleCount" } ]
@@ -498,7 +498,7 @@ Resources:
               "properties": {
                 "title": "Orders Success Rate (${SecondaryRegion})",
                 "metrics": [
-                  [ { "expression": "100*(1-(e1+f1)/MAX([r1,1]))", "label": "Success %", "id": "expr1" } ],
+                  [ { "expression": "100*(1-(e1+f1)/IF(r1>0,r1,1))", "label": "Success %", "id": "expr1" } ],
                   [ "ApplicationSignals", "Error", "Environment", "ecs:${SecondaryEcsCluster}", "Service", "ui", "Operation", "GET /orders", { "region": "${SecondaryRegion}", "id": "e1", "visible": false } ],
                   [ "ApplicationSignals", "Fault", "Environment", "ecs:${SecondaryEcsCluster}", "Service", "ui", "Operation", "GET /orders", { "region": "${SecondaryRegion}", "id": "f1", "visible": false } ],
                   [ "ApplicationSignals", "Latency", "Environment", "ecs:${SecondaryEcsCluster}", "Service", "ui", "Operation", "GET /orders", { "region": "${SecondaryRegion}", "id": "r1", "visible": false, "stat": "SampleCount" } ]
