@@ -22,6 +22,7 @@ import com.amazon.sample.orders.entities.OrderEntity;
 import com.amazon.sample.orders.entities.OrderItemEntity;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.Mappings;
 
 @Mapper(componentModel = "spring")
 public interface OrderMapper {
@@ -33,6 +34,9 @@ public interface OrderMapper {
 
     OrderEntity toOrderEntity(Order order);
 
-    @Mapping(target = "id.productId", source = "productId")
+    @Mappings({
+        @Mapping(target = "productId", source = "productId"),
+        @Mapping(target = "id.productId", source = "productId")
+    })
     OrderItemEntity toOrderItemEntity(OrderItem item);
 }
