@@ -1,0 +1,89 @@
+2026-02-23 17:49:09,966	INFO	log.py:673	Initializing ASH v3.2.1 
+2026-02-23 17:49:10,011	INFO	log.py:673	Initializing execution engine 
+2026-02-23 17:49:10,011	INFO	log.py:673	ASH Orchestrator and ScanExecutionEngine initialized 
+2026-02-23 17:49:10,011	INFO	log.py:673	Identifying non-ignored files to include in scans 
+2026-02-23 17:49:10,983	INFO	log.py:673	Found 45215 files within the provided source directory to scan. Please see the 'ash-scan-set-files-list.txt' in the output folder for the full list of files identified to scan within the source directory identified. 
+2026-02-23 17:49:10,983	INFO	log.py:673	Executing phases: ['convert', 'scan', 'report'] 
+2026-02-23 17:49:10,983	INFO	log.py:673	===== ASH Security Scan Starting ===== 
+2026-02-23 17:49:10,983	INFO	log.py:673	Executing phases: convert, scan, report 
+2026-02-23 17:49:10,983	INFO	log.py:673	ASH Security Scan started 
+2026-02-23 17:49:10,983	INFO	log.py:673	ASH Security Scan started 
+2026-02-23 17:49:10,983	INFO	log.py:673	
+----- Starting phase: CONVERT ----- 
+2026-02-23 17:49:15,173	INFO	log.py:673	No archive files (.zip, .tar, .gz) found in /Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws 
+2026-02-23 17:49:16,903	INFO	log.py:673	No Jupyter notebook (.ipynb) files found in /Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws 
+2026-02-23 17:49:16,903	WARNING	log.py:673	No files were converted by any converter plugins 
+2026-02-23 17:49:16,903	INFO	log.py:673	
+----- Starting phase: SCAN ----- 
+2026-02-23 17:49:16,904	INFO	log.py:673	Building scanner tasks... 
+2026-02-23 17:49:21,210	INFO	log.py:673	([yellow]bandit[/yellow] @ [magenta]source[/magenta])	Bandit already installed via UV tool 
+2026-02-23 17:49:21,211	WARNING	log.py:673	Scanner cfn-nag dependencies are not satisfied, marking as MISSING 
+2026-02-23 17:49:21,227	WARNING	log.py:673	Grype executable not found in PATH. Please ensure grype is installed. 
+2026-02-23 17:49:21,227	WARNING	log.py:673	Scanner grype dependencies are not satisfied, marking as MISSING 
+2026-02-23 17:49:21,366	WARNING	log.py:673	Scanner opengrep dependencies are not satisfied, marking as MISSING 
+2026-02-23 17:49:21,381	WARNING	log.py:673	Scanner syft dependencies are not satisfied, marking as MISSING 
+2026-02-23 17:49:21,382	INFO	log.py:673	Scanner enablement validation summary: 
+2026-02-23 17:49:21,382	INFO	log.py:673	  Total registered scanners: 10 
+2026-02-23 17:49:21,382	INFO	log.py:673	  Enabled scanners (6): bandit, cdk-nag, checkov, detect-secrets, npm-audit, semgrep 
+2026-02-23 17:49:21,382	INFO	log.py:673	  Excluded scanners (0): None 
+2026-02-23 17:49:21,382	INFO	log.py:673	Starting scanner tasks validation 
+2026-02-23 17:49:21,382	INFO	log.py:673	Scanner tasks validation completed successfully 
+2026-02-23 17:49:21,382	INFO	log.py:673	Scanner Filtering Summary: 
+2026-02-23 17:49:21,382	INFO	log.py:673	   Total scanner classes found: 10 
+2026-02-23 17:49:21,382	INFO	log.py:673	   Enabled scanners after filtering: 6 
+2026-02-23 17:49:21,382	INFO	log.py:673	   Enabled scanner names: ['bandit', 'cdk-nag', 'checkov', 'detect-secrets', 'npm-audit', 'semgrep'] 
+2026-02-23 17:49:21,382	INFO	log.py:673	   Excluded scanners: 0 
+2026-02-23 17:49:21,382	INFO	log.py:673	   Missing dependencies: 0 
+2026-02-23 17:49:21,382	INFO	log.py:673	   Total accounted for: 6 
+2026-02-23 17:49:21,386	INFO	log.py:673	([yellow]detect-secrets[/yellow] @ [magenta]source[/magenta])	Starting scan 
+2026-02-23 17:49:21,395	INFO	log.py:673	([yellow]cdk-nag[/yellow] @ [magenta]source[/magenta])	Starting scan 
+2026-02-23 17:49:21,424	INFO	log.py:673	([yellow]bandit[/yellow] @ [magenta]source[/magenta])	Bandit already installed via UV tool 
+2026-02-23 17:49:21,431	INFO	log.py:673	([yellow]bandit[/yellow] @ [magenta]source[/magenta])	Starting scan 
+2026-02-23 17:49:21,431	INFO	log.py:673	([yellow]checkov[/yellow] @ [magenta]source[/magenta])	Starting scan 
+2026-02-23 17:49:21,431	INFO	log.py:673	([yellow]semgrep[/yellow] @ [magenta]source[/magenta])	Starting scan 
+2026-02-23 17:49:21,593	INFO	log.py:673	([yellow]npm-audit[/yellow] @ [magenta]source[/magenta])	Starting scan 
+2026-02-23 17:49:21,850	ERROR	log.py:673	Error running yarn audit --json: [Errno 2] No such file or directory: 'yarn' 
+2026-02-23 17:49:21,852	INFO	log.py:673	{'error': "[Errno 2] No such file or directory: 'yarn'", 'returncode': 1, 'stderr': "Error running yarn audit --json: [Errno 2] No such file or directory: 'yarn'"} 
+2026-02-23 17:49:21,869	ERROR	log.py:673	Error running yarn audit --json: [Errno 2] No such file or directory: 'yarn' 
+2026-02-23 17:49:21,869	INFO	log.py:673	{'error': "[Errno 2] No such file or directory: 'yarn'", 'returncode': 1, 'stderr': "Error running yarn audit --json: [Errno 2] No such file or directory: 'yarn'"} 
+2026-02-23 17:49:21,879	ERROR	log.py:673	Error running yarn audit --json: [Errno 2] No such file or directory: 'yarn' 
+2026-02-23 17:49:21,879	INFO	log.py:673	{'error': "[Errno 2] No such file or directory: 'yarn'", 'returncode': 1, 'stderr': "Error running yarn audit --json: [Errno 2] No such file or directory: 'yarn'"} 
+2026-02-23 17:49:26,119	INFO	log.py:673	{'returncode': 1, 'stdout': '{\n  "error": {\n    "code": "ENOLOCK",\n    "summary": "This command requires an existing lockfile.",\n    "detail": "Try creating one first with: npm i --package-lock-only\\nOriginal error: loadVirtual requires existing shrinkwrap file"\n  }\n}\n', 'stderr': 'npm error code ENOLOCK\nnpm error audit This command requires an existing lockfile.\nnpm error audit Try creating one first with: npm i --package-lock-only\nnpm error audit Original error: loadVirtual requires existing shrinkwrap file\nnpm error A complete log of this run can be found in: /Users/mlanza/.npm/_logs/2026-02-23T22_49_22_565Z-debug-0.log\n'} 
+2026-02-23 17:49:26,131	INFO	log.py:673	([yellow]npm-audit[/yellow] @ [magenta]source[/magenta])	Scan completed in 4.741814 seconds 
+2026-02-23 17:49:26,152	INFO	log.py:673	Scanner npm-audit completed. 5 remaining: bandit, cdk-nag, checkov, detect-secrets, semgrep 
+2026-02-23 17:49:30,698	INFO	log.py:673	([yellow]bandit[/yellow] @ [magenta]source[/magenta])	Scan completed in 9.31527 seconds 
+2026-02-23 17:49:30,962	INFO	log.py:673	Scanner bandit completed. 4 remaining: cdk-nag, checkov, detect-secrets, semgrep 
+2026-02-23 17:49:44,670	INFO	log.py:673	([yellow]checkov[/yellow] @ [magenta]source[/magenta])	Scan completed in 23.283713 seconds 
+2026-02-23 17:49:45,066	INFO	log.py:673	Scanner checkov completed. 3 remaining: cdk-nag, detect-secrets, semgrep 
+2026-02-23 17:50:05,774	INFO	log.py:673	([yellow]cdk-nag[/yellow] @ [magenta]source[/magenta])	Scan completed in 44.381845 seconds 
+2026-02-23 17:50:05,951	INFO	log.py:673	Scanner cdk-nag completed. 2 remaining: detect-secrets, semgrep 
+2026-02-23 17:50:22,404	INFO	log.py:673	([yellow]semgrep[/yellow] @ [magenta]source[/magenta])	Scan completed in 61.017096 seconds 
+2026-02-23 17:50:22,434	INFO	log.py:673	([yellow]semgrep[/yellow] @ [magenta]source[/magenta])	Scan completed in 61.047494 seconds 
+2026-02-23 17:50:22,545	INFO	log.py:673	Scanner semgrep completed. 1 remaining: detect-secrets 
+2026-02-23 17:51:31,650	INFO	log.py:673	([yellow]detect-secrets[/yellow] @ [magenta]source[/magenta])	Scan completed in 130.26352 seconds 
+2026-02-23 17:51:34,801	INFO	log.py:673	All scanners completed! 
+2026-02-23 17:51:34,807	INFO	log.py:673	Starting execution completion validation 
+2026-02-23 17:51:34,807	INFO	log.py:673	Scanner execution completion validation summary: 
+2026-02-23 17:51:34,807	INFO	log.py:673	Execution completion validation passed - completion rate: 100.0% 
+2026-02-23 17:51:34,807	INFO	log.py:673	Validating result completeness... 
+2026-02-23 17:51:34,807	INFO	log.py:673	Result completeness validation passed - completeness rate: 100.0% 
+2026-02-23 17:51:34,808	INFO	log.py:673	
+----- Starting phase: REPORT ----- 
+2026-02-23 17:51:34,808	INFO	log.py:673	Preparing report data... 
+2026-02-23 17:51:35,100	INFO	log.py:673	Writing csv report to /Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/.ash/ash_output/reports/ash.csv 
+2026-02-23 17:51:35,107	INFO	log.py:673	Writing cyclonedx report to /Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/.ash/ash_output/reports/ash.cdx.json 
+2026-02-23 17:51:35,451	INFO	log.py:673	Writing gitlab-sast report to /Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/.ash/ash_output/reports/ash.gl-sast-report.json 
+2026-02-23 17:51:35,751	INFO	log.py:673	Writing html report to /Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/.ash/ash_output/reports/ash.html 
+2026-02-23 17:51:36,192	INFO	log.py:673	Writing flat-json report to /Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/.ash/ash_output/reports/ash.flat.json 
+2026-02-23 17:52:08,273	INFO	log.py:673	Writing junitxml report to /Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/.ash/ash_output/reports/ash.junit.xml 
+2026-02-23 17:52:08,831	INFO	log.py:673	Writing markdown report to /Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/.ash/ash_output/reports/ash.summary.md 
+2026-02-23 17:52:08,832	INFO	log.py:673	Starting OCSF report generation 
+2026-02-23 17:52:08,834	INFO	log.py:673	Processing 6067 SARIF results for OCSF report 
+2026-02-23 17:52:09,331	INFO	log.py:673	OCSF report processing complete: 6067/6067 findings created successfully (100.0% success rate) 
+2026-02-23 17:52:09,331	INFO	log.py:673	Finding status breakdown: 6067 active, 0 suppressed 
+2026-02-23 17:52:09,523	INFO	log.py:673	Successfully generated OCSF report with 6067 findings (10745006 characters) 
+2026-02-23 17:52:09,530	INFO	log.py:673	Writing ocsf report to /Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/.ash/ash_output/reports/ash.ocsf.json 
+2026-02-23 17:52:09,583	INFO	log.py:673	Writing sarif report to /Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/.ash/ash_output/reports/ash.sarif 
+2026-02-23 17:52:09,877	INFO	log.py:673	Writing text report to /Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/.ash/ash_output/reports/ash.summary.txt 
+2026-02-23 17:52:09,878	INFO	log.py:673	ASH Security Scan completed 
+2026-02-23 17:52:09,882	INFO	log.py:673	===== ASH Security Scan Completed in 2m 58s ===== 

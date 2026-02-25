@@ -1,0 +1,229 @@
+{
+ "Description": "Solution that sets up Secrets Rotation for DB Credentials of Aurora MySql database",
+ "Transform": "AWS::Serverless-2016-10-31",
+ "AWSTemplateFormatVersion": "2010-09-09",
+ "Parameters": {
+  "Env": {
+   "Type": "String",
+   "Default": "",
+   "Description": "String to enable multiple deployments per AWS region"
+  },
+  "CatalogDBCredentialsSecretId": {
+   "Type": "String",
+   "Description": "CatalogDB Credentials SecretId to enable Rotation"
+  },
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Resources": {
+  "LambdaSecurityGroup": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "Lambda function access to aurora mysql databases",
+    "SecurityGroupEgress": [
+     {
+      "Description": "Allow all egress to MySQL Port 3306",
+      "DestinationSecurityGroupId": {
+       "Fn::Sub": "{{resolve:ssm:catalog-aurora-mysql-sg-${AWS::Region}${Env}}}"
+      },
+      "FromPort": 3306,
+      "IpProtocol": "tcp",
+      "ToPort": 3306
+     },
+     {
+      "Description": "Allow VPC Endpoint Access",
+      "DestinationSecurityGroupId": {
+       "Fn::Sub": "{{resolve:ssm:VPCEndpointSecretsManagerSGId${Env}}}"
+      },
+      "FromPort": 443,
+      "IpProtocol": "tcp",
+      "ToPort": 443
+     }
+    ],
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": {
+       "Fn::Sub": "secrets-rotation-aurora-mysql-security-group${Env}"
+      }
+     }
+    ],
+    "VpcId": {
+     "Fn::Sub": "{{resolve:secretsmanager:VpcId-${AWS::Region}${Env}}}"
+    }
+   }
+  },
+  "CatalogAuroraMySqlComputeSecurityGroupInboundRule": {
+   "Type": "AWS::EC2::SecurityGroupIngress",
+   "Properties": {
+    "Description": "Allow traffic on MySql Port",
+    "FromPort": 3306,
+    "GroupId": {
+     "Fn::Sub": "{{resolve:ssm:catalog-aurora-mysql-sg-${AWS::Region}${Env}}}"
+    },
+    "IpProtocol": "tcp",
+    "SourceSecurityGroupId": {
+     "Ref": "LambdaSecurityGroup"
+    },
+    "ToPort": 3306
+   }
+  },
+  "libs": {
+   "Type": "AWS::Serverless::LayerVersion",
+   "Properties": {
+    "CompatibleRuntimes": [
+     "python3.12"
+    ],
+    "ContentUri": "function/package/.",
+    "Description": "Dependencies for the secrets-rotation-python function.",
+    "LayerName": "secrets-rotation-python-function-lib"
+   }
+  },
+  "LambdaFunction": {
+   "Type": "AWS::Serverless::Function",
+   "Properties": {
+    "Architectures": [
+     "x86_64"
+    ],
+    "CodeUri": "function/.",
+    "EphemeralStorage": {
+     "Size": 512
+    },
+    "Handler": "rotate-secrets.lambda_handler",
+    "Layers": [
+     {
+      "Ref": "libs"
+     }
+    ],
+    "PackageType": "Zip",
+    "Policies": [
+     "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole",
+     {
+      "Statement": [
+       {
+        "Effect": "Allow",
+        "Action": [
+         "secretsmanager:DescribeSecret",
+         "secretsmanager:GetSecretValue",
+         "secretsmanager:PutSecretValue",
+         "secretsmanager:UpdateSecretVersionStage"
+        ],
+        "Resource": "*"
+       },
+       {
+        "Effect": "Allow",
+        "Action": [
+         "secretsmanager:GetRandomPassword"
+        ],
+        "Resource": "*"
+       }
+      ]
+     }
+    ],
+    "ReservedConcurrentExecutions": 5,
+    "Runtime": "python3.12",
+    "Timeout": 600,
+    "VpcConfig": {
+     "SecurityGroupIds": [
+      {
+       "Ref": "LambdaSecurityGroup"
+      }
+     ],
+     "SubnetIds": [
+      {
+       "Fn::Sub": "{{resolve:ssm:Subnet1${Env}}}"
+      },
+      {
+       "Fn::Sub": "{{resolve:ssm:Subnet2${Env}}}"
+      },
+      {
+       "Fn::Sub": "{{resolve:ssm:Subnet3${Env}}}"
+      }
+     ],
+     "Ipv6AllowedForDualStack": false
+    }
+   }
+  },
+  "LambdaInvokePermission": {
+   "Type": "AWS::Lambda::Permission",
+   "Properties": {
+    "Action": "lambda:InvokeFunction",
+    "FunctionName": {
+     "Ref": "LambdaFunction"
+    },
+    "Principal": "secretsmanager.amazonaws.com"
+   },
+   "DependsOn": [
+    "LambdaFunction"
+   ]
+  },
+  "CatalogDBCredentialsSecretRotationSchedule": {
+   "Type": "AWS::SecretsManager::RotationSchedule",
+   "Properties": {
+    "RotationLambdaARN": {
+     "Fn::GetAtt": "LambdaFunction.Arn"
+    },
+    "RotationRules": {
+     "AutomaticallyAfterDays": 90
+    },
+    "SecretId": {
+     "Ref": "CatalogDBCredentialsSecretId"
+    }
+   },
+   "DependsOn": [
+    "LambdaInvokePermission"
+   ]
+  },
+  "VPCEndpointSecurityGroupIngress": {
+   "Type": "AWS::EC2::SecurityGroupIngress",
+   "Properties": {
+    "FromPort": 443,
+    "GroupId": {
+     "Fn::Sub": "{{resolve:ssm:VPCEndpointSecretsManagerSGId${Env}}}"
+    },
+    "IpProtocol": "tcp",
+    "SourceSecurityGroupId": {
+     "Ref": "LambdaSecurityGroup"
+    },
+    "ToPort": 443
+   }
+  }
+ },
+ "Outputs": {
+  "LambdaFunction": {
+   "Value": {
+    "Ref": "LambdaFunction"
+   }
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

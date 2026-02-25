@@ -1,0 +1,3481 @@
+{
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "Bandit",
+          "organization": "PyCQA",
+          "rules": [
+            {
+              "id": "B303",
+              "name": "blacklist",
+              "properties": {
+                "tags": [
+                  "security",
+                  "external/cwe/cwe-327"
+                ],
+                "precision": "high"
+              },
+              "helpUri": "https://bandit.readthedocs.io/en/1.9.3/blacklists/blacklist_calls.html#b303-md5"
+            },
+            {
+              "id": "B110",
+              "name": "try_except_pass",
+              "properties": {
+                "tags": [
+                  "security",
+                  "external/cwe/cwe-703"
+                ],
+                "precision": "high"
+              },
+              "helpUri": "https://bandit.readthedocs.io/en/1.9.3/plugins/b110_try_except_pass.html"
+            },
+            {
+              "id": "B101",
+              "name": "assert_used",
+              "properties": {
+                "tags": [
+                  "security",
+                  "external/cwe/cwe-703"
+                ],
+                "precision": "high"
+              },
+              "helpUri": "https://bandit.readthedocs.io/en/1.9.3/plugins/b101_assert_used.html"
+            }
+          ],
+          "version": "1.9.3",
+          "semanticVersion": "1.9.3"
+        }
+      },
+      "invocations": [
+        {
+          "executionSuccessful": true,
+          "endTimeUtc": "2026-02-23T22:49:30Z"
+        }
+      ],
+      "properties": {
+        "metrics": {
+          "_totals": {
+            "loc": 7664,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "SEVERITY.LOW": 74,
+            "CONFIDENCE.LOW": 0,
+            "SEVERITY.MEDIUM": 4,
+            "CONFIDENCE.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.HIGH": 78
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/crdr-reconciliation/src/function/package/python/pymysql/__init__.py": {
+            "loc": 148,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 0
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/crdr-reconciliation/src/function/package/python/pymysql/_auth.py": {
+            "loc": 171,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 2,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 2
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/crdr-reconciliation/src/function/package/python/pymysql/charset.py": {
+            "loc": 198,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 0
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/crdr-reconciliation/src/function/package/python/pymysql/connections.py": {
+            "loc": 1161,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 4,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 4
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/crdr-reconciliation/src/function/package/python/pymysql/constants/CLIENT.py": {
+            "loc": 35,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 0
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/crdr-reconciliation/src/function/package/python/pymysql/constants/COMMAND.py": {
+            "loc": 32,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 0
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/crdr-reconciliation/src/function/package/python/pymysql/constants/CR.py": {
+            "loc": 75,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 0
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/crdr-reconciliation/src/function/package/python/pymysql/constants/ER.py": {
+            "loc": 474,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 0
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/crdr-reconciliation/src/function/package/python/pymysql/constants/FIELD_TYPE.py": {
+            "loc": 30,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 0
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/crdr-reconciliation/src/function/package/python/pymysql/constants/FLAG.py": {
+            "loc": 15,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 0
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/crdr-reconciliation/src/function/package/python/pymysql/constants/SERVER_STATUS.py": {
+            "loc": 10,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 0
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/crdr-reconciliation/src/function/package/python/pymysql/constants/__init__.py": {
+            "loc": 0,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 0
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/crdr-reconciliation/src/function/package/python/pymysql/converters.py": {
+            "loc": 266,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 0
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/crdr-reconciliation/src/function/package/python/pymysql/cursors.py": {
+            "loc": 422,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 1,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 1
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/crdr-reconciliation/src/function/package/python/pymysql/err.py": {
+            "loc": 110,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 0
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/crdr-reconciliation/src/function/package/python/pymysql/optionfile.py": {
+            "loc": 16,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 0
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/crdr-reconciliation/src/function/package/python/pymysql/protocol.py": {
+            "loc": 280,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 0
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/crdr-reconciliation/src/function/package/python/pymysql/times.py": {
+            "loc": 12,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 0
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/crdr-reconciliation/src/function/reconciliation-catalog.py": {
+            "loc": 95,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 0
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/secrets-rotation/src/function/package/python/pymysql/__init__.py": {
+            "loc": 148,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 0
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/secrets-rotation/src/function/package/python/pymysql/_auth.py": {
+            "loc": 171,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 2,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 2
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/secrets-rotation/src/function/package/python/pymysql/charset.py": {
+            "loc": 198,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 0
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/secrets-rotation/src/function/package/python/pymysql/connections.py": {
+            "loc": 1161,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 4,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 4
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/secrets-rotation/src/function/package/python/pymysql/constants/CLIENT.py": {
+            "loc": 35,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 0
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/secrets-rotation/src/function/package/python/pymysql/constants/COMMAND.py": {
+            "loc": 32,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 0
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/secrets-rotation/src/function/package/python/pymysql/constants/CR.py": {
+            "loc": 75,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 0
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/secrets-rotation/src/function/package/python/pymysql/constants/ER.py": {
+            "loc": 474,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 0
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/secrets-rotation/src/function/package/python/pymysql/constants/FIELD_TYPE.py": {
+            "loc": 30,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 0
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/secrets-rotation/src/function/package/python/pymysql/constants/FLAG.py": {
+            "loc": 15,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 0
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/secrets-rotation/src/function/package/python/pymysql/constants/SERVER_STATUS.py": {
+            "loc": 10,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 0
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/secrets-rotation/src/function/package/python/pymysql/constants/__init__.py": {
+            "loc": 0,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 0
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/secrets-rotation/src/function/package/python/pymysql/converters.py": {
+            "loc": 266,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 0
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/secrets-rotation/src/function/package/python/pymysql/cursors.py": {
+            "loc": 422,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 1,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 1
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/secrets-rotation/src/function/package/python/pymysql/err.py": {
+            "loc": 110,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 0
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/secrets-rotation/src/function/package/python/pymysql/optionfile.py": {
+            "loc": 16,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 0
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/secrets-rotation/src/function/package/python/pymysql/protocol.py": {
+            "loc": 280,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 0
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/secrets-rotation/src/function/package/python/pymysql/times.py": {
+            "loc": 12,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 0
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/secrets-rotation/src/function/rotate-secrets.py": {
+            "loc": 333,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 0
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/source/checkout/node_modules/flatted/python/flatted.py": {
+            "loc": 103,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 0
+          },
+          "/Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py": {
+            "loc": 223,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 64,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 64
+          }
+        }
+      },
+      "results": [
+        {
+          "message": {
+            "text": "Use of insecure MD2, MD4, MD5, or SHA1 hash function."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "            mgf=padding.MGF1(algorithm=hashes.SHA1()),\n"
+                  },
+                  "endColumn": 53,
+                  "endLine": 152,
+                  "startColumn": 40,
+                  "startLine": 152
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/crdr-reconciliation/src/function/package/python/pymysql/_auth.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        padding.OAEP(\n            mgf=padding.MGF1(algorithm=hashes.SHA1()),\n            algorithm=hashes.SHA1(),\n"
+                  },
+                  "endLine": 153,
+                  "startLine": 151
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "MEDIUM"
+          },
+          "ruleId": "B303",
+          "ruleIndex": 0
+        },
+        {
+          "message": {
+            "text": "Use of insecure MD2, MD4, MD5, or SHA1 hash function."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "            algorithm=hashes.SHA1(),\n"
+                  },
+                  "endColumn": 36,
+                  "endLine": 153,
+                  "startColumn": 23,
+                  "startLine": 153
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/crdr-reconciliation/src/function/package/python/pymysql/_auth.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "            mgf=padding.MGF1(algorithm=hashes.SHA1()),\n            algorithm=hashes.SHA1(),\n            label=None,\n"
+                  },
+                  "endLine": 154,
+                  "startLine": 152
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "MEDIUM"
+          },
+          "ruleId": "B303",
+          "ruleIndex": 0
+        },
+        {
+          "message": {
+            "text": "Try, Except, Pass detected."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        except Exception:\n"
+                  },
+                  "endColumn": 17,
+                  "endLine": 417,
+                  "startColumn": 9,
+                  "startLine": 416
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/crdr-reconciliation/src/function/package/python/pymysql/connections.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "            self._write_bytes(send_data)\n        except Exception:\n            pass\n        finally:\n"
+                  },
+                  "endLine": 418,
+                  "startLine": 415
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B110",
+          "ruleIndex": 1
+        },
+        {
+          "message": {
+            "text": "Try, Except, Pass detected."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "            except:  # noqa\n"
+                  },
+                  "endColumn": 21,
+                  "endLine": 432,
+                  "startColumn": 13,
+                  "startLine": 431
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/crdr-reconciliation/src/function/package/python/pymysql/connections.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "                self._sock.close()\n            except:  # noqa\n                pass\n        self._sock = None\n"
+                  },
+                  "endLine": 433,
+                  "startLine": 430
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B110",
+          "ruleIndex": 1
+        },
+        {
+          "message": {
+            "text": "Try, Except, Pass detected."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "                except:  # noqa\n"
+                  },
+                  "endColumn": 25,
+                  "endLine": 699,
+                  "startColumn": 17,
+                  "startLine": 698
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/crdr-reconciliation/src/function/package/python/pymysql/connections.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "                    sock.close()\n                except:  # noqa\n                    pass\n\n"
+                  },
+                  "endLine": 700,
+                  "startLine": 697
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B110",
+          "ruleIndex": 1
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert eof_packet.is_eof_packet(), \"Protocol error, expecting EOF\"\n"
+                  },
+                  "endColumn": 75,
+                  "endLine": 1399,
+                  "startColumn": 9,
+                  "startLine": 1399
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/crdr-reconciliation/src/function/package/python/pymysql/connections.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        eof_packet = self.connection._read_packet()\n        assert eof_packet.is_eof_packet(), \"Protocol error, expecting EOF\"\n        self.description = tuple(description)\n"
+                  },
+                  "endLine": 1400,
+                  "startLine": 1398
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "            assert q_values[0] == \"(\" and q_values[-1] == \")\"\n"
+                  },
+                  "endColumn": 62,
+                  "endLine": 181,
+                  "startColumn": 13,
+                  "startLine": 181
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/crdr-reconciliation/src/function/package/python/pymysql/cursors.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "            q_postfix = m.group(3) or \"\"\n            assert q_values[0] == \"(\" and q_values[-1] == \")\"\n            return self._do_execute_many(\n"
+                  },
+                  "endLine": 182,
+                  "startLine": 180
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of insecure MD2, MD4, MD5, or SHA1 hash function."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "            mgf=padding.MGF1(algorithm=hashes.SHA1()),\n"
+                  },
+                  "endColumn": 53,
+                  "endLine": 152,
+                  "startColumn": 40,
+                  "startLine": 152
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/secrets-rotation/src/function/package/python/pymysql/_auth.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        padding.OAEP(\n            mgf=padding.MGF1(algorithm=hashes.SHA1()),\n            algorithm=hashes.SHA1(),\n"
+                  },
+                  "endLine": 153,
+                  "startLine": 151
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "MEDIUM"
+          },
+          "ruleId": "B303",
+          "ruleIndex": 0
+        },
+        {
+          "message": {
+            "text": "Use of insecure MD2, MD4, MD5, or SHA1 hash function."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "            algorithm=hashes.SHA1(),\n"
+                  },
+                  "endColumn": 36,
+                  "endLine": 153,
+                  "startColumn": 23,
+                  "startLine": 153
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/secrets-rotation/src/function/package/python/pymysql/_auth.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "            mgf=padding.MGF1(algorithm=hashes.SHA1()),\n            algorithm=hashes.SHA1(),\n            label=None,\n"
+                  },
+                  "endLine": 154,
+                  "startLine": 152
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "MEDIUM"
+          },
+          "ruleId": "B303",
+          "ruleIndex": 0
+        },
+        {
+          "message": {
+            "text": "Try, Except, Pass detected."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        except Exception:\n"
+                  },
+                  "endColumn": 17,
+                  "endLine": 417,
+                  "startColumn": 9,
+                  "startLine": 416
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/secrets-rotation/src/function/package/python/pymysql/connections.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "            self._write_bytes(send_data)\n        except Exception:\n            pass\n        finally:\n"
+                  },
+                  "endLine": 418,
+                  "startLine": 415
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B110",
+          "ruleIndex": 1
+        },
+        {
+          "message": {
+            "text": "Try, Except, Pass detected."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "            except:  # noqa\n"
+                  },
+                  "endColumn": 21,
+                  "endLine": 432,
+                  "startColumn": 13,
+                  "startLine": 431
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/secrets-rotation/src/function/package/python/pymysql/connections.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "                self._sock.close()\n            except:  # noqa\n                pass\n        self._sock = None\n"
+                  },
+                  "endLine": 433,
+                  "startLine": 430
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B110",
+          "ruleIndex": 1
+        },
+        {
+          "message": {
+            "text": "Try, Except, Pass detected."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "                except:  # noqa\n"
+                  },
+                  "endColumn": 25,
+                  "endLine": 699,
+                  "startColumn": 17,
+                  "startLine": 698
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/secrets-rotation/src/function/package/python/pymysql/connections.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "                    sock.close()\n                except:  # noqa\n                    pass\n\n"
+                  },
+                  "endLine": 700,
+                  "startLine": 697
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B110",
+          "ruleIndex": 1
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert eof_packet.is_eof_packet(), \"Protocol error, expecting EOF\"\n"
+                  },
+                  "endColumn": 75,
+                  "endLine": 1399,
+                  "startColumn": 9,
+                  "startLine": 1399
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/secrets-rotation/src/function/package/python/pymysql/connections.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        eof_packet = self.connection._read_packet()\n        assert eof_packet.is_eof_packet(), \"Protocol error, expecting EOF\"\n        self.description = tuple(description)\n"
+                  },
+                  "endLine": 1400,
+                  "startLine": 1398
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "            assert q_values[0] == \"(\" and q_values[-1] == \")\"\n"
+                  },
+                  "endColumn": 62,
+                  "endLine": 181,
+                  "startColumn": 13,
+                  "startLine": 181
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/deployment/database/secrets-rotation/src/function/package/python/pymysql/cursors.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "            q_postfix = m.group(3) or \"\"\n            assert q_values[0] == \"(\" and q_values[-1] == \")\"\n            return self._do_execute_many(\n"
+                  },
+                  "endLine": 182,
+                  "startLine": 180
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert MAKEFILE_PATH.exists(), f\"Makefile not found at {MAKEFILE_PATH}\"\n"
+                  },
+                  "endColumn": 80,
+                  "endLine": 110,
+                  "startColumn": 9,
+                  "startLine": 110
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "    def test_makefile_exists(self):\n        assert MAKEFILE_PATH.exists(), f\"Makefile not found at {MAKEFILE_PATH}\"\n\n"
+                  },
+                  "endLine": 111,
+                  "startLine": 109
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert \"deploy-all\" in makefile_targets\n"
+                  },
+                  "endColumn": 48,
+                  "endLine": 113,
+                  "startColumn": 9,
+                  "startLine": 113
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "    def test_finds_deploy_all(self, makefile_targets):\n        assert \"deploy-all\" in makefile_targets\n\n"
+                  },
+                  "endLine": 114,
+                  "startLine": 112
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert \"destroy-all\" in makefile_targets\n"
+                  },
+                  "endColumn": 49,
+                  "endLine": 116,
+                  "startColumn": 9,
+                  "startLine": 116
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "    def test_finds_destroy_all(self, makefile_targets):\n        assert \"destroy-all\" in makefile_targets\n\n"
+                  },
+                  "endLine": 117,
+                  "startLine": 115
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "            assert expected in deps, f\"{expected} missing from deploy-all\"\n"
+                  },
+                  "endColumn": 75,
+                  "endLine": 122,
+                  "startColumn": 13,
+                  "startLine": 122
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "                         \"region-switch\", \"secrets-rotation\", \"monitoring\"):\n            assert expected in deps, f\"{expected} missing from deploy-all\"\n\n"
+                  },
+                  "endLine": 123,
+                  "startLine": 121
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"create-peer\", \"primary_infrastructure\")\n"
+                  },
+                  "endColumn": 84,
+                  "endLine": 133,
+                  "startColumn": 9,
+                  "startLine": 133
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "    def test_infrastructure_after_vpc(self, makefile_targets):\n        assert is_before(makefile_targets, \"create-peer\", \"primary_infrastructure\")\n        assert is_before(makefile_targets, \"create-peer\", \"standby_infrastructure\")\n"
+                  },
+                  "endLine": 134,
+                  "startLine": 132
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"create-peer\", \"standby_infrastructure\")\n"
+                  },
+                  "endColumn": 84,
+                  "endLine": 134,
+                  "startColumn": 9,
+                  "startLine": 134
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"create-peer\", \"primary_infrastructure\")\n        assert is_before(makefile_targets, \"create-peer\", \"standby_infrastructure\")\n\n"
+                  },
+                  "endLine": 135,
+                  "startLine": 133
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"primary_infrastructure\", \"codebuild-infra\")\n"
+                  },
+                  "endColumn": 88,
+                  "endLine": 137,
+                  "startColumn": 9,
+                  "startLine": 137
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "    def test_codebuild_after_infra(self, makefile_targets):\n        assert is_before(makefile_targets, \"primary_infrastructure\", \"codebuild-infra\")\n\n"
+                  },
+                  "endLine": 138,
+                  "startLine": 136
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"primary_infrastructure\", \"build-images\")\n"
+                  },
+                  "endColumn": 85,
+                  "endLine": 141,
+                  "startColumn": 9,
+                  "startLine": 141
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        \"\"\"Images can't be built until ECR repos (infra) and CodeBuild project exist.\"\"\"\n        assert is_before(makefile_targets, \"primary_infrastructure\", \"build-images\")\n        assert is_before(makefile_targets, \"standby_infrastructure\", \"build-images\")\n"
+                  },
+                  "endLine": 142,
+                  "startLine": 140
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"standby_infrastructure\", \"build-images\")\n"
+                  },
+                  "endColumn": 85,
+                  "endLine": 142,
+                  "startColumn": 9,
+                  "startLine": 142
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"primary_infrastructure\", \"build-images\")\n        assert is_before(makefile_targets, \"standby_infrastructure\", \"build-images\")\n        assert is_before(makefile_targets, \"codebuild-infra\", \"build-images\")\n"
+                  },
+                  "endLine": 143,
+                  "startLine": 141
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"codebuild-infra\", \"build-images\")\n"
+                  },
+                  "endColumn": 78,
+                  "endLine": 143,
+                  "startColumn": 9,
+                  "startLine": 143
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"standby_infrastructure\", \"build-images\")\n        assert is_before(makefile_targets, \"codebuild-infra\", \"build-images\")\n\n"
+                  },
+                  "endLine": 144,
+                  "startLine": 142
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"build-images\", \"primary_ecs\")\n"
+                  },
+                  "endColumn": 74,
+                  "endLine": 146,
+                  "startColumn": 9,
+                  "startLine": 146
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "    def test_ecs_after_builds(self, makefile_targets):\n        assert is_before(makefile_targets, \"build-images\", \"primary_ecs\")\n        assert is_before(makefile_targets, \"build-images\", \"standby_ecs\")\n"
+                  },
+                  "endLine": 147,
+                  "startLine": 145
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"build-images\", \"standby_ecs\")\n"
+                  },
+                  "endColumn": 74,
+                  "endLine": 147,
+                  "startColumn": 9,
+                  "startLine": 147
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"build-images\", \"primary_ecs\")\n        assert is_before(makefile_targets, \"build-images\", \"standby_ecs\")\n\n"
+                  },
+                  "endLine": 148,
+                  "startLine": 146
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"primary_region_catalog-db\", \"primary_ecs\")\n"
+                  },
+                  "endColumn": 87,
+                  "endLine": 150,
+                  "startColumn": 9,
+                  "startLine": 150
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "    def test_ecs_after_databases(self, makefile_targets):\n        assert is_before(makefile_targets, \"primary_region_catalog-db\", \"primary_ecs\")\n        assert is_before(makefile_targets, \"orders-dsql-db\", \"primary_ecs\")\n"
+                  },
+                  "endLine": 151,
+                  "startLine": 149
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"orders-dsql-db\", \"primary_ecs\")\n"
+                  },
+                  "endColumn": 76,
+                  "endLine": 151,
+                  "startColumn": 9,
+                  "startLine": 151
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"primary_region_catalog-db\", \"primary_ecs\")\n        assert is_before(makefile_targets, \"orders-dsql-db\", \"primary_ecs\")\n        assert is_before(makefile_targets, \"carts-db\", \"primary_ecs\")\n"
+                  },
+                  "endLine": 152,
+                  "startLine": 150
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"carts-db\", \"primary_ecs\")\n"
+                  },
+                  "endColumn": 70,
+                  "endLine": 152,
+                  "startColumn": 9,
+                  "startLine": 152
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"orders-dsql-db\", \"primary_ecs\")\n        assert is_before(makefile_targets, \"carts-db\", \"primary_ecs\")\n        assert is_before(makefile_targets, \"standby_region_catalog-db\", \"standby_ecs\")\n"
+                  },
+                  "endLine": 153,
+                  "startLine": 151
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"standby_region_catalog-db\", \"standby_ecs\")\n"
+                  },
+                  "endColumn": 87,
+                  "endLine": 153,
+                  "startColumn": 9,
+                  "startLine": 153
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"carts-db\", \"primary_ecs\")\n        assert is_before(makefile_targets, \"standby_region_catalog-db\", \"standby_ecs\")\n        assert is_before(makefile_targets, \"orders-dsql-db-standby\", \"standby_ecs\")\n"
+                  },
+                  "endLine": 154,
+                  "startLine": 152
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"orders-dsql-db-standby\", \"standby_ecs\")\n"
+                  },
+                  "endColumn": 84,
+                  "endLine": 154,
+                  "startColumn": 9,
+                  "startLine": 154
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"standby_region_catalog-db\", \"standby_ecs\")\n        assert is_before(makefile_targets, \"orders-dsql-db-standby\", \"standby_ecs\")\n\n"
+                  },
+                  "endLine": 155,
+                  "startLine": 153
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"primary_infrastructure\", \"primary_region_catalog-db\")\n"
+                  },
+                  "endColumn": 98,
+                  "endLine": 157,
+                  "startColumn": 9,
+                  "startLine": 157
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "    def test_databases_after_infrastructure(self, makefile_targets):\n        assert is_before(makefile_targets, \"primary_infrastructure\", \"primary_region_catalog-db\")\n        assert is_before(makefile_targets, \"primary_infrastructure\", \"orders-dsql-db\")\n"
+                  },
+                  "endLine": 158,
+                  "startLine": 156
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"primary_infrastructure\", \"orders-dsql-db\")\n"
+                  },
+                  "endColumn": 87,
+                  "endLine": 158,
+                  "startColumn": 9,
+                  "startLine": 158
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"primary_infrastructure\", \"primary_region_catalog-db\")\n        assert is_before(makefile_targets, \"primary_infrastructure\", \"orders-dsql-db\")\n        assert is_before(makefile_targets, \"primary_infrastructure\", \"carts-db\")\n"
+                  },
+                  "endLine": 159,
+                  "startLine": 157
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"primary_infrastructure\", \"carts-db\")\n"
+                  },
+                  "endColumn": 81,
+                  "endLine": 159,
+                  "startColumn": 9,
+                  "startLine": 159
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"primary_infrastructure\", \"orders-dsql-db\")\n        assert is_before(makefile_targets, \"primary_infrastructure\", \"carts-db\")\n\n"
+                  },
+                  "endLine": 160,
+                  "startLine": 158
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"primary_region_catalog-db\", \"standby_region_catalog-db\")\n"
+                  },
+                  "endColumn": 101,
+                  "endLine": 163,
+                  "startColumn": 9,
+                  "startLine": 163
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        \"\"\"Global Aurora cluster: standby needs primary created first.\"\"\"\n        assert is_before(makefile_targets, \"primary_region_catalog-db\", \"standby_region_catalog-db\")\n        assert is_before(makefile_targets, \"standby_infrastructure\", \"standby_region_catalog-db\")\n"
+                  },
+                  "endLine": 164,
+                  "startLine": 162
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"standby_infrastructure\", \"standby_region_catalog-db\")\n"
+                  },
+                  "endColumn": 98,
+                  "endLine": 164,
+                  "startColumn": 9,
+                  "startLine": 164
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"primary_region_catalog-db\", \"standby_region_catalog-db\")\n        assert is_before(makefile_targets, \"standby_infrastructure\", \"standby_region_catalog-db\")\n\n"
+                  },
+                  "endLine": 165,
+                  "startLine": 163
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"primary_ecs\", \"global_routing\")\n"
+                  },
+                  "endColumn": 76,
+                  "endLine": 167,
+                  "startColumn": 9,
+                  "startLine": 167
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "    def test_global_routing_after_both_ecs(self, makefile_targets):\n        assert is_before(makefile_targets, \"primary_ecs\", \"global_routing\")\n        assert is_before(makefile_targets, \"standby_ecs\", \"global_routing\")\n"
+                  },
+                  "endLine": 168,
+                  "startLine": 166
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"standby_ecs\", \"global_routing\")\n"
+                  },
+                  "endColumn": 76,
+                  "endLine": 168,
+                  "startColumn": 9,
+                  "startLine": 168
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"primary_ecs\", \"global_routing\")\n        assert is_before(makefile_targets, \"standby_ecs\", \"global_routing\")\n\n"
+                  },
+                  "endLine": 169,
+                  "startLine": 167
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"global_routing\", \"canaries_primary\")\n"
+                  },
+                  "endColumn": 81,
+                  "endLine": 171,
+                  "startColumn": 9,
+                  "startLine": 171
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "    def test_canaries_after_routing(self, makefile_targets):\n        assert is_before(makefile_targets, \"global_routing\", \"canaries_primary\")\n        assert is_before(makefile_targets, \"global_routing\", \"canaries_standby\")\n"
+                  },
+                  "endLine": 172,
+                  "startLine": 170
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"global_routing\", \"canaries_standby\")\n"
+                  },
+                  "endColumn": 81,
+                  "endLine": 172,
+                  "startColumn": 9,
+                  "startLine": 172
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"global_routing\", \"canaries_primary\")\n        assert is_before(makefile_targets, \"global_routing\", \"canaries_standby\")\n\n"
+                  },
+                  "endLine": 173,
+                  "startLine": 171
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"global_routing\", \"region-switch-plan\")\n"
+                  },
+                  "endColumn": 83,
+                  "endLine": 175,
+                  "startColumn": 9,
+                  "startLine": 175
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "    def test_region_switch_after_routing(self, makefile_targets):\n        assert is_before(makefile_targets, \"global_routing\", \"region-switch-plan\")\n        assert is_before(makefile_targets, \"region-switch-plan\", \"region-switch\")\n"
+                  },
+                  "endLine": 176,
+                  "startLine": 174
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"region-switch-plan\", \"region-switch\")\n"
+                  },
+                  "endColumn": 82,
+                  "endLine": 176,
+                  "startColumn": 9,
+                  "startLine": 176
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"global_routing\", \"region-switch-plan\")\n        assert is_before(makefile_targets, \"region-switch-plan\", \"region-switch\")\n\n"
+                  },
+                  "endLine": 177,
+                  "startLine": 175
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"primary_region_catalog-db\", \"secrets-rotation\")\n"
+                  },
+                  "endColumn": 92,
+                  "endLine": 179,
+                  "startColumn": 9,
+                  "startLine": 179
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "    def test_secrets_rotation_after_catalog_db(self, makefile_targets):\n        assert is_before(makefile_targets, \"primary_region_catalog-db\", \"secrets-rotation\")\n\n"
+                  },
+                  "endLine": 180,
+                  "startLine": 178
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"standby_region_catalog-db\", \"restore-reconciliation\")\n"
+                  },
+                  "endColumn": 98,
+                  "endLine": 182,
+                  "startColumn": 9,
+                  "startLine": 182
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "    def test_reconciliation_after_standby_catalog_db(self, makefile_targets):\n        assert is_before(makefile_targets, \"standby_region_catalog-db\", \"restore-reconciliation\")\n\n"
+                  },
+                  "endLine": 183,
+                  "startLine": 181
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"restore-reconciliation\", \"monitoring\")\n"
+                  },
+                  "endColumn": 83,
+                  "endLine": 185,
+                  "startColumn": 9,
+                  "startLine": 185
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "    def test_monitoring_after_reconciliation(self, makefile_targets):\n        assert is_before(makefile_targets, \"restore-reconciliation\", \"monitoring\")\n\n"
+                  },
+                  "endLine": 186,
+                  "startLine": 184
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"destroy-crdr-roles\", \"destroy-databases-primary\")\n"
+                  },
+                  "endColumn": 94,
+                  "endLine": 204,
+                  "startColumn": 9,
+                  "startLine": 204
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        \"\"\"crdr-roles IAM role references catalog DB secret.\"\"\"\n        assert is_before(makefile_targets, \"destroy-crdr-roles\", \"destroy-databases-primary\")\n\n"
+                  },
+                  "endLine": 205,
+                  "startLine": 203
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"destroy-secrets-rotation\", \"destroy-databases-primary\")\n"
+                  },
+                  "endColumn": 100,
+                  "endLine": 208,
+                  "startColumn": 9,
+                  "startLine": 208
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        \"\"\"secrets-rotation Lambda references catalog DB secret.\"\"\"\n        assert is_before(makefile_targets, \"destroy-secrets-rotation\", \"destroy-databases-primary\")\n\n"
+                  },
+                  "endLine": 209,
+                  "startLine": 207
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"destroy-restore-reconciliation-ssm\", \"destroy-databases-standby\")\n"
+                  },
+                  "endColumn": 110,
+                  "endLine": 212,
+                  "startColumn": 9,
+                  "startLine": 212
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        \"\"\"reconciliation Lambda role references catalog DB secret in standby.\"\"\"\n        assert is_before(makefile_targets, \"destroy-restore-reconciliation-ssm\", \"destroy-databases-standby\")\n\n"
+                  },
+                  "endLine": 213,
+                  "startLine": 211
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"destroy-canaries-primary\", \"destroy-apps-primary\")\n"
+                  },
+                  "endColumn": 95,
+                  "endLine": 217,
+                  "startColumn": 9,
+                  "startLine": 217
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        Canaries must be fully deleted before apps (which own the secrets).\"\"\"\n        assert is_before(makefile_targets, \"destroy-canaries-primary\", \"destroy-apps-primary\")\n        assert is_before(makefile_targets, \"destroy-canaries-standby\", \"destroy-apps-primary\")\n"
+                  },
+                  "endLine": 218,
+                  "startLine": 216
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"destroy-canaries-standby\", \"destroy-apps-primary\")\n"
+                  },
+                  "endColumn": 95,
+                  "endLine": 218,
+                  "startColumn": 9,
+                  "startLine": 218
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"destroy-canaries-primary\", \"destroy-apps-primary\")\n        assert is_before(makefile_targets, \"destroy-canaries-standby\", \"destroy-apps-primary\")\n        assert is_before(makefile_targets, \"destroy-canaries-primary\", \"destroy-apps-standby\")\n"
+                  },
+                  "endLine": 219,
+                  "startLine": 217
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"destroy-canaries-primary\", \"destroy-apps-standby\")\n"
+                  },
+                  "endColumn": 95,
+                  "endLine": 219,
+                  "startColumn": 9,
+                  "startLine": 219
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"destroy-canaries-standby\", \"destroy-apps-primary\")\n        assert is_before(makefile_targets, \"destroy-canaries-primary\", \"destroy-apps-standby\")\n        assert is_before(makefile_targets, \"destroy-canaries-standby\", \"destroy-apps-standby\")\n"
+                  },
+                  "endLine": 220,
+                  "startLine": 218
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"destroy-canaries-standby\", \"destroy-apps-standby\")\n"
+                  },
+                  "endColumn": 95,
+                  "endLine": 220,
+                  "startColumn": 9,
+                  "startLine": 220
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"destroy-canaries-primary\", \"destroy-apps-standby\")\n        assert is_before(makefile_targets, \"destroy-canaries-standby\", \"destroy-apps-standby\")\n\n"
+                  },
+                  "endLine": 221,
+                  "startLine": 219
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"destroy-apps-primary\", \"destroy-ecr-primary\")\n"
+                  },
+                  "endColumn": 90,
+                  "endLine": 225,
+                  "startColumn": 9,
+                  "startLine": 225
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "    def test_apps_before_ecr_cleanup(self, makefile_targets):\n        assert is_before(makefile_targets, \"destroy-apps-primary\", \"destroy-ecr-primary\")\n        assert is_before(makefile_targets, \"destroy-apps-standby\", \"destroy-ecr-standby\")\n"
+                  },
+                  "endLine": 226,
+                  "startLine": 224
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"destroy-apps-standby\", \"destroy-ecr-standby\")\n"
+                  },
+                  "endColumn": 90,
+                  "endLine": 226,
+                  "startColumn": 9,
+                  "startLine": 226
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"destroy-apps-primary\", \"destroy-ecr-primary\")\n        assert is_before(makefile_targets, \"destroy-apps-standby\", \"destroy-ecr-standby\")\n\n"
+                  },
+                  "endLine": 227,
+                  "startLine": 225
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"destroy-ecr-primary\", \"destroy-infra\")\n"
+                  },
+                  "endColumn": 83,
+                  "endLine": 230,
+                  "startColumn": 9,
+                  "startLine": 230
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        \"\"\"ECR repos must be emptied before baseInfra stack is deleted.\"\"\"\n        assert is_before(makefile_targets, \"destroy-ecr-primary\", \"destroy-infra\")\n        assert is_before(makefile_targets, \"destroy-ecr-standby\", \"destroy-infra\")\n"
+                  },
+                  "endLine": 231,
+                  "startLine": 229
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"destroy-ecr-standby\", \"destroy-infra\")\n"
+                  },
+                  "endColumn": 83,
+                  "endLine": 231,
+                  "startColumn": 9,
+                  "startLine": 231
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"destroy-ecr-primary\", \"destroy-infra\")\n        assert is_before(makefile_targets, \"destroy-ecr-standby\", \"destroy-infra\")\n\n"
+                  },
+                  "endLine": 232,
+                  "startLine": 230
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"destroy-databases-primary\", \"destroy-infra\")\n"
+                  },
+                  "endColumn": 89,
+                  "endLine": 234,
+                  "startColumn": 9,
+                  "startLine": 234
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "    def test_databases_before_infra(self, makefile_targets):\n        assert is_before(makefile_targets, \"destroy-databases-primary\", \"destroy-infra\")\n        assert is_before(makefile_targets, \"destroy-databases-standby\", \"destroy-infra\")\n"
+                  },
+                  "endLine": 235,
+                  "startLine": 233
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"destroy-databases-standby\", \"destroy-infra\")\n"
+                  },
+                  "endColumn": 89,
+                  "endLine": 235,
+                  "startColumn": 9,
+                  "startLine": 235
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"destroy-databases-primary\", \"destroy-infra\")\n        assert is_before(makefile_targets, \"destroy-databases-standby\", \"destroy-infra\")\n\n"
+                  },
+                  "endLine": 236,
+                  "startLine": 234
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"destroy-global_routing\", \"destroy-infra\")\n"
+                  },
+                  "endColumn": 86,
+                  "endLine": 238,
+                  "startColumn": 9,
+                  "startLine": 238
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "    def test_global_routing_before_infra(self, makefile_targets):\n        assert is_before(makefile_targets, \"destroy-global_routing\", \"destroy-infra\")\n\n"
+                  },
+                  "endLine": 239,
+                  "startLine": 237
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"destroy-canaries-primary\", \"destroy-global_routing\")\n"
+                  },
+                  "endColumn": 97,
+                  "endLine": 241,
+                  "startColumn": 9,
+                  "startLine": 241
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "    def test_canaries_before_global_routing(self, makefile_targets):\n        assert is_before(makefile_targets, \"destroy-canaries-primary\", \"destroy-global_routing\")\n        assert is_before(makefile_targets, \"destroy-canaries-standby\", \"destroy-global_routing\")\n"
+                  },
+                  "endLine": 242,
+                  "startLine": 240
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"destroy-canaries-standby\", \"destroy-global_routing\")\n"
+                  },
+                  "endColumn": 97,
+                  "endLine": 242,
+                  "startColumn": 9,
+                  "startLine": 242
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"destroy-canaries-primary\", \"destroy-global_routing\")\n        assert is_before(makefile_targets, \"destroy-canaries-standby\", \"destroy-global_routing\")\n\n"
+                  },
+                  "endLine": 243,
+                  "startLine": 241
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"destroy-region-switch\", \"destroy-global_routing\")\n"
+                  },
+                  "endColumn": 94,
+                  "endLine": 245,
+                  "startColumn": 9,
+                  "startLine": 245
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "    def test_region_switch_before_global_routing(self, makefile_targets):\n        assert is_before(makefile_targets, \"destroy-region-switch\", \"destroy-global_routing\")\n\n"
+                  },
+                  "endLine": 246,
+                  "startLine": 244
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"destroy-infra\", \"destroy-peer\")\n"
+                  },
+                  "endColumn": 76,
+                  "endLine": 248,
+                  "startColumn": 9,
+                  "startLine": 248
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "    def test_infra_before_vpc(self, makefile_targets):\n        assert is_before(makefile_targets, \"destroy-infra\", \"destroy-peer\")\n\n"
+                  },
+                  "endLine": 249,
+                  "startLine": 247
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert is_before(makefile_targets, \"destroy-peer_standby\", \"destroy-peer_primary\")\n"
+                  },
+                  "endColumn": 91,
+                  "endLine": 252,
+                  "startColumn": 9,
+                  "startLine": 252
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        \"\"\"Peering must be removed from standby side first.\"\"\"\n        assert is_before(makefile_targets, \"destroy-peer_standby\", \"destroy-peer_primary\")\n\n"
+                  },
+                  "endLine": 253,
+                  "startLine": 251
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert unreachable == [], \\\n"
+                  },
+                  "endColumn": 87,
+                  "endLine": 263,
+                  "startColumn": 9,
+                  "startLine": 262
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        unreachable = [t for t in destroy_targets if t not in reachable]\n        assert unreachable == [], \\\n            f\"These destroy targets are not reachable from destroy-all: {unreachable}\"\n\n"
+                  },
+                  "endLine": 264,
+                  "startLine": 261
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert are_independent(makefile_targets, \"primary_infrastructure\", \"standby_infrastructure\")\n"
+                  },
+                  "endColumn": 101,
+                  "endLine": 277,
+                  "startColumn": 9,
+                  "startLine": 277
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "    def test_deploy_infra_regions_parallel(self, makefile_targets):\n        assert are_independent(makefile_targets, \"primary_infrastructure\", \"standby_infrastructure\")\n\n"
+                  },
+                  "endLine": 278,
+                  "startLine": 276
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert are_independent(makefile_targets, \"primary_ecs\", \"standby_ecs\")\n"
+                  },
+                  "endColumn": 79,
+                  "endLine": 280,
+                  "startColumn": 9,
+                  "startLine": 280
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "    def test_deploy_ecs_regions_parallel(self, makefile_targets):\n        assert are_independent(makefile_targets, \"primary_ecs\", \"standby_ecs\")\n\n"
+                  },
+                  "endLine": 281,
+                  "startLine": 279
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert are_independent(makefile_targets, \"client-primary\", \"client-standby\")\n"
+                  },
+                  "endColumn": 85,
+                  "endLine": 283,
+                  "startColumn": 9,
+                  "startLine": 283
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "    def test_deploy_clients_parallel(self, makefile_targets):\n        assert are_independent(makefile_targets, \"client-primary\", \"client-standby\")\n\n"
+                  },
+                  "endLine": 284,
+                  "startLine": 282
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert are_independent(makefile_targets, \"canaries_primary\", \"canaries_standby\")\n"
+                  },
+                  "endColumn": 89,
+                  "endLine": 286,
+                  "startColumn": 9,
+                  "startLine": 286
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "    def test_deploy_canaries_parallel(self, makefile_targets):\n        assert are_independent(makefile_targets, \"canaries_primary\", \"canaries_standby\")\n\n"
+                  },
+                  "endLine": 287,
+                  "startLine": 285
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert are_independent(makefile_targets, \"destroy-apps-primary\", \"destroy-apps-standby\")\n"
+                  },
+                  "endColumn": 97,
+                  "endLine": 291,
+                  "startColumn": 9,
+                  "startLine": 291
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "    def test_destroy_apps_regions_parallel(self, makefile_targets):\n        assert are_independent(makefile_targets, \"destroy-apps-primary\", \"destroy-apps-standby\")\n\n"
+                  },
+                  "endLine": 292,
+                  "startLine": 290
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert are_independent(makefile_targets, \"destroy-apps-primary\", \"destroy-client-primary\")\n"
+                  },
+                  "endColumn": 99,
+                  "endLine": 294,
+                  "startColumn": 9,
+                  "startLine": 294
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "    def test_destroy_apps_and_clients_parallel(self, makefile_targets):\n        assert are_independent(makefile_targets, \"destroy-apps-primary\", \"destroy-client-primary\")\n\n"
+                  },
+                  "endLine": 295,
+                  "startLine": 293
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert are_independent(makefile_targets, \"destroy-apps-primary\", \"destroy-global_routing\")\n"
+                  },
+                  "endColumn": 99,
+                  "endLine": 298,
+                  "startColumn": 9,
+                  "startLine": 298
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        \"\"\"Apps and global routing are decoupled for parallel deletion.\"\"\"\n        assert are_independent(makefile_targets, \"destroy-apps-primary\", \"destroy-global_routing\")\n\n"
+                  },
+                  "endLine": 299,
+                  "startLine": 297
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert are_independent(makefile_targets, \"destroy-chaos-engineering\", \"destroy-apps-primary\")\n"
+                  },
+                  "endColumn": 102,
+                  "endLine": 301,
+                  "startColumn": 9,
+                  "startLine": 301
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "    def test_destroy_chaos_and_apps_parallel(self, makefile_targets):\n        assert are_independent(makefile_targets, \"destroy-chaos-engineering\", \"destroy-apps-primary\")\n\n"
+                  },
+                  "endLine": 302,
+                  "startLine": 300
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert are_independent(makefile_targets, \"destroy-monitoring\", \"destroy-apps-primary\")\n"
+                  },
+                  "endColumn": 95,
+                  "endLine": 304,
+                  "startColumn": 9,
+                  "startLine": 304
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "    def test_destroy_monitoring_and_apps_parallel(self, makefile_targets):\n        assert are_independent(makefile_targets, \"destroy-monitoring\", \"destroy-apps-primary\")\n\n"
+                  },
+                  "endLine": 305,
+                  "startLine": 303
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert are_independent(makefile_targets, \"destroy-canaries-primary\", \"destroy-canaries-standby\")\n"
+                  },
+                  "endColumn": 105,
+                  "endLine": 307,
+                  "startColumn": 9,
+                  "startLine": 307
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "    def test_destroy_canaries_parallel(self, makefile_targets):\n        assert are_independent(makefile_targets, \"destroy-canaries-primary\", \"destroy-canaries-standby\")\n\n"
+                  },
+                  "endLine": 308,
+                  "startLine": 306
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert are_independent(makefile_targets, \"destroy-secrets-rotation\", \"destroy-apps-primary\")\n"
+                  },
+                  "endColumn": 101,
+                  "endLine": 311,
+                  "startColumn": 9,
+                  "startLine": 311
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        \"\"\"secrets-rotation has no dependency on apps \u2014 can start immediately.\"\"\"\n        assert are_independent(makefile_targets, \"destroy-secrets-rotation\", \"destroy-apps-primary\")\n\n"
+                  },
+                  "endLine": 312,
+                  "startLine": 310
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert are_independent(makefile_targets, \"destroy-crdr-roles\", \"destroy-apps-primary\")\n"
+                  },
+                  "endColumn": 95,
+                  "endLine": 315,
+                  "startColumn": 9,
+                  "startLine": 315
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        \"\"\"crdr-roles has no dependency on apps \u2014 can start immediately.\"\"\"\n        assert are_independent(makefile_targets, \"destroy-crdr-roles\", \"destroy-apps-primary\")\n\n"
+                  },
+                  "endLine": 316,
+                  "startLine": 314
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        },
+        {
+          "message": {
+            "text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "        assert visited == len(all_nodes), \\\n"
+                  },
+                  "endColumn": 81,
+                  "endLine": 352,
+                  "startColumn": 9,
+                  "startLine": 351
+                },
+                "artifactLocation": {
+                  "uri": "file:///Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/tests/test_makefile_dependencies.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "\n        assert visited == len(all_nodes), \\\n            f\"Cycle detected \u2014 only {visited}/{len(all_nodes)} nodes resolved\"\n"
+                  },
+                  "endLine": 352,
+                  "startLine": 350
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B101",
+          "ruleIndex": 2
+        }
+      ]
+    }
+  ],
+  "version": "2.1.0",
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json"
+}

@@ -1,0 +1,1 @@
+{"lines":[{"ruleId":"AwsSolutions-SMG4","resourceId":"ASHCDKNagScanner/deployment--database--dynamodb--global-table.yml/DDBGlobalTableSecret","compliance":"Non-Compliant","exceptionReason":"N/A","ruleLevel":"Error","ruleInfo":"The secret does not have automatic rotation scheduled."}]}

@@ -1,0 +1,1 @@
+When answering questions about AWS services, configurations, or best practices, always use the AWS documentation search tool to verify your answer rather than relying on general knowledge. If you're unsure about any AWS-specific detail, look it up first before responding.

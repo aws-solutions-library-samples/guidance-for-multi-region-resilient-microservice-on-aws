@@ -1,0 +1,20 @@
+######### START CONTENTS: ${SOURCE_DIR}/.gitignore #########
+.idea
+**/.DS_Store
+**/__pycache__/
+**/package/python/
+**/bucket-name.txt
+**/out.yaml
+/deployment/database/crdr-reconciliation/src/function/package/python/
+/venv/
+/ash_output/**
+/ash_output
+**/aggregated_results*
+deployment/.build-done/
+######### END CONTENTS: ${SOURCE_DIR}/.gitignore #########
+
+######### START CONTENTS: ASH_INCLUSIONS #########
+.git
+**/cdk.out/asset.*
+!**/*.template.json
+######### END CONTENTS: ASH_INCLUSIONS #########

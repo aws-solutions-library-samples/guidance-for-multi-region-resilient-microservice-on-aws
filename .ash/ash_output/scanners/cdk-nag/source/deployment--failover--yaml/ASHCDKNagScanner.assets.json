@@ -1,0 +1,20 @@
+{
+  "version": "50.0.0",
+  "files": {
+    "5dfd7880be72c24f2733eabc8f503d708cffafdbc08ed540e587babf17886d65": {
+      "displayName": "ASHCDKNagScanner Template",
+      "source": {
+        "path": "ASHCDKNagScanner.template.json",
+        "packaging": "file"
+      },
+      "destinations": {
+        "current_account-current_region-32d36625": {
+          "bucketName": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}",
+          "objectKey": "5dfd7880be72c24f2733eabc8f503d708cffafdbc08ed540e587babf17886d65.json",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-file-publishing-role-${AWS::AccountId}-${AWS::Region}"
+        }
+      }
+    }
+  },
+  "dockerImages": {}
+}

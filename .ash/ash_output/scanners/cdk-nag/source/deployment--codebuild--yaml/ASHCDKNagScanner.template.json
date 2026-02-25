@@ -1,0 +1,311 @@
+{
+ "Description": "CodeBuild project for building Docker images and pushing to ECR in both regions",
+ "AWSTemplateFormatVersion": "2010-09-09",
+ "Parameters": {
+  "Env": {
+   "Type": "String",
+   "Default": ""
+  },
+  "PrimaryRegion": {
+   "Type": "String",
+   "Default": "us-east-1"
+  },
+  "StandbyRegion": {
+   "Type": "String",
+   "Default": "us-west-2"
+  },
+  "KmsKey": {
+   "Type": "String",
+   "Default": "retail-store-ar"
+  },
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Resources": {
+  "CodeBuildServiceRole": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Version": "2012-10-17",
+     "Statement": [
+      {
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "codebuild.amazonaws.com"
+       },
+       "Action": "sts:AssumeRole"
+      }
+     ]
+    },
+    "Policies": [
+     {
+      "PolicyDocument": {
+       "Version": "2012-10-17",
+       "Statement": [
+        {
+         "Effect": "Allow",
+         "Action": [
+          "ecr:GetAuthorizationToken"
+         ],
+         "Resource": "*"
+        },
+        {
+         "Effect": "Allow",
+         "Action": [
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "ecr:PutImage",
+          "ecr:InitiateLayerUpload",
+          "ecr:UploadLayerPart",
+          "ecr:CompleteLayerUpload"
+         ],
+         "Resource": [
+          {
+           "Fn::Sub": "arn:aws:ecr:${PrimaryRegion}:${AWS::AccountId}:repository/catalog${Env}"
+          },
+          {
+           "Fn::Sub": "arn:aws:ecr:${PrimaryRegion}:${AWS::AccountId}:repository/checkout${Env}"
+          },
+          {
+           "Fn::Sub": "arn:aws:ecr:${PrimaryRegion}:${AWS::AccountId}:repository/ui${Env}"
+          },
+          {
+           "Fn::Sub": "arn:aws:ecr:${PrimaryRegion}:${AWS::AccountId}:repository/carts${Env}"
+          },
+          {
+           "Fn::Sub": "arn:aws:ecr:${PrimaryRegion}:${AWS::AccountId}:repository/assets${Env}"
+          },
+          {
+           "Fn::Sub": "arn:aws:ecr:${PrimaryRegion}:${AWS::AccountId}:repository/orders${Env}"
+          },
+          {
+           "Fn::Sub": "arn:aws:ecr:${StandbyRegion}:${AWS::AccountId}:repository/catalog${Env}"
+          },
+          {
+           "Fn::Sub": "arn:aws:ecr:${StandbyRegion}:${AWS::AccountId}:repository/checkout${Env}"
+          },
+          {
+           "Fn::Sub": "arn:aws:ecr:${StandbyRegion}:${AWS::AccountId}:repository/ui${Env}"
+          },
+          {
+           "Fn::Sub": "arn:aws:ecr:${StandbyRegion}:${AWS::AccountId}:repository/carts${Env}"
+          },
+          {
+           "Fn::Sub": "arn:aws:ecr:${StandbyRegion}:${AWS::AccountId}:repository/assets${Env}"
+          },
+          {
+           "Fn::Sub": "arn:aws:ecr:${StandbyRegion}:${AWS::AccountId}:repository/orders${Env}"
+          }
+         ]
+        }
+       ]
+      },
+      "PolicyName": "CodeBuildECRAccess"
+     },
+     {
+      "PolicyDocument": {
+       "Version": "2012-10-17",
+       "Statement": [
+        {
+         "Effect": "Allow",
+         "Action": [
+          "s3:GetObject",
+          "s3:GetObjectVersion",
+          "s3:GetBucketLocation",
+          "s3:ListBucket"
+         ],
+         "Resource": [
+          {
+           "Fn::Sub": "{{resolve:ssm:canaryBucketArn${Env}}}"
+          },
+          {
+           "Fn::Sub": "{{resolve:ssm:canaryBucketArn${Env}}}/*"
+          }
+         ]
+        }
+       ]
+      },
+      "PolicyName": "CodeBuildS3Access"
+     },
+     {
+      "PolicyDocument": {
+       "Version": "2012-10-17",
+       "Statement": [
+        {
+         "Effect": "Allow",
+         "Action": [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+         ],
+         "Resource": [
+          {
+           "Fn::Sub": "arn:aws:logs:${PrimaryRegion}:${AWS::AccountId}:log-group:/aws/codebuild/mr-app-docker-build${Env}"
+          },
+          {
+           "Fn::Sub": "arn:aws:logs:${PrimaryRegion}:${AWS::AccountId}:log-group:/aws/codebuild/mr-app-docker-build${Env}:*"
+          }
+         ]
+        }
+       ]
+      },
+      "PolicyName": "CodeBuildLogsAccess"
+     },
+     {
+      "PolicyDocument": {
+       "Version": "2012-10-17",
+       "Statement": [
+        {
+         "Effect": "Allow",
+         "Action": [
+          "kms:Decrypt",
+          "kms:DescribeKey"
+         ],
+         "Resource": [
+          {
+           "Fn::Sub": "arn:aws:kms:${PrimaryRegion}:${AWS::AccountId}:alias/${KmsKey}${Env}"
+          },
+          {
+           "Fn::Sub": "arn:aws:kms:${StandbyRegion}:${AWS::AccountId}:alias/${KmsKey}${Env}"
+          }
+         ]
+        }
+       ]
+      },
+      "PolicyName": "CodeBuildKMSAccess"
+     }
+    ],
+    "RoleName": {
+     "Fn::Sub": "mr-app-codebuild-role${Env}"
+    }
+   }
+  },
+  "DockerBuildProject": {
+   "Type": "AWS::CodeBuild::Project",
+   "Properties": {
+    "Artifacts": {
+     "Type": "NO_ARTIFACTS"
+    },
+    "Description": "Builds Docker images and pushes to ECR in both regions",
+    "Environment": {
+     "ComputeType": "BUILD_GENERAL1_MEDIUM",
+     "EnvironmentVariables": [
+      {
+       "Name": "SERVICE_NAME",
+       "Value": "placeholder"
+      },
+      {
+       "Name": "TAG",
+       "Value": "latest"
+      },
+      {
+       "Name": "ENV_SUFFIX",
+       "Value": {
+        "Ref": "Env"
+       }
+      },
+      {
+       "Name": "PRIMARY_REGION",
+       "Value": {
+        "Ref": "PrimaryRegion"
+       }
+      },
+      {
+       "Name": "STANDBY_REGION",
+       "Value": {
+        "Ref": "StandbyRegion"
+       }
+      },
+      {
+       "Name": "PRIMARY_ONLY",
+       "Value": "false"
+      },
+      {
+       "Name": "AWS_ACCOUNT_ID",
+       "Value": {
+        "Ref": "AWS::AccountId"
+       }
+      }
+     ],
+     "Image": "aws/codebuild/amazonlinux-x86_64-standard:5.0",
+     "PrivilegedMode": true,
+     "Type": "LINUX_CONTAINER"
+    },
+    "Name": {
+     "Fn::Sub": "mr-app-docker-build${Env}"
+    },
+    "ServiceRole": {
+     "Fn::GetAtt": "CodeBuildServiceRole.Arn"
+    },
+    "Source": {
+     "BuildSpec": "version: 0.2\nphases:\n  pre_build:\n    commands:\n      - echo Logging in to Amazon ECR in $PRIMARY_REGION...\n      - aws ecr get-login-password --region $PRIMARY_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$PRIMARY_REGION.amazonaws.com\n      - |\n        if [ \"$PRIMARY_ONLY\" != \"true\" ]; then\n          echo Logging in to Amazon ECR in $STANDBY_REGION...\n          aws ecr get-login-password --region $STANDBY_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$STANDBY_REGION.amazonaws.com\n        fi\n      - PRIMARY_REPO=$AWS_ACCOUNT_ID.dkr.ecr.$PRIMARY_REGION.amazonaws.com/${SERVICE_NAME}${ENV_SUFFIX}\n      - STANDBY_REPO=$AWS_ACCOUNT_ID.dkr.ecr.$STANDBY_REGION.amazonaws.com/${SERVICE_NAME}${ENV_SUFFIX}\n  build:\n    commands:\n      - |\n        echo \"Rewriting Dockerfile to use ECR Public Gallery mirrors...\"\n        sed -i 's#FROM golang:#FROM public.ecr.aws/docker/library/golang:#g' Dockerfile\n        sed -i 's#FROM node:#FROM public.ecr.aws/docker/library/node:#g' Dockerfile\n        sed -i 's#FROM amazoncorretto:#FROM public.ecr.aws/docker/library/amazoncorretto:#g' Dockerfile\n        cat Dockerfile\n      - echo Building Docker image for $SERVICE_NAME...\n      - docker build --platform linux/amd64 -t ${SERVICE_NAME}${ENV_SUFFIX}:${TAG} .\n  post_build:\n    commands:\n      - echo Pushing image to ECR in $PRIMARY_REGION...\n      - docker tag ${SERVICE_NAME}${ENV_SUFFIX}:${TAG} $PRIMARY_REPO:$TAG\n      - docker push $PRIMARY_REPO:$TAG\n      - |\n        if [ \"$PRIMARY_ONLY\" != \"true\" ]; then\n          echo Pushing image to ECR in $STANDBY_REGION...\n          docker tag ${SERVICE_NAME}${ENV_SUFFIX}:${TAG} $STANDBY_REPO:$TAG\n          docker push $STANDBY_REPO:$TAG\n        fi\n      - echo Build and push completed successfully\n",
+     "Location": {
+      "Fn::Sub": "{{resolve:ssm:canaryBucketName${Env}}}/codebuild/source.zip"
+     },
+     "Type": "S3"
+    },
+    "TimeoutInMinutes": 30
+   }
+  },
+  "CodeBuildProjectNameParam": {
+   "Type": "AWS::SSM::Parameter",
+   "Properties": {
+    "Name": {
+     "Fn::Sub": "codebuild-project-name${Env}"
+    },
+    "Type": "String",
+    "Value": {
+     "Ref": "DockerBuildProject"
+    }
+   }
+  }
+ },
+ "Outputs": {
+  "CodeBuildProjectName": {
+   "Value": {
+    "Ref": "DockerBuildProject"
+   }
+  },
+  "CodeBuildProjectArn": {
+   "Value": {
+    "Fn::GetAtt": "DockerBuildProject.Arn"
+   }
+  },
+  "CodeBuildServiceRoleArn": {
+   "Value": {
+    "Fn::GetAtt": "CodeBuildServiceRole.Arn"
+   }
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

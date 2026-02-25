@@ -1,0 +1,251 @@
+{
+ "Description": "Global Routing - Stack needs to be managed from US-West-2",
+ "AWSTemplateFormatVersion": "2010-09-09",
+ "Parameters": {
+  "Env": {
+   "Type": "String",
+   "Default": "",
+   "Description": "String to enable multiple deployments per AWS region"
+  },
+  "PrimaryRegion": {
+   "Type": "String",
+   "Default": "us-east-1",
+   "Description": "Enter the Primary Region"
+  },
+  "StandbyRegion": {
+   "Type": "String",
+   "Default": "us-west-2",
+   "Description": "Enter the Standby Region"
+  },
+  "DomainName": {
+   "Type": "String",
+   "Description": "The name of the domain that you want created as a private hosted zone in Route53"
+  },
+  "KmsKey": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "KmsKey",
+   "Description": "CMK Id"
+  },
+  "PrimaryHealthCheckId": {
+   "Type": "String",
+   "Default": "",
+   "Description": "Optional Route53 health check ID for the primary region record"
+  },
+  "StandbyHealthCheckId": {
+   "Type": "String",
+   "Default": "",
+   "Description": "Optional Route53 health check ID for the standby region record"
+  },
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Conditions": {
+  "HasPrimaryHealthCheck": {
+   "Fn::Not": [
+    {
+     "Fn::Equals": [
+      {
+       "Ref": "PrimaryHealthCheckId"
+      },
+      ""
+     ]
+    }
+   ]
+  },
+  "HasStandbyHealthCheck": {
+   "Fn::Not": [
+    {
+     "Fn::Equals": [
+      {
+       "Ref": "StandbyHealthCheckId"
+      },
+      ""
+     ]
+    }
+   ]
+  }
+ },
+ "Resources": {
+  "HostedZone": {
+   "Type": "AWS::Route53::HostedZone",
+   "Properties": {
+    "Name": {
+     "Fn::Sub": "${DomainName}"
+    },
+    "VPCs": [
+     {
+      "VPCId": {
+       "Fn::Sub": "{{resolve:secretsmanager:VpcId-${PrimaryRegion}${Env}}}"
+      },
+      "VPCRegion": {
+       "Ref": "PrimaryRegion"
+      }
+     },
+     {
+      "VPCId": {
+       "Fn::Sub": "{{resolve:secretsmanager:VpcId-${StandbyRegion}${Env}}}"
+      },
+      "VPCRegion": {
+       "Ref": "StandbyRegion"
+      }
+     }
+    ]
+   }
+  },
+  "PrimaryRegionRecord": {
+   "Type": "AWS::Route53::RecordSet",
+   "Properties": {
+    "AliasTarget": {
+     "DNSName": {
+      "Fn::Sub": "{{resolve:secretsmanager:Alb-${PrimaryRegion}${Env}:SecretString:DnsName}}"
+     },
+     "EvaluateTargetHealth": true,
+     "HostedZoneId": {
+      "Fn::Sub": "{{resolve:secretsmanager:Alb-${PrimaryRegion}${Env}:SecretString:HostedZoneId}}"
+     }
+    },
+    "HealthCheckId": {
+     "Fn::If": [
+      "HasPrimaryHealthCheck",
+      {
+       "Ref": "PrimaryHealthCheckId"
+      },
+      {
+       "Ref": "AWS::NoValue"
+      }
+     ]
+    },
+    "HostedZoneId": {
+     "Ref": "HostedZone"
+    },
+    "Name": {
+     "Fn::Sub": "store.${DomainName}"
+    },
+    "Region": {
+     "Ref": "PrimaryRegion"
+    },
+    "SetIdentifier": "PrimaryRegion",
+    "Type": "A"
+   }
+  },
+  "StandbyRegionRecord": {
+   "Type": "AWS::Route53::RecordSet",
+   "Properties": {
+    "AliasTarget": {
+     "DNSName": {
+      "Fn::Sub": "{{resolve:secretsmanager:Alb-${StandbyRegion}${Env}:SecretString:DnsName}}"
+     },
+     "EvaluateTargetHealth": true,
+     "HostedZoneId": {
+      "Fn::Sub": "{{resolve:secretsmanager:Alb-${StandbyRegion}${Env}:SecretString:HostedZoneId}}"
+     }
+    },
+    "HealthCheckId": {
+     "Fn::If": [
+      "HasStandbyHealthCheck",
+      {
+       "Ref": "StandbyHealthCheckId"
+      },
+      {
+       "Ref": "AWS::NoValue"
+      }
+     ]
+    },
+    "HostedZoneId": {
+     "Ref": "HostedZone"
+    },
+    "Name": {
+     "Fn::Sub": "store.${DomainName}"
+    },
+    "Region": {
+     "Ref": "StandbyRegion"
+    },
+    "SetIdentifier": "StandbyRegion",
+    "Type": "A"
+   }
+  },
+  "DNSRecordSecret": {
+   "Type": "AWS::SecretsManager::Secret",
+   "Properties": {
+    "Description": "Route53 DNS",
+    "KmsKeyId": {
+     "Ref": "KmsKey"
+    },
+    "Name": {
+     "Fn::Sub": "DNSRecordSecret${Env}"
+    },
+    "ReplicaRegions": [
+     {
+      "Region": {
+       "Ref": "StandbyRegion"
+      }
+     }
+    ],
+    "SecretString": {
+     "Ref": "PrimaryRegionRecord"
+    }
+   },
+   "Metadata": {
+    "cfn_nag": {
+     "rules_to_suppress": [
+      {
+       "id": "AwsSolutions-SMG4",
+       "reason": "This secret stores a static DNS record value that does not require automatic rotation."
+      }
+     ]
+    }
+   }
+  },
+  "HostedZoneIdSecret": {
+   "Type": "AWS::SecretsManager::Secret",
+   "Properties": {
+    "KmsKeyId": {
+     "Ref": "KmsKey"
+    },
+    "Name": {
+     "Fn::Sub": "HostedZoneIdSecret${Env}"
+    },
+    "ReplicaRegions": [
+     {
+      "Region": {
+       "Ref": "StandbyRegion"
+      }
+     }
+    ],
+    "SecretString": {
+     "Ref": "HostedZone"
+    }
+   }
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

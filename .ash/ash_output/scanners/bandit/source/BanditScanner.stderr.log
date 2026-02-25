@@ -1,0 +1,6 @@
+[main]	INFO	profile include tests: None
+[main]	INFO	profile exclude tests: None
+[main]	INFO	cli include tests: None
+[main]	INFO	cli exclude tests: None
+[main]	INFO	running on Python 3.12.11
+[sarif]	INFO	SARIF output written to file: /Users/mlanza/src/guidance-for-multi-region-resilient-microservice-on-aws/.ash/ash_output/scanners/bandit/source/bandit.sarif

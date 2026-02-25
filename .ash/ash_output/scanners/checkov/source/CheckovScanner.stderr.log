@@ -1,0 +1,5 @@
+2026-02-23 17:49:40,140 [ThreadPoolEx] [WARNI]  Failed enriching cloudsplaining evaluated keys due to: 'NoneType' object has no attribute 'allows_data_exfiltration_actions'
+2026-02-23 17:49:40,143 [ThreadPoolEx] [WARNI]  Failed enriching cloudsplaining evaluated keys due to: 'NoneType' object has no attribute 'write_actions_without_constraints'
+2026-02-23 17:49:40,143 [ThreadPoolEx] [WARNI]  Failed enriching cloudsplaining evaluated keys due to: 'NoneType' object has no attribute 'credentials_exposure'
+2026-02-23 17:49:40,143 [ThreadPoolEx] [WARNI]  Failed enriching cloudsplaining evaluated keys due to: 'NoneType' object has no attribute 'permissions_management_without_constraints'
+2026-02-23 17:49:40,144 [ThreadPoolEx] [WARNI]  Failed enriching cloudsplaining evaluated keys due to: 'NoneType' object has no attribute 'allows_privilege_escalation'

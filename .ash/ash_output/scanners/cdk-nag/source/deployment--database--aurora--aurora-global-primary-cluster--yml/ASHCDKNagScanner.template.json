@@ -1,0 +1,894 @@
+{
+ "Description": "AWS Aurora Global database primary region",
+ "AWSTemplateFormatVersion": "2010-09-09",
+ "Mappings": {
+  "MinorUpdateMap": {
+   "Yes": {
+    "value": "true"
+   },
+   "No": {
+    "value": "false"
+   }
+  },
+  "EngineMap": {
+   "5.7": {
+    "family": "aurora-mysql5.7"
+   }
+  }
+ },
+ "Parameters": {
+  "NamingPrefix": {
+   "Type": "String",
+   "Description": "Enter the Naming Prefix for resources created"
+  },
+  "Env": {
+   "Type": "String",
+   "Description": "Enter the environment suffix for the resources"
+  },
+  "MachineType": {
+   "Type": "String",
+   "Default": "db.serverless",
+   "AllowedValues": [
+    "db.r4.large",
+    "db.r5.large",
+    "db.serverless"
+   ]
+  },
+  "DatabaseName": {
+   "Type": "String",
+   "Default": "globalDatabase"
+  },
+  "MinorVersionUpgrade": {
+   "Type": "String",
+   "Default": "Yes",
+   "AllowedValues": [
+    "Yes",
+    "No"
+   ]
+  },
+  "ClusterName": {
+   "Type": "String",
+   "Default": "dbcluster-01"
+  },
+  "GlobalClusterIdentifier": {
+   "Type": "String",
+   "Default": "global-db-cluster"
+  },
+  "PrimaryRegion": {
+   "Type": "String",
+   "Default": "us-east-1",
+   "Description": "Enter the Primary Region"
+  },
+  "StandbyRegion": {
+   "Type": "String",
+   "Default": "us-west-2",
+   "Description": "Enter the Standby Region"
+  },
+  "KmsKey": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "KmsKey",
+   "Description": "CMK Id"
+  },
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Conditions": {
+  "isPrimary": {
+   "Fn::Equals": [
+    {
+     "Ref": "AWS::Region"
+    },
+    "us-east-1"
+   ]
+  },
+  "isOrders": {
+   "Fn::Equals": [
+    {
+     "Ref": "NamingPrefix"
+    },
+    "orders"
+   ]
+  }
+ },
+ "Resources": {
+  "AuroraMySqlComputeSecurityGroup": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "Access to aurora mysql database",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow all egress",
+      "IpProtocol": "-1"
+     }
+    ],
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "aurora-mysql-security-group"
+     }
+    ],
+    "VpcId": {
+     "Fn::Sub": "{{resolve:secretsmanager:VpcId-${AWS::Region}${Env}}}"
+    }
+   }
+  },
+  "AuroraMySqlSecurityGroupIdSSMParameter": {
+   "Type": "AWS::SSM::Parameter",
+   "Properties": {
+    "Name": {
+     "Fn::Sub": "${NamingPrefix}-aurora-mysql-sg-${AWS::Region}${Env}"
+    },
+    "Type": "String",
+    "Value": {
+     "Fn::GetAtt": "AuroraMySqlComputeSecurityGroup.GroupId"
+    }
+   }
+  },
+  "DBCredentialsSecret": {
+   "Type": "AWS::SecretsManager::Secret",
+   "Properties": {
+    "Description": "Secret that has the user credentials for the database",
+    "GenerateSecretString": {
+     "ExcludePunctuation": true,
+     "GenerateStringKey": "password",
+     "PasswordLength": 30,
+     "SecretStringTemplate": "{\"username\": \"admin\"}"
+    },
+    "KmsKeyId": {
+     "Ref": "KmsKey"
+    },
+    "Name": {
+     "Fn::Sub": "mr-app/${NamingPrefix}-${GlobalClusterIdentifier}-UserCredentials${Env}"
+    },
+    "ReplicaRegions": [
+     {
+      "Region": {
+       "Fn::If": [
+        "isPrimary",
+        "us-west-2",
+        "us-east-1"
+       ]
+      }
+     }
+    ],
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": {
+       "Fn::Sub": "${NamingPrefix}-${GlobalClusterIdentifier}-UserCredentials${Env}"
+      }
+     }
+    ]
+   },
+   "Metadata": {
+    "cdk_nag": {
+     "rules_to_suppress": [
+      {
+       "id": "AwsSolutions-SMG4",
+       "reason": "This secret is being rotated by an external stack using custom Lambda."
+      }
+     ]
+    }
+   }
+  },
+  "DBCredentialSecretArn": {
+   "Type": "AWS::SSM::Parameter",
+   "Properties": {
+    "Description": {
+     "Fn::Sub": "The arn of the ${NamingPrefix} Secret"
+    },
+    "Name": {
+     "Fn::Sub": "${NamingPrefix}-${GlobalClusterIdentifier}-CredentialSecretArn${Env}"
+    },
+    "Type": "String",
+    "Value": {
+     "Ref": "DBCredentialsSecret"
+    }
+   }
+  },
+  "SubnetGroup": {
+   "Type": "AWS::RDS::DBSubnetGroup",
+   "Properties": {
+    "DBSubnetGroupDescription": {
+     "Fn::Sub": "${DatabaseName}-subnet-group"
+    },
+    "SubnetIds": [
+     {
+      "Fn::Sub": "{{resolve:ssm:Subnet1${Env}}}"
+     },
+     {
+      "Fn::Sub": "{{resolve:ssm:Subnet2${Env}}}"
+     },
+     {
+      "Fn::Sub": "{{resolve:ssm:Subnet3${Env}}}"
+     }
+    ]
+   }
+  },
+  "DBStorageEncryptionKMSKey": {
+   "Type": "AWS::KMS::Key",
+   "Properties": {
+    "Description": "Multi-Region Aurora Storage Encryption Key",
+    "EnableKeyRotation": true,
+    "KeyPolicy": {
+     "Version": "2012-10-17",
+     "Id": "key-default-1",
+     "Statement": [
+      {
+       "Sid": "Enable IAM User Permissions",
+       "Effect": "Allow",
+       "Principal": {
+        "AWS": {
+         "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:root"
+        }
+       },
+       "Action": "kms:*",
+       "Resource": "*"
+      }
+     ]
+    },
+    "MultiRegion": true,
+    "PendingWindowInDays": 10
+   }
+  },
+  "DBCluster": {
+   "Type": "AWS::RDS::DBCluster",
+   "Properties": {
+    "AutoMinorVersionUpgrade": true,
+    "BackupRetentionPeriod": 7,
+    "CopyTagsToSnapshot": true,
+    "DBClusterIdentifier": {
+     "Fn::Sub": "${NamingPrefix}-${ClusterName}-${AWS::Region}${Env}"
+    },
+    "DBSubnetGroupName": {
+     "Ref": "SubnetGroup"
+    },
+    "DatabaseName": {
+     "Fn::Sub": "${DatabaseName}"
+    },
+    "DeletionProtection": false,
+    "EnableCloudwatchLogsExports": [
+     "audit",
+     "error",
+     "general",
+     "slowquery"
+    ],
+    "EnableIAMDatabaseAuthentication": true,
+    "Engine": "aurora-mysql",
+    "EngineVersion": "8.0.mysql_aurora.3.04.0",
+    "KmsKeyId": {
+     "Ref": "DBStorageEncryptionKMSKey"
+    },
+    "MasterUserPassword": {
+     "Fn::Sub": "{{resolve:secretsmanager:mr-app/${NamingPrefix}-${GlobalClusterIdentifier}-UserCredentials${Env}:SecretString:password}}"
+    },
+    "MasterUsername": {
+     "Fn::Sub": "{{resolve:secretsmanager:mr-app/${NamingPrefix}-${GlobalClusterIdentifier}-UserCredentials${Env}:SecretString:username}}"
+    },
+    "Port": 3306,
+    "ServerlessV2ScalingConfiguration": {
+     "MaxCapacity": 8,
+     "MinCapacity": 1
+    },
+    "StorageEncrypted": true,
+    "Tags": [
+     {
+      "Key": "NamingPrefix",
+      "Value": {
+       "Ref": "NamingPrefix"
+      }
+     }
+    ],
+    "VpcSecurityGroupIds": [
+     {
+      "Fn::GetAtt": "AuroraMySqlComputeSecurityGroup.GroupId"
+     }
+    ]
+   },
+   "DependsOn": [
+    "DBCredentialsSecret",
+    "DBIamRoleForMonitoring",
+    "SubnetGroup"
+   ],
+   "Metadata": {
+    "cdk_nag": {
+     "rules_to_suppress": [
+      {
+       "id": "AwsSolutions-RDS10",
+       "reason": "The RDS instance or Aurora DB cluster does not have deletion protection enabled. - Demo application, so not enabling this"
+      },
+      {
+       "id": "AwsSolutions-RDS11",
+       "reason": "The RDS instance or Aurora DB cluster uses the default endpoint port. Port obfuscation - Demo application, so not enabling this"
+      },
+      {
+       "id": "AwsSolutions-RDS14",
+       "reason": "The RDS Aurora MySQL cluster does not have Backtrack enabled. - Demo application, so not enabling this"
+      }
+     ]
+    }
+   }
+  },
+  "DBIamRoleForMonitoring": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "sts:AssumeRole"
+       ],
+       "Effect": "Allow",
+       "Principal": {
+        "Service": [
+         "monitoring.rds.amazonaws.com"
+        ]
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
+    ],
+    "Path": "/"
+   },
+   "Metadata": {
+    "cdk_nag": {
+     "rules_to_suppress": [
+      {
+       "id": "AwsSolutions-IAM4",
+       "reason": "This role is used by RDS to push monitoring metrics. - Demo application, so using managed policy",
+       "applies_to": [
+        "Policy::arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "DBHostParam": {
+   "Type": "AWS::SSM::Parameter",
+   "Properties": {
+    "Description": "Secret that has the RDS-generated hostname for the database",
+    "Name": {
+     "Fn::Sub": "${NamingPrefix}-${GlobalClusterIdentifier}-Hostname${Env}"
+    },
+    "Type": "String",
+    "Value": {
+     "Fn::If": [
+      "isOrders",
+      {
+       "Fn::Sub": "jdbc:mariadb://${DBCluster.Endpoint.Address}:${DBCluster.Endpoint.Port}/orders"
+      },
+      {
+       "Fn::Sub": "${DBCluster.Endpoint.Address}:${DBCluster.Endpoint.Port}"
+      }
+     ]
+    }
+   }
+  },
+  "AuroraStorageEncryptionKeyArnSecret": {
+   "Type": "AWS::SecretsManager::Secret",
+   "Properties": {
+    "Description": "KMS Key Arn for Aurora Storage Encryption",
+    "KmsKeyId": {
+     "Ref": "KmsKey"
+    },
+    "Name": {
+     "Fn::Sub": "mr-app/${NamingPrefix}-${GlobalClusterIdentifier}-StorageEncryptionKeyArn${Env}"
+    },
+    "ReplicaRegions": [
+     {
+      "Region": {
+       "Fn::If": [
+        "isPrimary",
+        "us-west-2",
+        "us-east-1"
+       ]
+      }
+     }
+    ],
+    "SecretString": {
+     "Fn::GetAtt": "DBStorageEncryptionKMSKey.Arn"
+    }
+   },
+   "Metadata": {
+    "cdk_nag": {
+     "rules_to_suppress": [
+      {
+       "id": "AwsSolutions-SMG4",
+       "reason": "This secret is storing the resource ARN, and does not require any rotation"
+      }
+     ]
+    }
+   }
+  },
+  "GlobalDBCluster": {
+   "Type": "AWS::RDS::GlobalCluster",
+   "Properties": {
+    "GlobalClusterIdentifier": {
+     "Fn::Sub": "${NamingPrefix}-${GlobalClusterIdentifier}${Env}"
+    },
+    "SourceDBClusterIdentifier": {
+     "Ref": "DBCluster"
+    }
+   },
+   "DependsOn": [
+    "DBCluster"
+   ]
+  },
+  "DBInstance1": {
+   "Type": "AWS::RDS::DBInstance",
+   "Properties": {
+    "AllowMajorVersionUpgrade": false,
+    "AutoMinorVersionUpgrade": {
+     "Fn::FindInMap": [
+      "MinorUpdateMap",
+      {
+       "Ref": "MinorVersionUpgrade"
+      },
+      "value"
+     ]
+    },
+    "DBClusterIdentifier": {
+     "Ref": "DBCluster"
+    },
+    "DBInstanceClass": {
+     "Ref": "MachineType"
+    },
+    "DBInstanceIdentifier": {
+     "Fn::Sub": "${NamingPrefix}-${ClusterName}${Env}-1"
+    },
+    "DBSubnetGroupName": {
+     "Ref": "SubnetGroup"
+    },
+    "Engine": "aurora-mysql",
+    "MonitoringInterval": 1,
+    "MonitoringRoleArn": {
+     "Fn::GetAtt": "DBIamRoleForMonitoring.Arn"
+    },
+    "PubliclyAccessible": false
+   },
+   "DependsOn": [
+    "DBCluster",
+    "SubnetGroup"
+   ]
+  },
+  "DBInstance2": {
+   "Type": "AWS::RDS::DBInstance",
+   "Properties": {
+    "AllowMajorVersionUpgrade": false,
+    "AutoMinorVersionUpgrade": {
+     "Fn::FindInMap": [
+      "MinorUpdateMap",
+      {
+       "Ref": "MinorVersionUpgrade"
+      },
+      "value"
+     ]
+    },
+    "DBClusterIdentifier": {
+     "Ref": "DBCluster"
+    },
+    "DBInstanceClass": {
+     "Ref": "MachineType"
+    },
+    "DBInstanceIdentifier": {
+     "Fn::Sub": "${NamingPrefix}-${ClusterName}${Env}-2"
+    },
+    "DBSubnetGroupName": {
+     "Ref": "SubnetGroup"
+    },
+    "Engine": "aurora-mysql",
+    "MonitoringInterval": 1,
+    "MonitoringRoleArn": {
+     "Fn::GetAtt": "DBIamRoleForMonitoring.Arn"
+    },
+    "PubliclyAccessible": false
+   },
+   "DependsOn": [
+    "DBCluster",
+    "SubnetGroup"
+   ]
+  },
+  "DBIamRoleForMonitoringArnSecret": {
+   "Type": "AWS::SecretsManager::Secret",
+   "Properties": {
+    "Description": "Aurora DB Monitoring IAM Role Arn",
+    "KmsKeyId": {
+     "Ref": "KmsKey"
+    },
+    "Name": {
+     "Fn::Sub": "mr-app/${NamingPrefix}-${GlobalClusterIdentifier}-MonitoringIAMRoleArn${Env}"
+    },
+    "ReplicaRegions": [
+     {
+      "Region": "us-west-2"
+     }
+    ],
+    "SecretString": {
+     "Fn::GetAtt": "DBIamRoleForMonitoring.Arn"
+    }
+   },
+   "Metadata": {
+    "cdk_nag": {
+     "rules_to_suppress": [
+      {
+       "id": "AwsSolutions-SMG4",
+       "reason": "This secret is storing the resource ARN, and does not require any rotation"
+      }
+     ]
+    }
+   }
+  },
+  "GlobalDBName": {
+   "Type": "AWS::SecretsManager::Secret",
+   "Properties": {
+    "Description": {
+     "Fn::Sub": "GlobalClusterIdentifier for ${NamingPrefix}"
+    },
+    "KmsKeyId": {
+     "Ref": "KmsKey"
+    },
+    "Name": {
+     "Fn::Sub": "mr-app/${NamingPrefix}-${GlobalClusterIdentifier}${Env}"
+    },
+    "ReplicaRegions": [
+     {
+      "Region": "us-west-2"
+     }
+    ],
+    "SecretString": {
+     "Fn::Sub": "${NamingPrefix}-${GlobalClusterIdentifier}${Env}"
+    }
+   },
+   "Metadata": {
+    "cdk_nag": {
+     "rules_to_suppress": [
+      {
+       "id": "AwsSolutions-SMG4",
+       "reason": "This secret is storing the resource name, and does not require any rotation"
+      }
+     ]
+    }
+   }
+  },
+  "DBClusterArn": {
+   "Type": "AWS::SecretsManager::Secret",
+   "Properties": {
+    "Description": {
+     "Fn::Sub": "DBCluster Arn for ${NamingPrefix}"
+    },
+    "KmsKeyId": {
+     "Ref": "KmsKey"
+    },
+    "Name": {
+     "Fn::Sub": "mr-app/${NamingPrefix}-${AWS::Region}-${GlobalClusterIdentifier}${Env}"
+    },
+    "ReplicaRegions": [
+     {
+      "Region": "us-west-2"
+     }
+    ],
+    "SecretString": {
+     "Fn::GetAtt": "DBCluster.DBClusterArn"
+    }
+   },
+   "Metadata": {
+    "cdk_nag": {
+     "rules_to_suppress": [
+      {
+       "id": "AwsSolutions-SMG4",
+       "reason": "This secret is storing the resource ARN, and does not require any rotation"
+      }
+     ]
+    }
+   }
+  },
+  "DBClusterIdentifier": {
+   "Type": "AWS::SecretsManager::Secret",
+   "Properties": {
+    "Description": {
+     "Fn::Sub": "DBClusterIdentifier for ${NamingPrefix}"
+    },
+    "KmsKeyId": {
+     "Ref": "KmsKey"
+    },
+    "Name": {
+     "Fn::Sub": "mr-app/${NamingPrefix}-${AWS::Region}-DBClusterIdentifier${Env}"
+    },
+    "ReplicaRegions": [
+     {
+      "Region": "us-west-2"
+     }
+    ],
+    "SecretString": {
+     "Fn::Sub": "${NamingPrefix}-${ClusterName}-${AWS::Region}${Env}"
+    }
+   },
+   "Metadata": {
+    "cdk_nag": {
+     "rules_to_suppress": [
+      {
+       "id": "AwsSolutions-SMG4",
+       "reason": "This secret is storing the resource name, and does not require any rotation"
+      }
+     ]
+    }
+   }
+  },
+  "LambdaSecurityGroup": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "Lambda function access to aurora mysql databases",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "IpProtocol": "-1"
+     }
+    ],
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": {
+       "Fn::Sub": "secrets-update-aurora-mysql-security-group${Env}"
+      }
+     }
+    ],
+    "VpcId": {
+     "Fn::Sub": "{{resolve:secretsmanager:VpcId-${AWS::Region}${Env}}}"
+    }
+   }
+  },
+  "LambdaExecutionRole": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Version": "2012-10-17",
+     "Statement": [
+      {
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       },
+       "Action": "sts:AssumeRole"
+      }
+     ]
+    },
+    "ManagedPolicyArns": [
+     "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+    ],
+    "Policies": [
+     {
+      "PolicyDocument": {
+       "Version": "2012-10-17",
+       "Statement": [
+        {
+         "Effect": "Allow",
+         "Action": [
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:UpdateSecret",
+          "rds:DescribeDBClusters"
+         ],
+         "Resource": "*",
+         "Condition": {
+          "StringEquals": {
+           "aws:ResourceAccount": {
+            "Fn::Sub": "${AWS::AccountId}"
+           }
+          }
+         }
+        },
+        {
+         "Effect": "Allow",
+         "Action": [
+          "ec2:DescribeNetworkInterfaces",
+          "ec2:CreateNetworkInterface",
+          "ec2:DeleteNetworkInterface",
+          "ec2:DescribeInstances",
+          "ec2:AttachNetworkInterface"
+         ],
+         "Resource": "*",
+         "Condition": {
+          "StringEquals": {
+           "aws:ResourceAccount": {
+            "Fn::Sub": "${AWS::AccountId}"
+           }
+          }
+         }
+        },
+        {
+         "Effect": "Allow",
+         "Action": [
+          "s3:PutObject"
+         ],
+         "Resource": "arn:aws:s3:::cloudformation-custom-resource-response-useast1/*"
+        }
+       ]
+      },
+      "PolicyName": "LambdaSecretUpdatePolicy"
+     }
+    ]
+   },
+   "Metadata": {
+    "cdk_nag": {
+     "rules_to_suppress": [
+      {
+       "id": "AwsSolutions-IAM4",
+       "reason": "This role is used by Lambda to update secrets manager. - Demo application, so using least privilege and managed policies",
+       "applies_to": [
+        "Policy::arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+       ]
+      },
+      {
+       "id": "AwsSolutions-IAM5",
+       "reason": "This role is used by Lambda to update secrets manager. - Demo application, so using least privilege and managed policies",
+       "applies_to": [
+        "Resource::*"
+       ]
+      },
+      {
+       "id": "AwsSolutions-IAM5",
+       "reason": "This role is used by Lambda to update secrets manager. - Demo application, so using least privilege and managed policies",
+       "applies_to": [
+        "Resource::arn:aws:s3:::cloudformation-custom-resource-response-useast1/*"
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "UpdateSecretFunction": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "ZipFile": "import json\nimport boto3\nimport os\nimport logging\nimport cfnresponse\nlogging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')\ndef handler(event, context):\n  try:\n    responseData = {}\n    if event.get('RequestType') == 'Create':\n      secretsmanager_client = boto3.client('secretsmanager')\n      rds_client = boto3.client('rds')\n\n      secret_name = os.environ['SecretName']\n      db_cluster_identifier = os.environ['DBClusterIdentifier']\n\n      # Describe the DB cluster to get the endpoint and other details\n      db_cluster_info = rds_client.describe_db_clusters(DBClusterIdentifier=db_cluster_identifier)['DBClusters'][0]\n      host = db_cluster_info['Endpoint']\n      port = db_cluster_info['Port']\n\n      # Get the current secret value\n      current_secret_value = secretsmanager_client.get_secret_value(SecretId=secret_name)['SecretString']\n      current_secret_json = json.loads(current_secret_value)\n\n      # Update the secret with additional details\n      updated_secret_json = {\n          \"engine\": \"mysql\",\n          \"host\": host,\n          \"username\": current_secret_json['username'],\n          \"password\": current_secret_json['password'],\n          \"dbname\": os.environ['DB_NAME'],\n          \"port\": port\n      }\n\n      responseData['secrets_manager_response'] = secretsmanager_client.update_secret(\n          SecretId=secret_name,\n          SecretString=json.dumps(updated_secret_json)\n      )\n\n      logging.info('Sending %s to cloudformation', responseData['secrets_manager_response'])\n      cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)\n    else:\n      logging.error('Unsupported operation: %s', event.get('RequestType'))\n      responseData['message'] = \"Invalid operation\"\n      cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)\n  except Exception as err:\n    responseData = {}\n    responseData['message'] = 'Failed'\n    logging.error(err)\n    cfnresponse.send(event, context, cfnresponse.FAILED, responseData)\n"
+    },
+    "Environment": {
+     "Variables": {
+      "DB_NAME": {
+       "Ref": "DatabaseName"
+      },
+      "SecretName": {
+       "Ref": "DBCredentialsSecret"
+      },
+      "DBClusterIdentifier": {
+       "Ref": "DBCluster"
+      }
+     }
+    },
+    "Handler": "index.handler",
+    "Role": {
+     "Fn::GetAtt": "LambdaExecutionRole.Arn"
+    },
+    "Runtime": "python3.13",
+    "Timeout": 300,
+    "VpcConfig": {
+     "SecurityGroupIds": [
+      {
+       "Ref": "LambdaSecurityGroup"
+      }
+     ],
+     "SubnetIds": [
+      {
+       "Fn::Sub": "{{resolve:ssm:Subnet1${Env}}}"
+      },
+      {
+       "Fn::Sub": "{{resolve:ssm:Subnet2${Env}}}"
+      },
+      {
+       "Fn::Sub": "{{resolve:ssm:Subnet3${Env}}}"
+      }
+     ]
+    }
+   },
+   "Metadata": {
+    "cdk_nag": {
+     "rules_to_suppress": [
+      {
+       "id": "AwsSolutions-L1",
+       "reason": "The non-container Lambda function is not configured to use the latest runtime version. Keeping this for compatibility reasons"
+      }
+     ]
+    }
+   }
+  },
+  "InvokeCustomLambda": {
+   "Type": "Custom::InvokeCustomLambda",
+   "Properties": {
+    "ServiceToken": {
+     "Fn::GetAtt": "UpdateSecretFunction.Arn"
+    },
+    "SecretName": {
+     "Ref": "DBCredentialsSecret"
+    },
+    "DBClusterIdentifier": {
+     "Ref": "DBCluster"
+    }
+   },
+   "DependsOn": [
+    "DBCluster",
+    "DBInstance1",
+    "DBInstance2",
+    "UpdateSecretFunction"
+   ]
+  },
+  "VPCEndpointSecretsManagerSecurityGroupIngress": {
+   "Type": "AWS::EC2::SecurityGroupIngress",
+   "Properties": {
+    "FromPort": 443,
+    "GroupId": {
+     "Fn::Sub": "{{resolve:ssm:VPCEndpointSecretsManagerSGId${Env}}}"
+    },
+    "IpProtocol": "tcp",
+    "SourceSecurityGroupId": {
+     "Ref": "LambdaSecurityGroup"
+    },
+    "ToPort": 443
+   }
+  },
+  "VPCEndpointRDSSecurityGroupIngress": {
+   "Type": "AWS::EC2::SecurityGroupIngress",
+   "Properties": {
+    "FromPort": 443,
+    "GroupId": {
+     "Fn::Sub": "{{resolve:ssm:VPCEndpointRDSSGId${Env}}}"
+    },
+    "IpProtocol": "tcp",
+    "SourceSecurityGroupId": {
+     "Ref": "LambdaSecurityGroup"
+    },
+    "ToPort": 443
+   }
+  }
+ },
+ "Outputs": {
+  "GlobalDBCluster": {
+   "Value": {
+    "Ref": "GlobalDBCluster"
+   }
+  },
+  "DBEndpoint": {
+   "Value": {
+    "Fn::GetAtt": "DBCluster.Endpoint.Address"
+   }
+  },
+  "DBPort": {
+   "Value": {
+    "Fn::GetAtt": "DBCluster.Endpoint.Port"
+   }
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

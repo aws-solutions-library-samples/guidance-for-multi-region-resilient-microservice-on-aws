@@ -1,0 +1,1064 @@
+{
+ "Description": "Infrastructure",
+ "AWSTemplateFormatVersion": "2010-09-09",
+ "Mappings": {
+  "RegionMap": {
+   "us-east-1": {
+    "VPCCidrBlock": "10.1.0.0/16",
+    "PrivateCidrBlock1": "10.1.0.0/20",
+    "PrivateCidrBlock2": "10.1.16.0/20",
+    "PrivateCidrBlock3": "10.1.32.0/20",
+    "PublicCidrBlock1": "10.1.48.0/20",
+    "PublicCidrBlock2": "10.1.64.0/20",
+    "PublicCidrBlock3": "10.1.80.0/20",
+    "AvailabilityZoneId1": "use1-az1",
+    "AvailabilityZoneId2": "use1-az4",
+    "AvailabilityZoneId3": "use1-az6"
+   },
+   "us-west-2": {
+    "VPCCidrBlock": "10.2.0.0/16",
+    "PrivateCidrBlock1": "10.2.0.0/20",
+    "PrivateCidrBlock2": "10.2.16.0/20",
+    "PrivateCidrBlock3": "10.2.32.0/20",
+    "PublicCidrBlock1": "10.2.48.0/20",
+    "PublicCidrBlock2": "10.2.64.0/20",
+    "PublicCidrBlock3": "10.2.80.0/20",
+    "AvailabilityZoneId1": "usw2-az1",
+    "AvailabilityZoneId2": "usw2-az2",
+    "AvailabilityZoneId3": "usw2-az3"
+   }
+  }
+ },
+ "Parameters": {
+  "Env": {
+   "Type": "String",
+   "Default": "",
+   "Description": "String to enable multiple deployments per AWS region"
+  },
+  "NamingPrefix": {
+   "Type": "String",
+   "Default": "mr-app",
+   "Description": "The prefix to be used for resources created by this template."
+  },
+  "PrimaryRegion": {
+   "Type": "String",
+   "Default": "us-east-1",
+   "Description": "Enter the Primary Region"
+  },
+  "StandbyRegion": {
+   "Type": "String",
+   "Default": "us-west-2",
+   "Description": "Enter the Standby Region"
+  },
+  "KmsKey": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "KmsKey",
+   "Description": "CMK Id"
+  },
+  "PrimaryOnly": {
+   "Type": "String",
+   "Default": false
+  },
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Conditions": {
+  "isPrimary": {
+   "Fn::Equals": [
+    {
+     "Ref": "AWS::Region"
+    },
+    "us-east-1"
+   ]
+  },
+  "isStandby": {
+   "Fn::Equals": [
+    {
+     "Ref": "AWS::Region"
+    },
+    "us-west-2"
+   ]
+  },
+  "notPrimaryOnly": {
+   "Fn::Not": [
+    {
+     "Fn::Equals": [
+      {
+       "Ref": "PrimaryOnly"
+      },
+      true
+     ]
+    }
+   ]
+  }
+ },
+ "Resources": {
+  "Igw": {
+   "Type": "AWS::EC2::InternetGateway"
+  },
+  "IgwAttach": {
+   "Type": "AWS::EC2::VPCGatewayAttachment",
+   "Properties": {
+    "InternetGatewayId": {
+     "Ref": "Igw"
+    },
+    "VpcId": {
+     "Fn::Sub": "{{resolve:secretsmanager:VpcId-${AWS::Region}${Env}}}"
+    }
+   }
+  },
+  "PrivateRouteTable": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "VpcId": {
+     "Fn::Sub": "{{resolve:secretsmanager:VpcId-${AWS::Region}${Env}}}"
+    }
+   }
+  },
+  "publicSubnet1": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZoneId": {
+     "Fn::FindInMap": [
+      "RegionMap",
+      {
+       "Ref": "AWS::Region"
+      },
+      "AvailabilityZoneId1"
+     ]
+    },
+    "CidrBlock": {
+     "Fn::FindInMap": [
+      "RegionMap",
+      {
+       "Ref": "AWS::Region"
+      },
+      "PublicCidrBlock1"
+     ]
+    },
+    "VpcId": {
+     "Fn::Sub": "{{resolve:secretsmanager:VpcId-${AWS::Region}${Env}}}"
+    }
+   }
+  },
+  "natEip1": {
+   "Type": "AWS::EC2::EIP"
+  },
+  "natGW1": {
+   "Type": "AWS::EC2::NatGateway",
+   "Properties": {
+    "AllocationId": {
+     "Fn::GetAtt": "natEip1.AllocationId"
+    },
+    "SubnetId": {
+     "Ref": "publicSubnet1"
+    }
+   }
+  },
+  "prvRouteZero": {
+   "Type": "AWS::EC2::Route",
+   "Properties": {
+    "DestinationCidrBlock": "0.0.0.0/0",
+    "NatGatewayId": {
+     "Ref": "natGW1"
+    },
+    "RouteTableId": {
+     "Ref": "PrivateRouteTable"
+    }
+   },
+   "DependsOn": [
+    "Igw"
+   ]
+  },
+  "prvRoutePeer": {
+   "Type": "AWS::EC2::Route",
+   "Properties": {
+    "DestinationCidrBlock": {
+     "Fn::If": [
+      "isPrimary",
+      {
+       "Fn::FindInMap": [
+        "RegionMap",
+        {
+         "Ref": "StandbyRegion"
+        },
+        "VPCCidrBlock"
+       ]
+      },
+      {
+       "Fn::FindInMap": [
+        "RegionMap",
+        {
+         "Ref": "PrimaryRegion"
+        },
+        "VPCCidrBlock"
+       ]
+      }
+     ]
+    },
+    "RouteTableId": {
+     "Ref": "PrivateRouteTable"
+    },
+    "VpcPeeringConnectionId": {
+     "Fn::Sub": "{{resolve:secretsmanager:VpcPeerId${Env}}}"
+    }
+   },
+   "Condition": "notPrimaryOnly"
+  },
+  "pubRouteTable": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "Public Route Table"
+     }
+    ],
+    "VpcId": {
+     "Fn::Sub": "{{resolve:secretsmanager:VpcId-${AWS::Region}${Env}}}"
+    }
+   },
+   "DependsOn": [
+    "IgwAttach"
+   ]
+  },
+  "pubRoute": {
+   "Type": "AWS::EC2::Route",
+   "Properties": {
+    "DestinationCidrBlock": "0.0.0.0/0",
+    "GatewayId": {
+     "Ref": "Igw"
+    },
+    "RouteTableId": {
+     "Ref": "pubRouteTable"
+    }
+   },
+   "DependsOn": [
+    "IgwAttach"
+   ]
+  },
+  "pubSnRta1": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "pubRouteTable"
+    },
+    "SubnetId": {
+     "Ref": "publicSubnet1"
+    }
+   }
+  },
+  "publicSubnet2": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZoneId": {
+     "Fn::FindInMap": [
+      "RegionMap",
+      {
+       "Ref": "AWS::Region"
+      },
+      "AvailabilityZoneId2"
+     ]
+    },
+    "CidrBlock": {
+     "Fn::FindInMap": [
+      "RegionMap",
+      {
+       "Ref": "AWS::Region"
+      },
+      "PublicCidrBlock2"
+     ]
+    },
+    "VpcId": {
+     "Fn::Sub": "{{resolve:secretsmanager:VpcId-${AWS::Region}${Env}}}"
+    }
+   }
+  },
+  "pubSnRta2": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "pubRouteTable"
+    },
+    "SubnetId": {
+     "Ref": "publicSubnet2"
+    }
+   }
+  },
+  "publicSubnet3": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZoneId": {
+     "Fn::FindInMap": [
+      "RegionMap",
+      {
+       "Ref": "AWS::Region"
+      },
+      "AvailabilityZoneId3"
+     ]
+    },
+    "CidrBlock": {
+     "Fn::FindInMap": [
+      "RegionMap",
+      {
+       "Ref": "AWS::Region"
+      },
+      "PublicCidrBlock3"
+     ]
+    },
+    "VpcId": {
+     "Fn::Sub": "{{resolve:secretsmanager:VpcId-${AWS::Region}${Env}}}"
+    }
+   }
+  },
+  "pubSnRta3": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "pubRouteTable"
+    },
+    "SubnetId": {
+     "Ref": "publicSubnet3"
+    }
+   }
+  },
+  "FlowLogRole": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "sts:AssumeRole"
+       ],
+       "Effect": "Allow",
+       "Principal": {
+        "Service": [
+         "vpc-flow-logs.amazonaws.com"
+        ]
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Path": "/",
+    "Policies": [
+     {
+      "PolicyDocument": {
+       "Statement": [
+        {
+         "Effect": "Allow",
+         "Action": [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+          "logs:DescribeLogGroups",
+          "logs:DescribeLogStreams"
+         ],
+         "Resource": {
+          "Fn::Sub": "arn:aws:logs:*:${AWS::AccountId}:*"
+         }
+        }
+       ],
+       "Version": "2012-10-17"
+      },
+      "PolicyName": "flowlogspolicy"
+     }
+    ]
+   },
+   "Metadata": {
+    "cfn_nag": {
+     "rules_to_suppress": [
+      {
+       "id": "AwsSolutions-IAM5",
+       "reason": "Wildcard logs resource permissions are required for VPC Flow Logs to dynamically create log groups and streams.",
+       "appliesTo": [
+        "Resource::arn:aws:logs:*:${AWS::AccountId}:*"
+       ]
+      }
+     ]
+    },
+    "cdk_nag": {
+     "rules_to_suppress": [
+      {
+       "id": "AwsSolutions-IAM5",
+       "reason": "Wildcard logs resource permissions are required for VPC Flow Logs to dynamically create log groups and streams.",
+       "appliesTo": [
+        "Resource::arn:aws:logs:*:${AWS::AccountId}:*"
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "VpcFlowLogs": {
+   "Type": "AWS::EC2::FlowLog",
+   "Properties": {
+    "DeliverLogsPermissionArn": {
+     "Fn::GetAtt": "FlowLogRole.Arn"
+    },
+    "LogGroupName": "VpcFlowLogs",
+    "ResourceId": {
+     "Fn::Sub": "{{resolve:secretsmanager:VpcId-${AWS::Region}${Env}}}"
+    },
+    "ResourceType": "VPC",
+    "TrafficType": "ALL"
+   }
+  },
+  "PrivateSubnet1": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZoneId": {
+     "Fn::FindInMap": [
+      "RegionMap",
+      {
+       "Ref": "AWS::Region"
+      },
+      "AvailabilityZoneId1"
+     ]
+    },
+    "CidrBlock": {
+     "Fn::FindInMap": [
+      "RegionMap",
+      {
+       "Ref": "AWS::Region"
+      },
+      "PrivateCidrBlock1"
+     ]
+    },
+    "MapPublicIpOnLaunch": false,
+    "Tags": [
+     {
+      "Key": "ChaosAllowed",
+      "Value": "true"
+     },
+     {
+      "Key": "Name",
+      "Value": {
+       "Fn::Join": [
+        "-",
+        [
+         {
+          "Ref": "NamingPrefix"
+         },
+         "Private"
+        ]
+       ]
+      }
+     }
+    ],
+    "VpcId": {
+     "Fn::Sub": "{{resolve:secretsmanager:VpcId-${AWS::Region}${Env}}}"
+    }
+   }
+  },
+  "PrivateRouteTableAssociation1": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "PrivateRouteTable"
+    },
+    "SubnetId": {
+     "Ref": "PrivateSubnet1"
+    }
+   }
+  },
+  "PrivateSubnet2": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZoneId": {
+     "Fn::FindInMap": [
+      "RegionMap",
+      {
+       "Ref": "AWS::Region"
+      },
+      "AvailabilityZoneId2"
+     ]
+    },
+    "CidrBlock": {
+     "Fn::FindInMap": [
+      "RegionMap",
+      {
+       "Ref": "AWS::Region"
+      },
+      "PrivateCidrBlock2"
+     ]
+    },
+    "MapPublicIpOnLaunch": false,
+    "Tags": [
+     {
+      "Key": "ChaosAllowed",
+      "Value": "true"
+     },
+     {
+      "Key": "Name",
+      "Value": {
+       "Fn::Join": [
+        "-",
+        [
+         {
+          "Ref": "NamingPrefix"
+         },
+         "Private"
+        ]
+       ]
+      }
+     }
+    ],
+    "VpcId": {
+     "Fn::Sub": "{{resolve:secretsmanager:VpcId-${AWS::Region}${Env}}}"
+    }
+   }
+  },
+  "PrivateRouteTableAssociation2": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "PrivateRouteTable"
+    },
+    "SubnetId": {
+     "Ref": "PrivateSubnet2"
+    }
+   }
+  },
+  "PrivateSubnet3": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZoneId": {
+     "Fn::FindInMap": [
+      "RegionMap",
+      {
+       "Ref": "AWS::Region"
+      },
+      "AvailabilityZoneId3"
+     ]
+    },
+    "CidrBlock": {
+     "Fn::FindInMap": [
+      "RegionMap",
+      {
+       "Ref": "AWS::Region"
+      },
+      "PrivateCidrBlock3"
+     ]
+    },
+    "MapPublicIpOnLaunch": false,
+    "Tags": [
+     {
+      "Key": "ChaosAllowed",
+      "Value": "true"
+     },
+     {
+      "Key": "Name",
+      "Value": {
+       "Fn::Join": [
+        "-",
+        [
+         {
+          "Ref": "NamingPrefix"
+         },
+         "Private"
+        ]
+       ]
+      }
+     }
+    ],
+    "VpcId": {
+     "Fn::Sub": "{{resolve:secretsmanager:VpcId-${AWS::Region}${Env}}}"
+    }
+   }
+  },
+  "PrivateRouteTableAssociation3": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "PrivateRouteTable"
+    },
+    "SubnetId": {
+     "Ref": "PrivateSubnet3"
+    }
+   }
+  },
+  "CheckoutRepo": {
+   "Type": "AWS::ECR::Repository",
+   "Properties": {
+    "EncryptionConfiguration": {
+     "EncryptionType": "KMS",
+     "KmsKey": {
+      "Ref": "KmsKey"
+     }
+    },
+    "ImageScanningConfiguration": {
+     "ScanOnPush": true
+    },
+    "ImageTagMutability": "MUTABLE",
+    "RepositoryName": {
+     "Fn::Sub": "checkout${Env}"
+    }
+   }
+  },
+  "CatalogRepo": {
+   "Type": "AWS::ECR::Repository",
+   "Properties": {
+    "EncryptionConfiguration": {
+     "EncryptionType": "KMS",
+     "KmsKey": {
+      "Ref": "KmsKey"
+     }
+    },
+    "ImageScanningConfiguration": {
+     "ScanOnPush": true
+    },
+    "ImageTagMutability": "MUTABLE",
+    "RepositoryName": {
+     "Fn::Sub": "catalog${Env}"
+    }
+   }
+  },
+  "CartsRepo": {
+   "Type": "AWS::ECR::Repository",
+   "Properties": {
+    "EncryptionConfiguration": {
+     "EncryptionType": "KMS",
+     "KmsKey": {
+      "Ref": "KmsKey"
+     }
+    },
+    "ImageScanningConfiguration": {
+     "ScanOnPush": true
+    },
+    "ImageTagMutability": "MUTABLE",
+    "RepositoryName": {
+     "Fn::Sub": "carts${Env}"
+    }
+   }
+  },
+  "AssetsRepo": {
+   "Type": "AWS::ECR::Repository",
+   "Properties": {
+    "EncryptionConfiguration": {
+     "EncryptionType": "KMS",
+     "KmsKey": {
+      "Ref": "KmsKey"
+     }
+    },
+    "ImageScanningConfiguration": {
+     "ScanOnPush": true
+    },
+    "ImageTagMutability": "MUTABLE",
+    "RepositoryName": {
+     "Fn::Sub": "assets${Env}"
+    }
+   }
+  },
+  "OrdersRepo": {
+   "Type": "AWS::ECR::Repository",
+   "Properties": {
+    "EncryptionConfiguration": {
+     "EncryptionType": "KMS",
+     "KmsKey": {
+      "Ref": "KmsKey"
+     }
+    },
+    "ImageScanningConfiguration": {
+     "ScanOnPush": true
+    },
+    "ImageTagMutability": "MUTABLE",
+    "RepositoryName": {
+     "Fn::Sub": "orders${Env}"
+    }
+   }
+  },
+  "UIRepo": {
+   "Type": "AWS::ECR::Repository",
+   "Properties": {
+    "EncryptionConfiguration": {
+     "EncryptionType": "KMS",
+     "KmsKey": {
+      "Ref": "KmsKey"
+     }
+    },
+    "ImageScanningConfiguration": {
+     "ScanOnPush": true
+    },
+    "ImageTagMutability": "MUTABLE",
+    "RepositoryName": {
+     "Fn::Sub": "ui${Env}"
+    }
+   }
+  },
+  "canarySg": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "Canary - Egress Only",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow all egress",
+      "IpProtocol": "-1"
+     }
+    ],
+    "VpcId": {
+     "Fn::Sub": "{{resolve:secretsmanager:VpcId-${AWS::Region}${Env}}}"
+    }
+   }
+  },
+  "Subnet1Param": {
+   "Type": "AWS::SSM::Parameter",
+   "Properties": {
+    "Name": {
+     "Fn::Sub": "Subnet1${Env}"
+    },
+    "Type": "String",
+    "Value": {
+     "Ref": "PrivateSubnet1"
+    }
+   }
+  },
+  "Subnet2Param": {
+   "Type": "AWS::SSM::Parameter",
+   "Properties": {
+    "Name": {
+     "Fn::Sub": "Subnet2${Env}"
+    },
+    "Type": "String",
+    "Value": {
+     "Ref": "PrivateSubnet2"
+    }
+   }
+  },
+  "Subnet3Param": {
+   "Type": "AWS::SSM::Parameter",
+   "Properties": {
+    "Name": {
+     "Fn::Sub": "Subnet3${Env}"
+    },
+    "Type": "String",
+    "Value": {
+     "Ref": "PrivateSubnet3"
+    }
+   }
+  },
+  "PubSubnet1Param": {
+   "Type": "AWS::SSM::Parameter",
+   "Properties": {
+    "Name": {
+     "Fn::Sub": "PubSubnet1${Env}"
+    },
+    "Type": "String",
+    "Value": {
+     "Ref": "publicSubnet1"
+    }
+   }
+  },
+  "PubSubnet2Param": {
+   "Type": "AWS::SSM::Parameter",
+   "Properties": {
+    "Name": {
+     "Fn::Sub": "PubSubnet2${Env}"
+    },
+    "Type": "String",
+    "Value": {
+     "Ref": "publicSubnet2"
+    }
+   }
+  },
+  "PubSubnet3Param": {
+   "Type": "AWS::SSM::Parameter",
+   "Properties": {
+    "Name": {
+     "Fn::Sub": "PubSubnet3${Env}"
+    },
+    "Type": "String",
+    "Value": {
+     "Ref": "publicSubnet3"
+    }
+   }
+  },
+  "canarySgParam": {
+   "Type": "AWS::SSM::Parameter",
+   "Properties": {
+    "Name": {
+     "Fn::Sub": "canarySgId${Env}"
+    },
+    "Type": "String",
+    "Value": {
+     "Ref": "canarySg"
+    }
+   }
+  },
+  "VPCEndpointSecretsManagerSecurityGroup": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "VPC Endpoint SG",
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "VPC Endpoint for Secrets Manager SG"
+     }
+    ],
+    "VpcId": {
+     "Fn::Sub": "{{resolve:secretsmanager:VpcId-${AWS::Region}${Env}}}"
+    }
+   }
+  },
+  "VPCEndpointForSecretsManager": {
+   "Type": "AWS::EC2::VPCEndpoint",
+   "Properties": {
+    "PrivateDnsEnabled": true,
+    "SecurityGroupIds": [
+     {
+      "Ref": "VPCEndpointSecretsManagerSecurityGroup"
+     }
+    ],
+    "ServiceName": {
+     "Fn::Sub": "com.amazonaws.${AWS::Region}.secretsmanager"
+    },
+    "SubnetIds": [
+     {
+      "Ref": "PrivateSubnet1"
+     },
+     {
+      "Ref": "PrivateSubnet2"
+     },
+     {
+      "Ref": "PrivateSubnet3"
+     }
+    ],
+    "VpcEndpointType": "Interface",
+    "VpcId": {
+     "Fn::Sub": "{{resolve:secretsmanager:VpcId-${AWS::Region}${Env}}}"
+    }
+   }
+  },
+  "VPCEndpointSMSgParam": {
+   "Type": "AWS::SSM::Parameter",
+   "Properties": {
+    "Name": {
+     "Fn::Sub": "VPCEndpointSecretsManagerSGId${Env}"
+    },
+    "Type": "String",
+    "Value": {
+     "Ref": "VPCEndpointSecretsManagerSecurityGroup"
+    }
+   }
+  },
+  "VPCEndpointRDSSecurityGroup": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "VPC Endpoint SG",
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "VPC Endpoint for RDS SG"
+     }
+    ],
+    "VpcId": {
+     "Fn::Sub": "{{resolve:secretsmanager:VpcId-${AWS::Region}${Env}}}"
+    }
+   }
+  },
+  "VPCEndpointForRDS": {
+   "Type": "AWS::EC2::VPCEndpoint",
+   "Properties": {
+    "PrivateDnsEnabled": true,
+    "SecurityGroupIds": [
+     {
+      "Ref": "VPCEndpointRDSSecurityGroup"
+     }
+    ],
+    "ServiceName": {
+     "Fn::Sub": "com.amazonaws.${AWS::Region}.rds"
+    },
+    "SubnetIds": [
+     {
+      "Ref": "PrivateSubnet1"
+     },
+     {
+      "Ref": "PrivateSubnet2"
+     },
+     {
+      "Ref": "PrivateSubnet3"
+     }
+    ],
+    "VpcEndpointType": "Interface",
+    "VpcId": {
+     "Fn::Sub": "{{resolve:secretsmanager:VpcId-${AWS::Region}${Env}}}"
+    }
+   }
+  },
+  "VPCEndpointRDSSgParam": {
+   "Type": "AWS::SSM::Parameter",
+   "Properties": {
+    "Name": {
+     "Fn::Sub": "VPCEndpointRDSSGId${Env}"
+    },
+    "Type": "String",
+    "Value": {
+     "Ref": "VPCEndpointRDSSecurityGroup"
+    }
+   }
+  },
+  "VPCEndpointForS3": {
+   "Type": "AWS::EC2::VPCEndpoint",
+   "Properties": {
+    "RouteTableIds": [
+     {
+      "Ref": "PrivateRouteTable"
+     }
+    ],
+    "ServiceName": {
+     "Fn::Sub": "com.amazonaws.${AWS::Region}.s3"
+    },
+    "VpcEndpointType": "Gateway",
+    "VpcId": {
+     "Fn::Sub": "{{resolve:secretsmanager:VpcId-${AWS::Region}${Env}}}"
+    }
+   }
+  },
+  "VPCEndpointSSMSecurityGroup": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "VPC Endpoint SG",
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "VPC Endpoint for SSM SG"
+     }
+    ],
+    "VpcId": {
+     "Fn::Sub": "{{resolve:secretsmanager:VpcId-${AWS::Region}${Env}}}"
+    }
+   }
+  },
+  "VPCEndpointForSSM": {
+   "Type": "AWS::EC2::VPCEndpoint",
+   "Properties": {
+    "PrivateDnsEnabled": true,
+    "SecurityGroupIds": [
+     {
+      "Ref": "VPCEndpointSSMSecurityGroup"
+     }
+    ],
+    "ServiceName": {
+     "Fn::Sub": "com.amazonaws.${AWS::Region}.ssm"
+    },
+    "SubnetIds": [
+     {
+      "Ref": "PrivateSubnet1"
+     },
+     {
+      "Ref": "PrivateSubnet2"
+     },
+     {
+      "Ref": "PrivateSubnet3"
+     }
+    ],
+    "VpcEndpointType": "Interface",
+    "VpcId": {
+     "Fn::Sub": "{{resolve:secretsmanager:VpcId-${AWS::Region}${Env}}}"
+    }
+   }
+  },
+  "VPCEndpointForSSMMessages": {
+   "Type": "AWS::EC2::VPCEndpoint",
+   "Properties": {
+    "PrivateDnsEnabled": true,
+    "SecurityGroupIds": [
+     {
+      "Ref": "VPCEndpointSSMSecurityGroup"
+     }
+    ],
+    "ServiceName": {
+     "Fn::Sub": "com.amazonaws.${AWS::Region}.ssmmessages"
+    },
+    "SubnetIds": [
+     {
+      "Ref": "PrivateSubnet1"
+     },
+     {
+      "Ref": "PrivateSubnet2"
+     },
+     {
+      "Ref": "PrivateSubnet3"
+     }
+    ],
+    "VpcEndpointType": "Interface",
+    "VpcId": {
+     "Fn::Sub": "{{resolve:secretsmanager:VpcId-${AWS::Region}${Env}}}"
+    }
+   }
+  },
+  "VPCEndpointForEC2Messages": {
+   "Type": "AWS::EC2::VPCEndpoint",
+   "Properties": {
+    "PrivateDnsEnabled": true,
+    "SecurityGroupIds": [
+     {
+      "Ref": "VPCEndpointSSMSecurityGroup"
+     }
+    ],
+    "ServiceName": {
+     "Fn::Sub": "com.amazonaws.${AWS::Region}.ec2messages"
+    },
+    "SubnetIds": [
+     {
+      "Ref": "PrivateSubnet1"
+     },
+     {
+      "Ref": "PrivateSubnet2"
+     },
+     {
+      "Ref": "PrivateSubnet3"
+     }
+    ],
+    "VpcEndpointType": "Interface",
+    "VpcId": {
+     "Fn::Sub": "{{resolve:secretsmanager:VpcId-${AWS::Region}${Env}}}"
+    }
+   }
+  },
+  "VPCEndpointSSMSgParam": {
+   "Type": "AWS::SSM::Parameter",
+   "Properties": {
+    "Name": {
+     "Fn::Sub": "VPCEndpointSSMSGId${Env}"
+    },
+    "Type": "String",
+    "Value": {
+     "Ref": "VPCEndpointSSMSecurityGroup"
+    }
+   }
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

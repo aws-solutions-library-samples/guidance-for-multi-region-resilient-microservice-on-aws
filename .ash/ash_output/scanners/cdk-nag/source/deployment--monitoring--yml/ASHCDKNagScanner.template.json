@@ -1,0 +1,66 @@
+{
+ "Description": "Canaries",
+ "AWSTemplateFormatVersion": "2010-09-09",
+ "Parameters": {
+  "Env": {
+   "Type": "String",
+   "Default": "",
+   "Description": "String to enable multiple deployments per AWS region"
+  },
+  "PrimaryRegion": {
+   "Type": "String",
+   "Default": "us-east-1",
+   "Description": "Enter the Primary Region"
+  },
+  "SecondaryRegion": {
+   "Type": "String",
+   "Default": "us-west-2",
+   "Description": "Enter the Secondary Region"
+  },
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Resources": {
+  "SystemDashboard": {
+   "Type": "AWS::CloudWatch::Dashboard",
+   "Properties": {
+    "DashboardBody": {
+     "Fn::Sub": "{ \"widgets\": [ { \"height\": 6, \"width\": 6, \"y\": 0, \"x\": 0, \"type\": \"metric\", \"properties\": { \"metrics\": [ [ \"ecommerce\", \"OrdersCreated${Env}\", { \"region\": \"${PrimaryRegion}\" } ] ], \"view\": \"timeSeries\", \"stacked\": false, \"region\": \"${PrimaryRegion}\", \"title\": \"OrdersCreated-${PrimaryRegion}\", \"period\": 60, \"stat\": \"Sum\" } }, { \"height\": 6, \"width\": 6, \"y\": 6, \"x\": 0, \"type\": \"metric\", \"properties\": { \"metrics\": [ [ \"ecommerce\", \"OrdersCreated${Env}\", { \"region\": \"${SecondaryRegion}\" } ] ], \"view\": \"timeSeries\", \"stacked\": false, \"region\": \"${PrimaryRegion}\", \"title\": \"OrdersCreated-${SecondaryRegion}\", \"period\": 60, \"stat\": \"Sum\" } }, { \"height\": 6, \"width\": 8, \"y\": 0, \"x\": 6, \"type\": \"metric\", \"properties\": { \"metrics\": [ [ \"AWS/DynamoDB\", \"ReplicationLatency\", \"TableName\", \"cartsTable${Env}\", \"ReceivingRegion\", \"${SecondaryRegion}\", { \"region\": \"${PrimaryRegion}\" } ] ], \"view\": \"timeSeries\", \"stacked\": false, \"region\": \"${PrimaryRegion}\", \"period\": 1, \"stat\": \"p99\", \"title\": \"Carts DDB Replication Latency to ${SecondaryRegion}\" } }, { \"height\": 6, \"width\": 10, \"y\": 0, \"x\": 14, \"type\": \"metric\", \"properties\": { \"metrics\": [ [ \"AWS/Lambda\", \"Invocations\" ], [ \".\", \"Throttles\" ], [ \".\", \"Duration\" ], [ \".\", \"ConcurrentExecutions\" ], [ \".\", \"ClaimedAccountConcurrency\" ], [ \".\", \"Errors\" ] ], \"view\": \"timeSeries\", \"stacked\": false, \"region\": \"${PrimaryRegion}\", \"stat\": \"p99\", \"period\": 60, \"title\": \"Lambda Metrics - ${PrimaryRegion}\" } }, { \"height\": 6, \"width\": 10, \"y\": 6, \"x\": 14, \"type\": \"metric\", \"properties\": { \"metrics\": [ [ \"AWS/Lambda\", \"Invocations\" ], [ \".\", \"Throttles\" ], [ \".\", \"Duration\" ], [ \".\", \"ConcurrentExecutions\" ], [ \".\", \"ClaimedAccountConcurrency\" ], [ \".\", \"Errors\" ] ], \"view\": \"timeSeries\", \"stacked\": false, \"region\": \"${SecondaryRegion}\", \"stat\": \"p99\", \"period\": 60, \"title\": \"Lambda Metrics - ${SecondaryRegion}\" } } ] }"
+    },
+    "DashboardName": {
+     "Fn::Sub": "System-Dashboard${Env}"
+    }
+   }
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

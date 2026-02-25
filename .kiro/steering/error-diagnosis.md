@@ -1,0 +1,1 @@
+When diagnosing errors or issues, always start by examining the relevant logs first before making assumptions or trying other investigation approaches. Logs are the primary source of truth for understanding what went wrong.

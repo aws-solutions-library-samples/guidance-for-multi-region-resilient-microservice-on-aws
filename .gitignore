@@ -6,7 +6,8 @@
 **/out.yaml
 /deployment/database/crdr-reconciliation/src/function/package/python/
 /venv/
-/ash_output/**
-/ash_output
+**/ash_output/**
+**/ash_output
 **/aggregated_results*
 deployment/.build-done/
+.ash/

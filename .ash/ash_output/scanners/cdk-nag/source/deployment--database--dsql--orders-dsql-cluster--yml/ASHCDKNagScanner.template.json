@@ -1,0 +1,109 @@
+{
+ "Description": "Orders DSQL Cluster",
+ "AWSTemplateFormatVersion": "2010-09-09",
+ "Parameters": {
+  "Env": {
+   "Type": "String",
+   "Default": "",
+   "Description": "String to enable multiple deployments per AWS region"
+  },
+  "KmsKey": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "KmsKey",
+   "Description": "CMK Id"
+  },
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Resources": {
+  "OrdersDsqlCluster": {
+   "Type": "AWS::DSQL::Cluster",
+   "Properties": {
+    "DeletionProtectionEnabled": false,
+    "Tags": [
+     {
+      "Key": "environment-name",
+      "Value": "retail-store-ar"
+     },
+     {
+      "Key": "Name",
+      "Value": {
+       "Fn::Sub": "orders-dsql-cluster${Env}"
+      }
+     }
+    ]
+   }
+  },
+  "OrdersDsqlEndpointParam": {
+   "Type": "AWS::SSM::Parameter",
+   "Properties": {
+    "Name": {
+     "Fn::Sub": "orders-dsql-cluster-Endpoint${Env}"
+    },
+    "Type": "String",
+    "Value": {
+     "Fn::GetAtt": "OrdersDsqlCluster.Endpoint"
+    }
+   }
+  },
+  "OrdersDsqlClusterIdSecret": {
+   "Type": "AWS::SecretsManager::Secret",
+   "Properties": {
+    "Description": "Orders DSQL Cluster Identifier",
+    "KmsKeyId": {
+     "Ref": "KmsKey"
+    },
+    "Name": {
+     "Fn::Sub": "mr-app/orders-dsql-cluster${Env}"
+    },
+    "SecretString": {
+     "Ref": "OrdersDsqlCluster"
+    }
+   }
+  }
+ },
+ "Outputs": {
+  "ClusterEndpoint": {
+   "Description": "DSQL Cluster Endpoint",
+   "Value": {
+    "Fn::GetAtt": "OrdersDsqlCluster.Endpoint"
+   }
+  },
+  "ClusterId": {
+   "Description": "DSQL Cluster Identifier",
+   "Value": {
+    "Ref": "OrdersDsqlCluster"
+   }
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

@@ -1,0 +1,1 @@
+When creating temporary scripts, logs, scratch files, or any other artifacts that are not core to the project, always place them in a `temporary/` directory at the project root. Create the directory if it doesn't exist.

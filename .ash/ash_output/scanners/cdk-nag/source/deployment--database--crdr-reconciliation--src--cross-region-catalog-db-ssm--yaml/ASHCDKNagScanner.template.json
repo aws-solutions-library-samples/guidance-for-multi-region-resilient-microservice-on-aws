@@ -1,0 +1,146 @@
+{
+ "Description": "Solution that uses SSM Automation to create encrypted snapshots of RDS clusters and then copy those snapshots to a different AWS region for DR purposes.",
+ "AWSTemplateFormatVersion": "2010-09-09",
+ "Parameters": {
+  "Env": {
+   "Type": "String",
+   "Default": "",
+   "Description": "String to enable multiple deployments per AWS region"
+  },
+  "SourceRegion": {
+   "Type": "String",
+   "Default": "us-east-1",
+   "Description": "Enter the Primary Region"
+  },
+  "TargetRegion": {
+   "Type": "String",
+   "Default": "us-west-2",
+   "Description": "Enter the Standby Region"
+  },
+  "GlobalClusterIdentifier": {
+   "Type": "String",
+   "Default": "global-db-cluster"
+  },
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Resources": {
+  "CrossRegionSnapshotCopySSMAutomation": {
+   "Type": "AWS::SSM::Document",
+   "Properties": {
+    "Content": {
+     "description": "Aurora RDS Cluster Snapshot and Copy Automation Document",
+     "parameters": {
+      "SourceDBsnapshotArn": {
+       "type": "String",
+       "description": "(Required) Arn of the cross region DR snapshot",
+       "default": ""
+      }
+     },
+     "schemaVersion": "0.3",
+     "assumeRole": {
+      "Fn::Sub": "{{resolve:secretsmanager:mr-app/CRDRSSMAutomationRoleArn${Env}}}"
+     },
+     "mainSteps": [
+      {
+       "name": "CopyFailoverSnapshot",
+       "action": "aws:executeScript",
+       "inputs": {
+        "Runtime": "python3.11",
+        "Handler": "script_handler",
+        "InputPayload": {
+         "SourceDBsnapshotArn": {
+          "Fn::Sub": "{{SourceDBsnapshotArn}}"
+         },
+         "automationid": "{{automation:EXECUTION_ID}}",
+         "sourceregion": {
+          "Ref": "SourceRegion"
+         },
+         "targetregion": {
+          "Ref": "TargetRegion"
+         },
+         "kmstargetkey": {
+          "Fn::Sub": "{{resolve:secretsmanager:mr-app/catalog-${TargetRegion}-${GlobalClusterIdentifier}-Snapshot-KeyArn${Env}}}"
+         }
+        },
+        "Script": "def script_handler(event, context):\n  import boto3, json, os,botocore\n  # Input parameters are provided by SSM document    \n  # DBSnapshotIdentifier = event.get(\"DBSnapshotIdentifier\")\n  SourceDBsnapshotArn = event.get(\"SourceDBsnapshotArn\")\n\n  DBSnapshotIdentifier = str(SourceDBsnapshotArn).split(\":\")[-1]\n  \n  sourceregion = event.get(\"sourceregion\")\n  targetregion = event.get(\"targetregion\")\n  kmstargetkey = event.get(\"kmstargetkey\")\n  \n  print(DBSnapshotIdentifier)\n  print(SourceDBsnapshotArn)                  \n  print(kmstargetkey)\n\n  # Define Target region in the region_name.Following API\n  # is expected to run in Target region. Hence, by setting region_name\n  # to Target region, we achive that.\n  client = boto3.client('rds', region_name=targetregion)\n  try: \n    response = client.copy_db_cluster_snapshot(\n        SourceDBClusterSnapshotIdentifier=SourceDBsnapshotArn,\n        TargetDBClusterSnapshotIdentifier=DBSnapshotIdentifier,\n        KmsKeyId=kmstargetkey, # KMS Key ID in Target region\n        CopyTags=False,\n        Tags=[\n                {\n                    'Key': 'NamingPrefix',\n                    'Value': 'catalog'\n                },\n            ],\n        SourceRegion=sourceregion # This attribute will automatically generate presigned URL\n    )\n    print(response)\n    copystatus = response.get(\"DBClusterSnapshot\").get(\"Status\")\n    print(\"Status of Copying of Snapshot:\" + str(copystatus))\n\n  except botocore.exceptions.ClientError as error:\n    raise error\n  except botocore.exceptions.ParamValidationError as error:\n    raise ValueError('The parameters you provided are incorrect: {}'.format(error))    "
+       }
+      }
+     ]
+    },
+    "DocumentType": "Automation",
+    "Name": {
+     "Fn::Join": [
+      "-",
+      [
+       "CRDR-SSMAutomation-Catalog",
+       {
+        "Ref": "SourceRegion"
+       },
+       {
+        "Fn::Select": [
+         0,
+         {
+          "Fn::Split": [
+           "-",
+           {
+            "Fn::Select": [
+             2,
+             {
+              "Fn::Split": [
+               "/",
+               {
+                "Ref": "AWS::StackId"
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     ]
+    }
+   }
+  }
+ },
+ "Outputs": {
+  "AutomationDocument": {
+   "Value": {
+    "Ref": "CrossRegionSnapshotCopySSMAutomation"
+   }
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

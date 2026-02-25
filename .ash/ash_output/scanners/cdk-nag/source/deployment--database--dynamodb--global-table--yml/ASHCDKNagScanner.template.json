@@ -1,0 +1,164 @@
+{
+ "Description": "DDB Global Resources Stack",
+ "Transform": [
+  "AWS::LanguageExtensions"
+ ],
+ "AWSTemplateFormatVersion": "2010-09-09",
+ "Parameters": {
+  "NamingPrefix": {
+   "Type": "String",
+   "Description": "Enter the Naming Prefix for resources created"
+  },
+  "Env": {
+   "Type": "String",
+   "Default": "",
+   "Description": "String to enable multiple deployments per AWS region"
+  },
+  "PrimaryRegion": {
+   "Type": "String",
+   "Default": "us-east-1",
+   "Description": "Enter the Primary Region"
+  },
+  "SecondaryRegion": {
+   "Type": "String",
+   "Default": "us-west-2",
+   "Description": "Enter the Secondary Region"
+  },
+  "WitnessRegion": {
+   "Type": "String",
+   "Default": "us-east-2",
+   "Description": "Enter the Witness Region for MRSC quorum"
+  },
+  "KmsKey": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "KmsKey",
+   "Description": "CMK Id"
+  },
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Resources": {
+  "DDBGlobalTable": {
+   "Type": "AWS::DynamoDB::GlobalTable",
+   "Properties": {
+    "AttributeDefinitions": [
+     {
+      "AttributeName": "customerId",
+      "AttributeType": "S"
+     },
+     {
+      "AttributeName": "itemId",
+      "AttributeType": "S"
+     }
+    ],
+    "BillingMode": "PAY_PER_REQUEST",
+    "GlobalTableWitnesses": [
+     {
+      "Region": {
+       "Ref": "WitnessRegion"
+      }
+     }
+    ],
+    "KeySchema": [
+     {
+      "AttributeName": "customerId",
+      "KeyType": "HASH"
+     },
+     {
+      "AttributeName": "itemId",
+      "KeyType": "RANGE"
+     }
+    ],
+    "MultiRegionConsistency": "STRONG",
+    "Replicas": [
+     {
+      "PointInTimeRecoverySpecification": {
+       "PointInTimeRecoveryEnabled": true
+      },
+      "Region": {
+       "Ref": "PrimaryRegion"
+      },
+      "Tags": [
+       {
+        "Key": "ChaosAllowed",
+        "Value": true
+       }
+      ]
+     },
+     {
+      "PointInTimeRecoverySpecification": {
+       "PointInTimeRecoveryEnabled": true
+      },
+      "Region": {
+       "Ref": "SecondaryRegion"
+      },
+      "Tags": [
+       {
+        "Key": "ChaosAllowed",
+        "Value": true
+       }
+      ]
+     }
+    ],
+    "SSESpecification": {
+     "SSEEnabled": true
+    },
+    "TableName": {
+     "Fn::Sub": "${NamingPrefix}Table${Env}"
+    }
+   }
+  },
+  "DDBGlobalTableSecret": {
+   "Type": "AWS::SecretsManager::Secret",
+   "Properties": {
+    "Description": "DDB Global Table",
+    "KmsKeyId": {
+     "Ref": "KmsKey"
+    },
+    "Name": {
+     "Fn::Sub": "${NamingPrefix}Table${Env}Secret"
+    },
+    "ReplicaRegions": [
+     {
+      "Region": {
+       "Ref": "SecondaryRegion"
+      }
+     }
+    ],
+    "SecretString": {
+     "Ref": "DDBGlobalTable"
+    }
+   }
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

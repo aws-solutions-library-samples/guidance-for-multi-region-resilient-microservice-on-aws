@@ -1,0 +1,778 @@
+{
+ "Description": "ARC Region Switch Plan for Multi-Region Failover",
+ "AWSTemplateFormatVersion": "2010-09-09",
+ "Parameters": {
+  "Env": {
+   "Type": "String",
+   "Default": "",
+   "Description": "String to enable multiple deployments per AWS region"
+  },
+  "PrimaryRegion": {
+   "Type": "String",
+   "Default": "us-east-1",
+   "Description": "Enter the Primary Region"
+  },
+  "StandbyRegion": {
+   "Type": "String",
+   "Default": "us-west-2",
+   "Description": "Enter the Standby Region"
+  },
+  "DomainName": {
+   "Type": "String",
+   "Default": "demo.io",
+   "Description": "The domain name for the Route53 hosted zone"
+  },
+  "PrimaryClusterArn": {
+   "Type": "String",
+   "Description": "ARN of the ECS cluster in the primary region"
+  },
+  "StandbyClusterArn": {
+   "Type": "String",
+   "Description": "ARN of the ECS cluster in the standby region"
+  },
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Resources": {
+  "RegionSwitchExecutionRole": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Version": "2012-10-17",
+     "Statement": [
+      {
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "arc-region-switch.amazonaws.com"
+       },
+       "Action": "sts:AssumeRole"
+      }
+     ]
+    },
+    "Policies": [
+     {
+      "PolicyDocument": {
+       "Version": "2012-10-17",
+       "Statement": [
+        {
+         "Effect": "Allow",
+         "Action": [
+          "arc-region-switch:GetPlan",
+          "arc-region-switch:GetPlanExecution",
+          "arc-region-switch:ListPlanExecutions"
+         ],
+         "Resource": "*"
+        },
+        {
+         "Effect": "Allow",
+         "Action": [
+          "iam:SimulatePrincipalPolicy"
+         ],
+         "Resource": {
+          "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/RegionSwitchExecutionRole${Env}"
+         }
+        },
+        {
+         "Effect": "Allow",
+         "Action": [
+          "cloudwatch:DescribeAlarms",
+          "cloudwatch:DescribeAlarmHistory",
+          "cloudwatch:GetMetricStatistics"
+         ],
+         "Resource": "*"
+        },
+        {
+         "Effect": "Allow",
+         "Action": [
+          "ecs:DescribeServices",
+          "ecs:UpdateService"
+         ],
+         "Resource": [
+          {
+           "Fn::Sub": [
+            "arn:aws:ecs:${PrimaryRegion}:${AWS::AccountId}:service/${ClusterName}/*",
+            {
+             "ClusterName": {
+              "Fn::Select": [
+               1,
+               {
+                "Fn::Split": [
+                 "/",
+                 {
+                  "Ref": "PrimaryClusterArn"
+                 }
+                ]
+               }
+              ]
+             }
+            }
+           ]
+          },
+          {
+           "Fn::Sub": [
+            "arn:aws:ecs:${StandbyRegion}:${AWS::AccountId}:service/${ClusterName}/*",
+            {
+             "ClusterName": {
+              "Fn::Select": [
+               1,
+               {
+                "Fn::Split": [
+                 "/",
+                 {
+                  "Ref": "StandbyClusterArn"
+                 }
+                ]
+               }
+              ]
+             }
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "Effect": "Allow",
+         "Action": [
+          "ecs:DescribeClusters"
+         ],
+         "Resource": [
+          {
+           "Ref": "PrimaryClusterArn"
+          },
+          {
+           "Ref": "StandbyClusterArn"
+          }
+         ]
+        },
+        {
+         "Effect": "Allow",
+         "Action": [
+          "ecs:ListServices"
+         ],
+         "Resource": "*"
+        },
+        {
+         "Effect": "Allow",
+         "Action": [
+          "application-autoscaling:DescribeScalableTargets",
+          "application-autoscaling:RegisterScalableTarget"
+         ],
+         "Resource": "*"
+        },
+        {
+         "Effect": "Allow",
+         "Action": [
+          "rds:DescribeGlobalClusters",
+          "rds:DescribeDBClusters"
+         ],
+         "Resource": "*"
+        },
+        {
+         "Effect": "Allow",
+         "Action": [
+          "rds:FailoverGlobalCluster",
+          "rds:SwitchoverGlobalCluster"
+         ],
+         "Resource": [
+          {
+           "Fn::Sub": "arn:aws:rds::${AWS::AccountId}:global-cluster:catalog-global-db-cluster${Env}"
+          },
+          {
+           "Fn::Sub": "{{resolve:secretsmanager:mr-app/catalog-${PrimaryRegion}-global-db-cluster${Env}}}"
+          },
+          {
+           "Fn::Sub": "{{resolve:secretsmanager:mr-app/catalog-${StandbyRegion}-global-db-cluster${Env}}}"
+          }
+         ]
+        },
+        {
+         "Effect": "Allow",
+         "Action": [
+          "route53:ChangeResourceRecordSets",
+          "route53:GetHostedZone",
+          "route53:ListResourceRecordSets"
+         ],
+         "Resource": [
+          {
+           "Fn::Sub": [
+            "arn:aws:route53:::hostedzone/${HostedZoneId}",
+            {
+             "HostedZoneId": {
+              "Fn::Sub": "{{resolve:secretsmanager:HostedZoneIdSecret${Env}}}"
+             }
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "Effect": "Allow",
+         "Action": [
+          "route53:GetHealthCheck",
+          "route53:UpdateHealthCheck"
+         ],
+         "Resource": "arn:aws:route53:::healthcheck/*"
+        }
+       ]
+      },
+      "PolicyName": "RegionSwitchPolicy"
+     }
+    ],
+    "RoleName": {
+     "Fn::Sub": "RegionSwitchExecutionRole${Env}"
+    }
+   }
+  },
+  "RegionSwitchPlan": {
+   "Type": "AWS::ARCRegionSwitch::Plan",
+   "Properties": {
+    "ExecutionRole": {
+     "Fn::GetAtt": "RegionSwitchExecutionRole.Arn"
+    },
+    "Name": {
+     "Fn::Sub": "retail-store-ar-region-switch${Env}"
+    },
+    "PrimaryRegion": {
+     "Ref": "PrimaryRegion"
+    },
+    "RecoveryApproach": "activeActive",
+    "Regions": [
+     {
+      "Ref": "PrimaryRegion"
+     },
+     {
+      "Ref": "StandbyRegion"
+     }
+    ],
+    "Workflows": [
+     {
+      "Steps": [
+       {
+        "ExecutionBlockConfiguration": {
+         "ParallelConfig": {
+          "Steps": [
+           {
+            "ExecutionBlockConfiguration": {
+             "EcsCapacityIncreaseConfig": {
+              "CapacityMonitoringApproach": "containerInsightsMaxInLast24Hours",
+              "Services": [
+               {
+                "ClusterArn": {
+                 "Ref": "PrimaryClusterArn"
+                },
+                "ServiceArn": {
+                 "Fn::Sub": [
+                  "arn:aws:ecs:${PrimaryRegion}:${AWS::AccountId}:service/${ClusterName}/carts${Env}",
+                  {
+                   "ClusterName": {
+                    "Fn::Select": [
+                     1,
+                     {
+                      "Fn::Split": [
+                       "/",
+                       {
+                        "Ref": "PrimaryClusterArn"
+                       }
+                      ]
+                     }
+                    ]
+                   }
+                  }
+                 ]
+                }
+               },
+               {
+                "ClusterArn": {
+                 "Ref": "StandbyClusterArn"
+                },
+                "ServiceArn": {
+                 "Fn::Sub": [
+                  "arn:aws:ecs:${StandbyRegion}:${AWS::AccountId}:service/${ClusterName}/carts${Env}",
+                  {
+                   "ClusterName": {
+                    "Fn::Select": [
+                     1,
+                     {
+                      "Fn::Split": [
+                       "/",
+                       {
+                        "Ref": "StandbyClusterArn"
+                       }
+                      ]
+                     }
+                    ]
+                   }
+                  }
+                 ]
+                }
+               }
+              ],
+              "TargetPercent": 200,
+              "TimeoutMinutes": 15
+             }
+            },
+            "ExecutionBlockType": "ECSServiceScaling",
+            "Name": "scale-carts"
+           },
+           {
+            "ExecutionBlockConfiguration": {
+             "EcsCapacityIncreaseConfig": {
+              "CapacityMonitoringApproach": "containerInsightsMaxInLast24Hours",
+              "Services": [
+               {
+                "ClusterArn": {
+                 "Ref": "PrimaryClusterArn"
+                },
+                "ServiceArn": {
+                 "Fn::Sub": [
+                  "arn:aws:ecs:${PrimaryRegion}:${AWS::AccountId}:service/${ClusterName}/orders${Env}",
+                  {
+                   "ClusterName": {
+                    "Fn::Select": [
+                     1,
+                     {
+                      "Fn::Split": [
+                       "/",
+                       {
+                        "Ref": "PrimaryClusterArn"
+                       }
+                      ]
+                     }
+                    ]
+                   }
+                  }
+                 ]
+                }
+               },
+               {
+                "ClusterArn": {
+                 "Ref": "StandbyClusterArn"
+                },
+                "ServiceArn": {
+                 "Fn::Sub": [
+                  "arn:aws:ecs:${StandbyRegion}:${AWS::AccountId}:service/${ClusterName}/orders${Env}",
+                  {
+                   "ClusterName": {
+                    "Fn::Select": [
+                     1,
+                     {
+                      "Fn::Split": [
+                       "/",
+                       {
+                        "Ref": "StandbyClusterArn"
+                       }
+                      ]
+                     }
+                    ]
+                   }
+                  }
+                 ]
+                }
+               }
+              ],
+              "TargetPercent": 200,
+              "TimeoutMinutes": 15
+             }
+            },
+            "ExecutionBlockType": "ECSServiceScaling",
+            "Name": "scale-orders"
+           },
+           {
+            "ExecutionBlockConfiguration": {
+             "EcsCapacityIncreaseConfig": {
+              "CapacityMonitoringApproach": "containerInsightsMaxInLast24Hours",
+              "Services": [
+               {
+                "ClusterArn": {
+                 "Ref": "PrimaryClusterArn"
+                },
+                "ServiceArn": {
+                 "Fn::Sub": [
+                  "arn:aws:ecs:${PrimaryRegion}:${AWS::AccountId}:service/${ClusterName}/assets${Env}",
+                  {
+                   "ClusterName": {
+                    "Fn::Select": [
+                     1,
+                     {
+                      "Fn::Split": [
+                       "/",
+                       {
+                        "Ref": "PrimaryClusterArn"
+                       }
+                      ]
+                     }
+                    ]
+                   }
+                  }
+                 ]
+                }
+               },
+               {
+                "ClusterArn": {
+                 "Ref": "StandbyClusterArn"
+                },
+                "ServiceArn": {
+                 "Fn::Sub": [
+                  "arn:aws:ecs:${StandbyRegion}:${AWS::AccountId}:service/${ClusterName}/assets${Env}",
+                  {
+                   "ClusterName": {
+                    "Fn::Select": [
+                     1,
+                     {
+                      "Fn::Split": [
+                       "/",
+                       {
+                        "Ref": "StandbyClusterArn"
+                       }
+                      ]
+                     }
+                    ]
+                   }
+                  }
+                 ]
+                }
+               }
+              ],
+              "TargetPercent": 200,
+              "TimeoutMinutes": 15
+             }
+            },
+            "ExecutionBlockType": "ECSServiceScaling",
+            "Name": "scale-assets"
+           },
+           {
+            "ExecutionBlockConfiguration": {
+             "EcsCapacityIncreaseConfig": {
+              "CapacityMonitoringApproach": "containerInsightsMaxInLast24Hours",
+              "Services": [
+               {
+                "ClusterArn": {
+                 "Ref": "PrimaryClusterArn"
+                },
+                "ServiceArn": {
+                 "Fn::Sub": [
+                  "arn:aws:ecs:${PrimaryRegion}:${AWS::AccountId}:service/${ClusterName}/catalog${Env}",
+                  {
+                   "ClusterName": {
+                    "Fn::Select": [
+                     1,
+                     {
+                      "Fn::Split": [
+                       "/",
+                       {
+                        "Ref": "PrimaryClusterArn"
+                       }
+                      ]
+                     }
+                    ]
+                   }
+                  }
+                 ]
+                }
+               },
+               {
+                "ClusterArn": {
+                 "Ref": "StandbyClusterArn"
+                },
+                "ServiceArn": {
+                 "Fn::Sub": [
+                  "arn:aws:ecs:${StandbyRegion}:${AWS::AccountId}:service/${ClusterName}/catalog${Env}",
+                  {
+                   "ClusterName": {
+                    "Fn::Select": [
+                     1,
+                     {
+                      "Fn::Split": [
+                       "/",
+                       {
+                        "Ref": "StandbyClusterArn"
+                       }
+                      ]
+                     }
+                    ]
+                   }
+                  }
+                 ]
+                }
+               }
+              ],
+              "TargetPercent": 200,
+              "TimeoutMinutes": 15
+             }
+            },
+            "ExecutionBlockType": "ECSServiceScaling",
+            "Name": "scale-catalog"
+           },
+           {
+            "ExecutionBlockConfiguration": {
+             "EcsCapacityIncreaseConfig": {
+              "CapacityMonitoringApproach": "containerInsightsMaxInLast24Hours",
+              "Services": [
+               {
+                "ClusterArn": {
+                 "Ref": "PrimaryClusterArn"
+                },
+                "ServiceArn": {
+                 "Fn::Sub": [
+                  "arn:aws:ecs:${PrimaryRegion}:${AWS::AccountId}:service/${ClusterName}/checkout${Env}",
+                  {
+                   "ClusterName": {
+                    "Fn::Select": [
+                     1,
+                     {
+                      "Fn::Split": [
+                       "/",
+                       {
+                        "Ref": "PrimaryClusterArn"
+                       }
+                      ]
+                     }
+                    ]
+                   }
+                  }
+                 ]
+                }
+               },
+               {
+                "ClusterArn": {
+                 "Ref": "StandbyClusterArn"
+                },
+                "ServiceArn": {
+                 "Fn::Sub": [
+                  "arn:aws:ecs:${StandbyRegion}:${AWS::AccountId}:service/${ClusterName}/checkout${Env}",
+                  {
+                   "ClusterName": {
+                    "Fn::Select": [
+                     1,
+                     {
+                      "Fn::Split": [
+                       "/",
+                       {
+                        "Ref": "StandbyClusterArn"
+                       }
+                      ]
+                     }
+                    ]
+                   }
+                  }
+                 ]
+                }
+               }
+              ],
+              "TargetPercent": 200,
+              "TimeoutMinutes": 15
+             }
+            },
+            "ExecutionBlockType": "ECSServiceScaling",
+            "Name": "scale-checkout"
+           },
+           {
+            "ExecutionBlockConfiguration": {
+             "EcsCapacityIncreaseConfig": {
+              "CapacityMonitoringApproach": "containerInsightsMaxInLast24Hours",
+              "Services": [
+               {
+                "ClusterArn": {
+                 "Ref": "PrimaryClusterArn"
+                },
+                "ServiceArn": {
+                 "Fn::Sub": [
+                  "arn:aws:ecs:${PrimaryRegion}:${AWS::AccountId}:service/${ClusterName}/ui${Env}",
+                  {
+                   "ClusterName": {
+                    "Fn::Select": [
+                     1,
+                     {
+                      "Fn::Split": [
+                       "/",
+                       {
+                        "Ref": "PrimaryClusterArn"
+                       }
+                      ]
+                     }
+                    ]
+                   }
+                  }
+                 ]
+                }
+               },
+               {
+                "ClusterArn": {
+                 "Ref": "StandbyClusterArn"
+                },
+                "ServiceArn": {
+                 "Fn::Sub": [
+                  "arn:aws:ecs:${StandbyRegion}:${AWS::AccountId}:service/${ClusterName}/ui${Env}",
+                  {
+                   "ClusterName": {
+                    "Fn::Select": [
+                     1,
+                     {
+                      "Fn::Split": [
+                       "/",
+                       {
+                        "Ref": "StandbyClusterArn"
+                       }
+                      ]
+                     }
+                    ]
+                   }
+                  }
+                 ]
+                }
+               }
+              ],
+              "TargetPercent": 200,
+              "TimeoutMinutes": 15
+             }
+            },
+            "ExecutionBlockType": "ECSServiceScaling",
+            "Name": "scale-ui"
+           }
+          ]
+         }
+        },
+        "ExecutionBlockType": "Parallel",
+        "Name": "scale-up-ecs-services"
+       },
+       {
+        "ExecutionBlockConfiguration": {
+         "GlobalAuroraConfig": {
+          "Behavior": "switchoverOnly",
+          "DatabaseClusterArns": [
+           {
+            "Fn::Sub": "{{resolve:secretsmanager:mr-app/catalog-${PrimaryRegion}-global-db-cluster${Env}}}"
+           },
+           {
+            "Fn::Sub": "{{resolve:secretsmanager:mr-app/catalog-${StandbyRegion}-global-db-cluster${Env}}}"
+           }
+          ],
+          "GlobalClusterIdentifier": {
+           "Fn::Sub": "catalog-global-db-cluster${Env}"
+          },
+          "TimeoutMinutes": 20,
+          "Ungraceful": {
+           "Ungraceful": "failover"
+          }
+         }
+        },
+        "ExecutionBlockType": "AuroraGlobalDatabase",
+        "Name": "failover-catalog-db"
+       },
+       {
+        "ExecutionBlockConfiguration": {
+         "Route53HealthCheckConfig": {
+          "HostedZoneId": {
+           "Fn::Sub": "{{resolve:secretsmanager:HostedZoneIdSecret${Env}}}"
+          },
+          "RecordName": {
+           "Fn::Sub": "store.${DomainName}"
+          },
+          "RecordSets": [
+           {
+            "RecordSetIdentifier": "PrimaryRegion",
+            "Region": {
+             "Ref": "PrimaryRegion"
+            }
+           },
+           {
+            "RecordSetIdentifier": "StandbyRegion",
+            "Region": {
+             "Ref": "StandbyRegion"
+            }
+           }
+          ],
+          "TimeoutMinutes": 5
+         }
+        },
+        "ExecutionBlockType": "Route53HealthCheck",
+        "Name": "shift-dns-traffic-away"
+       }
+      ],
+      "WorkflowDescription": "Scale up remaining region, failover catalog database, shift DNS away",
+      "WorkflowTargetAction": "deactivate"
+     },
+     {
+      "Steps": [
+       {
+        "ExecutionBlockConfiguration": {
+         "Route53HealthCheckConfig": {
+          "HostedZoneId": {
+           "Fn::Sub": "{{resolve:secretsmanager:HostedZoneIdSecret${Env}}}"
+          },
+          "RecordName": {
+           "Fn::Sub": "store.${DomainName}"
+          },
+          "RecordSets": [
+           {
+            "RecordSetIdentifier": "PrimaryRegion",
+            "Region": {
+             "Ref": "PrimaryRegion"
+            }
+           },
+           {
+            "RecordSetIdentifier": "StandbyRegion",
+            "Region": {
+             "Ref": "StandbyRegion"
+            }
+           }
+          ],
+          "TimeoutMinutes": 5
+         }
+        },
+        "ExecutionBlockType": "Route53HealthCheck",
+        "Name": "restore-dns-traffic"
+       }
+      ],
+      "WorkflowDescription": "Re-enable region in DNS",
+      "WorkflowTargetAction": "activate"
+     }
+    ]
+   }
+  }
+ },
+ "Outputs": {
+  "RegionSwitchPlanArn": {
+   "Description": "ARN of the ARC Region Switch Plan",
+   "Value": {
+    "Ref": "RegionSwitchPlan"
+   }
+  },
+  "RegionSwitchExecutionRoleArn": {
+   "Description": "ARN of the Region Switch Execution Role",
+   "Value": {
+    "Fn::GetAtt": "RegionSwitchExecutionRole.Arn"
+   }
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

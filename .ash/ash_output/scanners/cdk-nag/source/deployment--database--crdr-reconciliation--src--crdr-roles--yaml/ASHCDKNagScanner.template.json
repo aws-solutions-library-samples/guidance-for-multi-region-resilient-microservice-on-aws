@@ -1,0 +1,390 @@
+{
+ "Description": "Cross Region DR Role to create/Copy/Restore DB Snapshots",
+ "AWSTemplateFormatVersion": "2010-09-09",
+ "Parameters": {
+  "Env": {
+   "Type": "String",
+   "Default": "",
+   "Description": "String to enable multiple deployments per AWS region"
+  },
+  "SourceRegion": {
+   "Type": "String",
+   "Default": "us-east-1",
+   "Description": "Enter the Primary Region"
+  },
+  "TargetRegion": {
+   "Type": "String",
+   "Default": "us-west-2",
+   "Description": "Enter the Standby Region"
+  },
+  "GlobalClusterIdentifier": {
+   "Type": "String",
+   "Default": "global-db-cluster"
+  },
+  "KmsKey": {
+   "Type": "AWS::SSM::Parameter::Value<String>"
+  },
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Resources": {
+  "CrossRegionSnapshotCopySSMAutomationRole": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Version": "2012-10-17",
+     "Statement": [
+      {
+       "Action": [
+        "sts:AssumeRole"
+       ],
+       "Effect": "Allow",
+       "Principal": {
+        "Service": [
+         "ssm.amazonaws.com"
+        ]
+       }
+      }
+     ]
+    },
+    "Path": "/",
+    "Policies": [
+     {
+      "PolicyDocument": {
+       "Version": "2012-10-17",
+       "Statement": [
+        {
+         "Effect": "Allow",
+         "Action": [
+          "rds:CopyDBClusterSnapshot",
+          "rds:DescribeDBClusterSnapshots",
+          "rds:RestoreDBClusterFromSnapshot",
+          "rds:DescribeDBClusters",
+          "rds:CreateDBInstance",
+          "rds:DescribeDBInstances",
+          "rds:DeleteDBInstance",
+          "rds:DeleteDBCluster",
+          "rds:AddTagsToResource"
+         ],
+         "Resource": [
+          {
+           "Fn::Sub": "{{resolve:secretsmanager:mr-app/catalog-${SourceRegion}-${GlobalClusterIdentifier}${Env}}}"
+          },
+          {
+           "Fn::Join": [
+            ":",
+            [
+             "arn:aws:rds",
+             {
+              "Ref": "SourceRegion"
+             },
+             {
+              "Ref": "AWS::AccountId"
+             },
+             "cluster-snapshot",
+             "rds",
+             "unplanned-global-failover-catalog-dbcluster-01-us-east-1-*"
+            ]
+           ]
+          },
+          {
+           "Fn::Join": [
+            ":",
+            [
+             "arn:aws:rds",
+             {
+              "Ref": "TargetRegion"
+             },
+             {
+              "Ref": "AWS::AccountId"
+             },
+             "cluster-snapshot",
+             "unplanned-global-failover-catalog-dbcluster-01-us-east-1-*"
+            ]
+           ]
+          },
+          {
+           "Fn::Join": [
+            ":",
+            [
+             "arn:aws:rds",
+             {
+              "Ref": "TargetRegion"
+             },
+             {
+              "Ref": "AWS::AccountId"
+             },
+             "cluster-snapshot",
+             "catalog-db-stack-*"
+            ]
+           ]
+          },
+          {
+           "Fn::Join": [
+            ":",
+            [
+             "arn:aws:rds",
+             {
+              "Ref": "TargetRegion"
+             },
+             {
+              "Ref": "AWS::AccountId"
+             },
+             "cluster-snapshot",
+             "rds:catalog-dbcluster-*"
+            ]
+           ]
+          },
+          {
+           "Fn::Join": [
+            ":",
+            [
+             "arn:aws:rds",
+             {
+              "Ref": "TargetRegion"
+             },
+             {
+              "Ref": "AWS::AccountId"
+             },
+             "cluster-snapshot",
+             "catalog-recon-test-*"
+            ]
+           ]
+          },
+          {
+           "Fn::Join": [
+            ":",
+            [
+             "arn:aws:rds",
+             {
+              "Ref": "TargetRegion"
+             },
+             {
+              "Ref": "AWS::AccountId"
+             },
+             "cluster",
+             "catalog-recon-dbcluster-*"
+            ]
+           ]
+          },
+          {
+           "Fn::Join": [
+            ":",
+            [
+             "arn:aws:rds",
+             {
+              "Ref": "TargetRegion"
+             },
+             {
+              "Ref": "AWS::AccountId"
+             },
+             "db",
+             "catalog-recon-dbinstance-*"
+            ]
+           ]
+          },
+          {
+           "Fn::Join": [
+            ":",
+            [
+             "arn:aws:rds",
+             {
+              "Ref": "TargetRegion"
+             },
+             {
+              "Ref": "AWS::AccountId"
+             },
+             "subgrp",
+             "catalog-recon-dbcluster-subnet-group"
+            ]
+           ]
+          }
+         ],
+         "Condition": {
+          "StringEquals": {
+           "aws:ResourceAccount": {
+            "Fn::Sub": "${AWS::AccountId}"
+           }
+          }
+         }
+        },
+        {
+         "Effect": "Allow",
+         "Action": [
+          "rds:DescribeDBClusterSnapshots"
+         ],
+         "Resource": [
+          "*"
+         ],
+         "Condition": {
+          "StringEquals": {
+           "aws:ResourceAccount": {
+            "Fn::Sub": "${AWS::AccountId}"
+           }
+          }
+         }
+        },
+        {
+         "Effect": "Allow",
+         "Action": [
+          "kms:DescribeKey",
+          "kms:CreateGrant"
+         ],
+         "Resource": [
+          {
+           "Fn::Sub": "{{resolve:secretsmanager:mr-app/catalog-${GlobalClusterIdentifier}-StorageEncryptionKeyArn${Env}}}"
+          },
+          {
+           "Fn::Sub": "{{resolve:secretsmanager:mr-app/catalog-${TargetRegion}-${GlobalClusterIdentifier}-Snapshot-KeyArn${Env}}}"
+          }
+         ]
+        },
+        {
+         "Effect": "Allow",
+         "Action": [
+          "lambda:InvokeAsync",
+          "lambda:InvokeFunction"
+         ],
+         "Resource": [
+          "*"
+         ],
+         "Condition": {
+          "StringEquals": {
+           "aws:ResourceAccount": {
+            "Fn::Sub": "${AWS::AccountId}"
+           }
+          }
+         }
+        }
+       ]
+      },
+      "PolicyName": {
+       "Fn::Join": [
+        "-",
+        [
+         "CRDR-SSMPolicy",
+         {
+          "Ref": "SourceRegion"
+         },
+         {
+          "Fn::Select": [
+           0,
+           {
+            "Fn::Split": [
+             "-",
+             {
+              "Fn::Select": [
+               2,
+               {
+                "Fn::Split": [
+                 "/",
+                 {
+                  "Ref": "AWS::StackId"
+                 }
+                ]
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "RoleName": {
+     "Fn::Join": [
+      "-",
+      [
+       "CRDR-SSMRole",
+       {
+        "Fn::Select": [
+         0,
+         {
+          "Fn::Split": [
+           "-",
+           {
+            "Fn::Select": [
+             2,
+             {
+              "Fn::Split": [
+               "/",
+               {
+                "Ref": "AWS::StackId"
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     ]
+    }
+   }
+  },
+  "CrossRegionSnapshotCopySSMAutomationRoleArn": {
+   "Type": "AWS::SecretsManager::Secret",
+   "Properties": {
+    "Description": "Arn for CrossRegionSnapshotCopySSMAutomationRole",
+    "KmsKeyId": {
+     "Ref": "KmsKey"
+    },
+    "Name": {
+     "Fn::Sub": "mr-app/CRDRSSMAutomationRoleArn${Env}"
+    },
+    "ReplicaRegions": [
+     {
+      "Region": {
+       "Fn::Sub": "${TargetRegion}"
+      }
+     }
+    ],
+    "SecretString": {
+     "Fn::GetAtt": "CrossRegionSnapshotCopySSMAutomationRole.Arn"
+    }
+   }
+  }
+ },
+ "Outputs": {
+  "SSMAutomationRole": {
+   "Value": {
+    "Ref": "CrossRegionSnapshotCopySSMAutomationRole"
+   }
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

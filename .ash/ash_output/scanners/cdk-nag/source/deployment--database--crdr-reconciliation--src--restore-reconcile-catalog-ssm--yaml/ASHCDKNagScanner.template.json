@@ -1,0 +1,491 @@
+{
+ "Description": "Solution that uses SSM Automation to restore encrypted snapshots of RDS cluster Catalog DB",
+ "Transform": "AWS::Serverless-2016-10-31",
+ "AWSTemplateFormatVersion": "2010-09-09",
+ "Parameters": {
+  "NamingPrefix": {
+   "Type": "String",
+   "Default": "catalog",
+   "Description": "Enter the Naming Prefix for resources created"
+  },
+  "Env": {
+   "Type": "String",
+   "Default": "",
+   "Description": "String to enable multiple deployments per AWS region"
+  },
+  "SourceRegion": {
+   "Type": "String",
+   "Default": "us-east-1",
+   "Description": "Enter the Primary Region"
+  },
+  "TargetRegion": {
+   "Type": "String",
+   "Default": "us-west-2",
+   "Description": "Enter the Standby Region"
+  },
+  "DBClusterIdentifier": {
+   "Type": "String",
+   "Default": "reconciliation-db-cluster"
+  },
+  "GlobalClusterIdentifier": {
+   "Type": "String",
+   "Default": "global-db-cluster"
+  },
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Resources": {
+  "SubnetGroup": {
+   "Type": "AWS::RDS::DBSubnetGroup",
+   "Properties": {
+    "DBSubnetGroupDescription": "catalog-subnet-group",
+    "DBSubnetGroupName": "catalog-recon-dbcluster-subnet-group",
+    "SubnetIds": [
+     {
+      "Fn::Sub": "{{resolve:ssm:Subnet1${Env}}}"
+     },
+     {
+      "Fn::Sub": "{{resolve:ssm:Subnet2${Env}}}"
+     },
+     {
+      "Fn::Sub": "{{resolve:ssm:Subnet3${Env}}}"
+     }
+    ]
+   }
+  },
+  "LambdaSecurityGroup": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "Lambda function access to aurora mysql and reconciliation database",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow all egress",
+      "IpProtocol": "-1"
+     }
+    ],
+    "SecurityGroupIngress": [
+     {
+      "CidrIp": "10.2.0.0/16",
+      "Description": "Allow all egress",
+      "IpProtocol": "-1"
+     }
+    ],
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "lambda-aurora-mysql-security-group"
+     }
+    ],
+    "VpcId": {
+     "Fn::Sub": "{{resolve:secretsmanager:VpcId-${AWS::Region}${Env}}}"
+    }
+   }
+  },
+  "LambdaSecurityGroupInboundRule": {
+   "Type": "AWS::EC2::SecurityGroupIngress",
+   "Properties": {
+    "Description": "Allow traffic to 10.2.0.0/16",
+    "FromPort": 3306,
+    "GroupId": {
+     "Fn::Sub": "{{resolve:ssm:catalog-aurora-mysql-sg-${AWS::Region}${Env}}}"
+    },
+    "IpProtocol": "tcp",
+    "SourceSecurityGroupId": {
+     "Ref": "LambdaSecurityGroup"
+    },
+    "ToPort": 3306
+   }
+  },
+  "VPCEndpointSecurityGroupIngress": {
+   "Type": "AWS::EC2::SecurityGroupIngress",
+   "Properties": {
+    "FromPort": 443,
+    "GroupId": {
+     "Fn::Sub": "{{resolve:ssm:VPCEndpointSecretsManagerSGId${Env}}}"
+    },
+    "IpProtocol": "tcp",
+    "SourceSecurityGroupId": {
+     "Ref": "LambdaSecurityGroup"
+    },
+    "ToPort": 443
+   }
+  },
+  "libs": {
+   "Type": "AWS::Serverless::LayerVersion",
+   "Properties": {
+    "CompatibleRuntimes": [
+     "python3.12"
+    ],
+    "ContentUri": "function/package/.",
+    "Description": "Dependencies for the reconcliliation-python function.",
+    "LayerName": "reconcliliation-python-function-lib"
+   }
+  },
+  "LambdaFunction": {
+   "Type": "AWS::Serverless::Function",
+   "Properties": {
+    "Architectures": [
+     "x86_64"
+    ],
+    "CodeUri": "function/.",
+    "Environment": {
+     "Variables": {
+      "DB_CREDENTIALS_SECRET_ID": {
+       "Fn::Sub": "mr-app/catalog-${GlobalClusterIdentifier}-UserCredentials${Env}"
+      }
+     }
+    },
+    "EphemeralStorage": {
+     "Size": 512
+    },
+    "Handler": "reconciliation-catalog.lambda_handler",
+    "Layers": [
+     {
+      "Ref": "libs"
+     }
+    ],
+    "PackageType": "Zip",
+    "Policies": [
+     {
+      "Statement": [
+       {
+        "Effect": "Allow",
+        "Action": [
+         "secretsmanager:GetSecretValue"
+        ],
+        "Resource": {
+         "Fn::Sub": "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:mr-app/catalog-${GlobalClusterIdentifier}-UserCredentials${Env}-*"
+        }
+       },
+       {
+        "Effect": "Allow",
+        "Action": [
+         "ec2:CreateNetworkInterface",
+         "ec2:DeleteNetworkInterface",
+         "ec2:DescribeNetworkInterfaces"
+        ],
+        "Resource": "*"
+       },
+       {
+        "Effect": "Allow",
+        "Action": [
+         "logs:CreateLogGroup"
+        ],
+        "Resource": {
+         "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+        }
+       },
+       {
+        "Effect": "Allow",
+        "Action": [
+         "logs:CreateLogStream",
+         "logs:PutLogEvents"
+        ],
+        "Resource": {
+         "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/reconciliation-test:*"
+        }
+       },
+       {
+        "Effect": "Allow",
+        "Action": [
+         "rds:RestoreDBClusterFromSnapshot",
+         "rds:DescribeDBClusterSnapshots",
+         "rds:DescribeDBClusters",
+         "rds:CreateDBInstance",
+         "rds:DescribeDBInstances"
+        ],
+        "Resource": [
+         {
+          "Fn::Sub": "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:cluster:catalog-reconciliation-db-cluster-*"
+         },
+         {
+          "Fn::Sub": "{{resolve:secretsmanager:mr-app/catalog-${TargetRegion}-global-db-cluster${Env}}}"
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "ReservedConcurrentExecutions": 5,
+    "Runtime": "python3.12",
+    "Timeout": 600,
+    "VpcConfig": {
+     "SecurityGroupIds": [
+      {
+       "Ref": "LambdaSecurityGroup"
+      }
+     ],
+     "SubnetIds": [
+      {
+       "Fn::Sub": "{{resolve:ssm:Subnet1${Env}}}"
+      },
+      {
+       "Fn::Sub": "{{resolve:ssm:Subnet2${Env}}}"
+      },
+      {
+       "Fn::Sub": "{{resolve:ssm:Subnet3${Env}}}"
+      }
+     ],
+     "Ipv6AllowedForDualStack": false
+    }
+   }
+  },
+  "AutomationExecutionRole": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Version": "2012-10-17",
+     "Statement": [
+      {
+       "Effect": "Allow",
+       "Principal": {
+        "Service": [
+         "ssm.amazonaws.com"
+        ]
+       },
+       "Action": [
+        "sts:AssumeRole"
+       ]
+      }
+     ]
+    },
+    "Path": "/",
+    "Policies": [
+     {
+      "PolicyDocument": {
+       "Version": "2012-10-17",
+       "Statement": [
+        {
+         "Effect": "Allow",
+         "Action": "lambda:InvokeFunction",
+         "Resource": {
+          "Fn::GetAtt": "LambdaFunction.Arn"
+         }
+        }
+       ]
+      },
+      "PolicyName": "automation-invoke-lambda-execution"
+     }
+    ]
+   }
+  },
+  "CrossRegionSnapshotRestoreSSMAutomation": {
+   "Type": "AWS::SSM::Document",
+   "Properties": {
+    "Content": {
+     "description": "Aurora RDS Cluster Snapshot and Copy Automation Document",
+     "parameters": {
+      "SnapshotArn": {
+       "type": "String",
+       "description": "(Required) Arn of the cross region DR snapshot",
+       "default": ""
+      }
+     },
+     "schemaVersion": "0.3",
+     "assumeRole": {
+      "Fn::Sub": "{{resolve:secretsmanager:mr-app/CRDRSSMAutomationRoleArn${Env}}}"
+     },
+     "mainSteps": [
+      {
+       "name": "RestoreSnapshot",
+       "action": "aws:executeAwsApi",
+       "inputs": {
+        "Service": "rds",
+        "Api": "RestoreDBClusterFromSnapshot",
+        "DBClusterIdentifier": "catalog-recon-dbcluster-{{automation:EXECUTION_ID}}",
+        "Engine": "aurora-mysql",
+        "SnapshotIdentifier": {
+         "Fn::Sub": "{{SnapshotArn}}"
+        },
+        "EnableIAMDatabaseAuthentication": true,
+        "KmsKeyId": {
+         "Fn::Sub": "{{resolve:secretsmanager:mr-app/${NamingPrefix}-${TargetRegion}-${GlobalClusterIdentifier}-Snapshot-KeyArn${Env}}}"
+        },
+        "ServerlessV2ScalingConfiguration": {
+         "MinCapacity": 1,
+         "MaxCapacity": 8
+        },
+        "DBSubnetGroupName": {
+         "Ref": "SubnetGroup"
+        },
+        "VpcSecurityGroupIds": [
+         {
+          "Fn::Sub": "{{resolve:ssm:catalog-aurora-mysql-sg-${AWS::Region}${Env}}}"
+         }
+        ],
+        "DeletionProtection": false,
+        "Tags": [
+         {
+          "Key": "NamingPrefix",
+          "Value": {
+           "Ref": "NamingPrefix"
+          }
+         }
+        ]
+       },
+       "outputs": [
+        {
+         "Name": "ReconciliationClusterId",
+         "Selector": "$.DBCluster.DBClusterIdentifier",
+         "Type": "String"
+        },
+        {
+         "Name": "ReconciliationClusterArn",
+         "Selector": "$.DBCluster.DBClusterArn",
+         "Type": "String"
+        },
+        {
+         "Name": "ReconciliationClusterEndpoint",
+         "Selector": "$.DBCluster.Endpoint",
+         "Type": "String"
+        }
+       ]
+      },
+      {
+       "name": "waitForDBCompletion",
+       "action": "aws:waitForAwsResourceProperty",
+       "inputs": {
+        "Service": "rds",
+        "Api": "DescribeDBClusters",
+        "DBClusterIdentifier": "{{RestoreSnapshot.ReconciliationClusterId}}",
+        "PropertySelector": "$.DBClusters[0].Status",
+        "DesiredValues": [
+         "available"
+        ]
+       }
+      },
+      {
+       "name": "CreateDBInstance",
+       "action": "aws:executeAwsApi",
+       "inputs": {
+        "Service": "rds",
+        "Api": "CreateDBInstance",
+        "DBInstanceIdentifier": "catalog-recon-dbinstance-{{automation:EXECUTION_ID}}",
+        "DBClusterIdentifier": "{{RestoreSnapshot.ReconciliationClusterId}}",
+        "Engine": "aurora-mysql",
+        "DBInstanceClass": "db.serverless"
+       },
+       "outputs": [
+        {
+         "Name": "ReconciliationDBInstanceId",
+         "Selector": "$.DBInstance.DBInstanceIdentifier",
+         "Type": "String"
+        },
+        {
+         "Name": "ReconciliationDBInstanceArn",
+         "Selector": "$.DBInstance.DBInstanceArn",
+         "Type": "String"
+        }
+       ]
+      },
+      {
+       "name": "waitForDBInstance",
+       "action": "aws:waitForAwsResourceProperty",
+       "inputs": {
+        "Service": "rds",
+        "Api": "DescribeDBInstances",
+        "DBInstanceIdentifier": "{{CreateDBInstance.ReconciliationDBInstanceId}}",
+        "PropertySelector": "$.DBInstances[0].DBInstanceStatus",
+        "DesiredValues": [
+         "available"
+        ]
+       }
+      },
+      {
+       "name": "ExecuteLambda",
+       "action": "aws:invokeLambdaFunction",
+       "onFailure": "Abort",
+       "maxAttempts": 3,
+       "timeoutSeconds": 600,
+       "inputs": {
+        "FunctionName": {
+         "Ref": "LambdaFunction"
+        },
+        "InputPayload": {
+         "source_db_endpoint": "{{RestoreSnapshot.ReconciliationClusterEndpoint}}",
+         "target_db_endpoint": {
+          "Fn::Sub": "{{resolve:secretsmanager:mr-app/catalog-${TargetRegion}-${GlobalClusterIdentifier}-endpoint${Env}}}"
+         },
+         "db_name": "catalog"
+        }
+       }
+      }
+     ]
+    },
+    "DocumentType": "Automation",
+    "Name": {
+     "Fn::Join": [
+      "-",
+      [
+       "CRDR-SSMAutomation-Reconciliation",
+       {
+        "Ref": "TargetRegion"
+       },
+       {
+        "Fn::Select": [
+         0,
+         {
+          "Fn::Split": [
+           "-",
+           {
+            "Fn::Select": [
+             2,
+             {
+              "Fn::Split": [
+               "/",
+               {
+                "Ref": "AWS::StackId"
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     ]
+    }
+   }
+  }
+ },
+ "Outputs": {
+  "AutomationDocument": {
+   "Value": {
+    "Ref": "CrossRegionSnapshotRestoreSSMAutomation"
+   }
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}
