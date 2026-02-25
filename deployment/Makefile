@@ -431,18 +431,26 @@ monitoring: restore-reconciliation arc-dns-status
 	PrimaryEcsCluster=$(_PRIMARY_CLUSTER) SecondaryEcsCluster=$(_STANDBY_CLUSTER)
 
 arc-dns-status: region-switch
-	@echo "Deploy ARC DNS status Lambda"
+	@echo "Deploy ARC DNS status Lambda to both regions"
 	$(eval _DNS_NAME:=$(shell aws secretsmanager get-secret-value --secret-id DNSRecordSecret$(ENV) --region $(PRIMARY_REGION) --query 'SecretString' --output text))
 	$(eval _PRIMARY_ALB:=$(shell aws elbv2 describe-load-balancers --region $(PRIMARY_REGION) --query 'LoadBalancers[?contains(LoadBalancerName,`apps-Alb`)].DNSName' --output text))
 	$(eval _STANDBY_ALB:=$(shell aws elbv2 describe-load-balancers --region $(STANDBY_REGION) --query 'LoadBalancers[?contains(LoadBalancerName,`apps-Alb`)].DNSName' --output text))
-	$(eval _SUBNET:=$(shell aws ssm get-parameter --name Subnet1$(ENV) --region $(PRIMARY_REGION) --query 'Parameter.Value' --output text))
-	$(eval _SG:=$(shell aws ssm get-parameter --name canarySgId$(ENV) --region $(PRIMARY_REGION) --query 'Parameter.Value' --output text))
+	$(eval _SUBNET_P:=$(shell aws ssm get-parameter --name Subnet1$(ENV) --region $(PRIMARY_REGION) --query 'Parameter.Value' --output text))
+	$(eval _SG_P:=$(shell aws ssm get-parameter --name canarySgId$(ENV) --region $(PRIMARY_REGION) --query 'Parameter.Value' --output text))
+	$(eval _SUBNET_S:=$(shell aws ssm get-parameter --name Subnet1$(ENV) --region $(STANDBY_REGION) --query 'Parameter.Value' --output text))
+	$(eval _SG_S:=$(shell aws ssm get-parameter --name canarySgId$(ENV) --region $(STANDBY_REGION) --query 'Parameter.Value' --output text))
 	@aws cloudformation deploy --region ${PRIMARY_REGION} --template ./arc-dns-status.yaml \
 	--stack-name arc-dns-status${ENV} --capabilities CAPABILITY_IAM \
 	--parameter-overrides Env=${ENV} DnsName=$(_DNS_NAME) \
 	PrimaryRegion=${PRIMARY_REGION} SecondaryRegion=${STANDBY_REGION} \
 	PrimaryAlbDns=$(_PRIMARY_ALB) SecondaryAlbDns=$(_STANDBY_ALB) \
-	SubnetId=$(_SUBNET) SecurityGroupId=$(_SG)
+	SubnetId=$(_SUBNET_P) SecurityGroupId=$(_SG_P)
+	@aws cloudformation deploy --region ${STANDBY_REGION} --template ./arc-dns-status.yaml \
+	--stack-name arc-dns-status${ENV} --capabilities CAPABILITY_IAM \
+	--parameter-overrides Env=${ENV} DnsName=$(_DNS_NAME) \
+	PrimaryRegion=${PRIMARY_REGION} SecondaryRegion=${STANDBY_REGION} \
+	PrimaryAlbDns=$(_PRIMARY_ALB) SecondaryAlbDns=$(_STANDBY_ALB) \
+	SubnetId=$(_SUBNET_S) SecurityGroupId=$(_SG_S)
 
 secrets-rotation: primary_region_catalog-db
 	@echo "Creating secrets rotation resources in ${PRIMARY_REGION}"

@@ -1,10 +1,13 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "Lambda that resolves the app DNS name from within the VPC and publishes per-region active status metrics"
+Description: "Lambda that resolves the app DNS name from within the VPC and publishes routing metrics per source region"
 
 Parameters:
   Env:
     Type: String
     Default: ''
+  DnsName:
+    Type: String
+    Description: The application DNS name (e.g. store.demo.io)
   PrimaryRegion:
     Type: String
     Default: "us-east-1"
@@ -58,44 +61,33 @@ Resources:
         SecurityGroupIds: [!Ref SecurityGroupId]
       Environment:
         Variables:
+          DNS_NAME: !Ref DnsName
           PRIMARY_REGION: !Ref PrimaryRegion
           SECONDARY_REGION: !Ref SecondaryRegion
           PRIMARY_ALB_DNS: !Ref PrimaryAlbDns
           SECONDARY_ALB_DNS: !Ref SecondaryAlbDns
       Code:
         ZipFile: |
-          import urllib.request, boto3, os
+          import socket, boto3, os
 
-          def check_alb(alb_dns):
+          def resolve_ips(name):
               try:
-                  req = urllib.request.Request(
-                      f'http://{alb_dns}/actuator/health',
-                      headers={'User-Agent': 'dns-status-check'}
-                  )
-                  with urllib.request.urlopen(req, timeout=5) as r:
-                      return 1.0 if r.status < 500 else 0.0
+                  return set(r[4][0] for r in socket.getaddrinfo(name, 80))
               except Exception:
-                  return 0.0
+                  return set()
 
           def handler(event, context):
+              source = os.environ['AWS_REGION']
+              dns_ips = resolve_ips(os.environ['DNS_NAME'])
+              primary_ips = resolve_ips(os.environ['PRIMARY_ALB_DNS'])
+              secondary_ips = resolve_ips(os.environ['SECONDARY_ALB_DNS'])
+
               metrics = [
-                  {
-                      'MetricName': 'RegionDNSActive',
-                      'Dimensions': [{'Name': 'Region', 'Value': os.environ['PRIMARY_REGION']}],
-                      'Value': check_alb(os.environ['PRIMARY_ALB_DNS']),
-                      'Unit': 'None'
-                  },
-                  {
-                      'MetricName': 'RegionDNSActive',
-                      'Dimensions': [{'Name': 'Region', 'Value': os.environ['SECONDARY_REGION']}],
-                      'Value': check_alb(os.environ['SECONDARY_ALB_DNS']),
-                      'Unit': 'None'
-                  }
+                  {'MetricName': 'RoutingToEast', 'Dimensions': [{'Name': 'SourceRegion', 'Value': source}], 'Value': 1.0 if dns_ips & primary_ips else 0.0, 'Unit': 'None'},
+                  {'MetricName': 'RoutingToWest', 'Dimensions': [{'Name': 'SourceRegion', 'Value': source}], 'Value': 1.0 if dns_ips & secondary_ips else 0.0, 'Unit': 'None'},
               ]
-              boto3.client('cloudwatch').put_metric_data(
-                  Namespace='ARC/DNSStatus', MetricData=metrics
-              )
-              return {'metrics': metrics}
+              boto3.client('cloudwatch').put_metric_data(Namespace='ARC/DNSStatus', MetricData=metrics)
+              return {'source': source, 'dns_ips': list(dns_ips), 'metrics': metrics}
 
   DnsStatusSchedule:
     Type: AWS::Events::Rule

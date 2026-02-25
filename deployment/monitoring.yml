@@ -33,34 +33,50 @@ Resources:
           "widgets": [
             {
               "type": "text", "height": 1, "width": 24, "y": 0, "x": 0,
-              "properties": { "markdown": "## DNS Active Regions (1 = Active in DNS, 0 = Removed from DNS)" }
+              "properties": { "markdown": "## Client Routing (1 = routing to that region)" }
             },
             {
-              "height": 6, "width": 12, "y": 1, "x": 0,
+              "height": 6, "width": 6, "y": 1, "x": 0,
               "type": "metric",
               "properties": {
-                "title": "${PrimaryRegion} DNS Status",
+                "title": "Users in East routing to: East",
                 "metrics": [
-                  [ "ARC/DNSStatus", "RegionDNSActive", "Region", "${PrimaryRegion}", { "region": "${PrimaryRegion}", "label": "${PrimaryRegion} Active", "color": "#2ca02c" } ]
+                  [ "ARC/DNSStatus", "RoutingToEast", "SourceRegion", "${PrimaryRegion}", { "region": "${PrimaryRegion}", "label": "→ East", "color": "#2ca02c" } ]
                 ],
-                "view": "singleValue",
-                "region": "${PrimaryRegion}",
-                "stat": "Minimum", "period": 60,
-                "yAxis": { "left": { "min": 0, "max": 1 } }
+                "view": "singleValue", "region": "${PrimaryRegion}", "stat": "Minimum", "period": 60
               }
             },
             {
-              "height": 6, "width": 12, "y": 1, "x": 12,
+              "height": 6, "width": 6, "y": 1, "x": 6,
               "type": "metric",
               "properties": {
-                "title": "${SecondaryRegion} DNS Status",
+                "title": "Users in East routing to: West",
                 "metrics": [
-                  [ "ARC/DNSStatus", "RegionDNSActive", "Region", "${SecondaryRegion}", { "region": "${PrimaryRegion}", "label": "${SecondaryRegion} Active", "color": "#2ca02c" } ]
+                  [ "ARC/DNSStatus", "RoutingToWest", "SourceRegion", "${PrimaryRegion}", { "region": "${PrimaryRegion}", "label": "→ West", "color": "#ff7f0e" } ]
                 ],
-                "view": "singleValue",
-                "region": "${PrimaryRegion}",
-                "stat": "Minimum", "period": 60,
-                "yAxis": { "left": { "min": 0, "max": 1 } }
+                "view": "singleValue", "region": "${PrimaryRegion}", "stat": "Minimum", "period": 60
+              }
+            },
+            {
+              "height": 6, "width": 6, "y": 1, "x": 12,
+              "type": "metric",
+              "properties": {
+                "title": "Users in West routing to: East",
+                "metrics": [
+                  [ "ARC/DNSStatus", "RoutingToEast", "SourceRegion", "${SecondaryRegion}", { "region": "${PrimaryRegion}", "label": "→ East", "color": "#ff7f0e" } ]
+                ],
+                "view": "singleValue", "region": "${PrimaryRegion}", "stat": "Minimum", "period": 60
+              }
+            },
+            {
+              "height": 6, "width": 6, "y": 1, "x": 18,
+              "type": "metric",
+              "properties": {
+                "title": "Users in West routing to: West",
+                "metrics": [
+                  [ "ARC/DNSStatus", "RoutingToWest", "SourceRegion", "${SecondaryRegion}", { "region": "${PrimaryRegion}", "label": "→ West", "color": "#2ca02c" } ]
+                ],
+                "view": "singleValue", "region": "${PrimaryRegion}", "stat": "Minimum", "period": 60
               }
             },
                         {
