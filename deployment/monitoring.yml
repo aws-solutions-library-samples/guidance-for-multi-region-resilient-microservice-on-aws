@@ -14,6 +14,14 @@ Parameters:
     Type: String
     Description: Enter the Secondary Region
     Default: "us-west-2"
+  PrimaryEcsCluster:
+    Type: String
+    Description: ECS cluster name in primary region (for Application Signals Environment dimension)
+    Default: ""
+  SecondaryEcsCluster:
+    Type: String
+    Description: ECS cluster name in secondary region (for Application Signals Environment dimension)
+    Default: ""
 
 Resources:
   SystemDashboard:
@@ -359,6 +367,262 @@ Resources:
                 "view": "timeSeries", "stacked": false,
                 "region": "${PrimaryRegion}",
                 "period": 60
+              }
+            },
+            {
+              "type": "text", "height": 1, "width": 24, "y": 38, "x": 0,
+              "properties": { "markdown": "## Application Signals - All Traffic (Success Rate)" }
+            },
+            {
+              "height": 6, "width": 6, "y": 39, "x": 0,
+              "type": "metric",
+              "properties": {
+                "title": "Home Success Rate (${PrimaryRegion})",
+                "metrics": [
+                  [ { "expression": "100*(1-(e1+f1)/MAX([r1,1]))", "label": "Success %", "id": "expr1" } ],
+                  [ "ApplicationSignals", "Error", "Environment", "ecs:${PrimaryEcsCluster}", "Service", "ui", "Operation", "GET /home", { "region": "${PrimaryRegion}", "id": "e1", "visible": false } ],
+                  [ "ApplicationSignals", "Fault", "Environment", "ecs:${PrimaryEcsCluster}", "Service", "ui", "Operation", "GET /home", { "region": "${PrimaryRegion}", "id": "f1", "visible": false } ],
+                  [ "ApplicationSignals", "Latency", "Environment", "ecs:${PrimaryEcsCluster}", "Service", "ui", "Operation", "GET /home", { "region": "${PrimaryRegion}", "id": "r1", "visible": false, "stat": "SampleCount" } ]
+                ],
+                "view": "timeSeries", "stacked": false,
+                "region": "${PrimaryRegion}",
+                "stat": "Sum", "period": 60,
+                "yAxis": { "left": { "min": 0, "max": 100 } }
+              }
+            },
+            {
+              "height": 6, "width": 6, "y": 39, "x": 6,
+              "type": "metric",
+              "properties": {
+                "title": "Catalog Success Rate (${PrimaryRegion})",
+                "metrics": [
+                  [ { "expression": "100*(1-(e1+f1)/MAX([r1,1]))", "label": "Success %", "id": "expr1" } ],
+                  [ "ApplicationSignals", "Error", "Environment", "ecs:${PrimaryEcsCluster}", "Service", "ui", "Operation", "GET /catalog", { "region": "${PrimaryRegion}", "id": "e1", "visible": false } ],
+                  [ "ApplicationSignals", "Fault", "Environment", "ecs:${PrimaryEcsCluster}", "Service", "ui", "Operation", "GET /catalog", { "region": "${PrimaryRegion}", "id": "f1", "visible": false } ],
+                  [ "ApplicationSignals", "Latency", "Environment", "ecs:${PrimaryEcsCluster}", "Service", "ui", "Operation", "GET /catalog", { "region": "${PrimaryRegion}", "id": "r1", "visible": false, "stat": "SampleCount" } ]
+                ],
+                "view": "timeSeries", "stacked": false,
+                "region": "${PrimaryRegion}",
+                "stat": "Sum", "period": 60,
+                "yAxis": { "left": { "min": 0, "max": 100 } }
+              }
+            },
+            {
+              "height": 6, "width": 6, "y": 39, "x": 12,
+              "type": "metric",
+              "properties": {
+                "title": "Cart Success Rate (${PrimaryRegion})",
+                "metrics": [
+                  [ { "expression": "100*(1-(e1+f1)/MAX([r1,1]))", "label": "Success %", "id": "expr1" } ],
+                  [ "ApplicationSignals", "Error", "Environment", "ecs:${PrimaryEcsCluster}", "Service", "ui", "Operation", "GET /cart", { "region": "${PrimaryRegion}", "id": "e1", "visible": false } ],
+                  [ "ApplicationSignals", "Fault", "Environment", "ecs:${PrimaryEcsCluster}", "Service", "ui", "Operation", "GET /cart", { "region": "${PrimaryRegion}", "id": "f1", "visible": false } ],
+                  [ "ApplicationSignals", "Latency", "Environment", "ecs:${PrimaryEcsCluster}", "Service", "ui", "Operation", "GET /cart", { "region": "${PrimaryRegion}", "id": "r1", "visible": false, "stat": "SampleCount" } ]
+                ],
+                "view": "timeSeries", "stacked": false,
+                "region": "${PrimaryRegion}",
+                "stat": "Sum", "period": 60,
+                "yAxis": { "left": { "min": 0, "max": 100 } }
+              }
+            },
+            {
+              "height": 6, "width": 6, "y": 39, "x": 18,
+              "type": "metric",
+              "properties": {
+                "title": "Orders Success Rate (${PrimaryRegion})",
+                "metrics": [
+                  [ { "expression": "100*(1-(e1+f1)/MAX([r1,1]))", "label": "Success %", "id": "expr1" } ],
+                  [ "ApplicationSignals", "Error", "Environment", "ecs:${PrimaryEcsCluster}", "Service", "ui", "Operation", "GET /orders", { "region": "${PrimaryRegion}", "id": "e1", "visible": false } ],
+                  [ "ApplicationSignals", "Fault", "Environment", "ecs:${PrimaryEcsCluster}", "Service", "ui", "Operation", "GET /orders", { "region": "${PrimaryRegion}", "id": "f1", "visible": false } ],
+                  [ "ApplicationSignals", "Latency", "Environment", "ecs:${PrimaryEcsCluster}", "Service", "ui", "Operation", "GET /orders", { "region": "${PrimaryRegion}", "id": "r1", "visible": false, "stat": "SampleCount" } ]
+                ],
+                "view": "timeSeries", "stacked": false,
+                "region": "${PrimaryRegion}",
+                "stat": "Sum", "period": 60,
+                "yAxis": { "left": { "min": 0, "max": 100 } }
+              }
+            },
+            {
+              "height": 6, "width": 6, "y": 45, "x": 0,
+              "type": "metric",
+              "properties": {
+                "title": "Home Success Rate (${SecondaryRegion})",
+                "metrics": [
+                  [ { "expression": "100*(1-(e1+f1)/MAX([r1,1]))", "label": "Success %", "id": "expr1" } ],
+                  [ "ApplicationSignals", "Error", "Environment", "ecs:${SecondaryEcsCluster}", "Service", "ui", "Operation", "GET /home", { "region": "${SecondaryRegion}", "id": "e1", "visible": false } ],
+                  [ "ApplicationSignals", "Fault", "Environment", "ecs:${SecondaryEcsCluster}", "Service", "ui", "Operation", "GET /home", { "region": "${SecondaryRegion}", "id": "f1", "visible": false } ],
+                  [ "ApplicationSignals", "Latency", "Environment", "ecs:${SecondaryEcsCluster}", "Service", "ui", "Operation", "GET /home", { "region": "${SecondaryRegion}", "id": "r1", "visible": false, "stat": "SampleCount" } ]
+                ],
+                "view": "timeSeries", "stacked": false,
+                "region": "${PrimaryRegion}",
+                "stat": "Sum", "period": 60,
+                "yAxis": { "left": { "min": 0, "max": 100 } }
+              }
+            },
+            {
+              "height": 6, "width": 6, "y": 45, "x": 6,
+              "type": "metric",
+              "properties": {
+                "title": "Catalog Success Rate (${SecondaryRegion})",
+                "metrics": [
+                  [ { "expression": "100*(1-(e1+f1)/MAX([r1,1]))", "label": "Success %", "id": "expr1" } ],
+                  [ "ApplicationSignals", "Error", "Environment", "ecs:${SecondaryEcsCluster}", "Service", "ui", "Operation", "GET /catalog", { "region": "${SecondaryRegion}", "id": "e1", "visible": false } ],
+                  [ "ApplicationSignals", "Fault", "Environment", "ecs:${SecondaryEcsCluster}", "Service", "ui", "Operation", "GET /catalog", { "region": "${SecondaryRegion}", "id": "f1", "visible": false } ],
+                  [ "ApplicationSignals", "Latency", "Environment", "ecs:${SecondaryEcsCluster}", "Service", "ui", "Operation", "GET /catalog", { "region": "${SecondaryRegion}", "id": "r1", "visible": false, "stat": "SampleCount" } ]
+                ],
+                "view": "timeSeries", "stacked": false,
+                "region": "${PrimaryRegion}",
+                "stat": "Sum", "period": 60,
+                "yAxis": { "left": { "min": 0, "max": 100 } }
+              }
+            },
+            {
+              "height": 6, "width": 6, "y": 45, "x": 12,
+              "type": "metric",
+              "properties": {
+                "title": "Cart Success Rate (${SecondaryRegion})",
+                "metrics": [
+                  [ { "expression": "100*(1-(e1+f1)/MAX([r1,1]))", "label": "Success %", "id": "expr1" } ],
+                  [ "ApplicationSignals", "Error", "Environment", "ecs:${SecondaryEcsCluster}", "Service", "ui", "Operation", "GET /cart", { "region": "${SecondaryRegion}", "id": "e1", "visible": false } ],
+                  [ "ApplicationSignals", "Fault", "Environment", "ecs:${SecondaryEcsCluster}", "Service", "ui", "Operation", "GET /cart", { "region": "${SecondaryRegion}", "id": "f1", "visible": false } ],
+                  [ "ApplicationSignals", "Latency", "Environment", "ecs:${SecondaryEcsCluster}", "Service", "ui", "Operation", "GET /cart", { "region": "${SecondaryRegion}", "id": "r1", "visible": false, "stat": "SampleCount" } ]
+                ],
+                "view": "timeSeries", "stacked": false,
+                "region": "${PrimaryRegion}",
+                "stat": "Sum", "period": 60,
+                "yAxis": { "left": { "min": 0, "max": 100 } }
+              }
+            },
+            {
+              "height": 6, "width": 6, "y": 45, "x": 18,
+              "type": "metric",
+              "properties": {
+                "title": "Orders Success Rate (${SecondaryRegion})",
+                "metrics": [
+                  [ { "expression": "100*(1-(e1+f1)/MAX([r1,1]))", "label": "Success %", "id": "expr1" } ],
+                  [ "ApplicationSignals", "Error", "Environment", "ecs:${SecondaryEcsCluster}", "Service", "ui", "Operation", "GET /orders", { "region": "${SecondaryRegion}", "id": "e1", "visible": false } ],
+                  [ "ApplicationSignals", "Fault", "Environment", "ecs:${SecondaryEcsCluster}", "Service", "ui", "Operation", "GET /orders", { "region": "${SecondaryRegion}", "id": "f1", "visible": false } ],
+                  [ "ApplicationSignals", "Latency", "Environment", "ecs:${SecondaryEcsCluster}", "Service", "ui", "Operation", "GET /orders", { "region": "${SecondaryRegion}", "id": "r1", "visible": false, "stat": "SampleCount" } ]
+                ],
+                "view": "timeSeries", "stacked": false,
+                "region": "${PrimaryRegion}",
+                "stat": "Sum", "period": 60,
+                "yAxis": { "left": { "min": 0, "max": 100 } }
+              }
+            },
+            {
+              "type": "text", "height": 1, "width": 24, "y": 51, "x": 0,
+              "properties": { "markdown": "## Application Signals - All Traffic (Latency p50/p90/p99)" }
+            },
+            {
+              "height": 6, "width": 6, "y": 52, "x": 0,
+              "type": "metric",
+              "properties": {
+                "title": "Home Latency ms (${PrimaryRegion})",
+                "metrics": [
+                  [ "ApplicationSignals", "Latency", "Environment", "ecs:${PrimaryEcsCluster}", "Service", "ui", "Operation", "GET /home", { "region": "${PrimaryRegion}", "stat": "p50", "label": "p50" } ],
+                  [ "...", { "region": "${PrimaryRegion}", "stat": "p90", "label": "p90" } ],
+                  [ "...", { "region": "${PrimaryRegion}", "stat": "p99", "label": "p99" } ]
+                ],
+                "view": "timeSeries", "stacked": false,
+                "region": "${PrimaryRegion}", "period": 60
+              }
+            },
+            {
+              "height": 6, "width": 6, "y": 52, "x": 6,
+              "type": "metric",
+              "properties": {
+                "title": "Catalog Latency ms (${PrimaryRegion})",
+                "metrics": [
+                  [ "ApplicationSignals", "Latency", "Environment", "ecs:${PrimaryEcsCluster}", "Service", "ui", "Operation", "GET /catalog", { "region": "${PrimaryRegion}", "stat": "p50", "label": "p50" } ],
+                  [ "...", { "region": "${PrimaryRegion}", "stat": "p90", "label": "p90" } ],
+                  [ "...", { "region": "${PrimaryRegion}", "stat": "p99", "label": "p99" } ]
+                ],
+                "view": "timeSeries", "stacked": false,
+                "region": "${PrimaryRegion}", "period": 60
+              }
+            },
+            {
+              "height": 6, "width": 6, "y": 52, "x": 12,
+              "type": "metric",
+              "properties": {
+                "title": "Cart Latency ms (${PrimaryRegion})",
+                "metrics": [
+                  [ "ApplicationSignals", "Latency", "Environment", "ecs:${PrimaryEcsCluster}", "Service", "ui", "Operation", "GET /cart", { "region": "${PrimaryRegion}", "stat": "p50", "label": "p50" } ],
+                  [ "...", { "region": "${PrimaryRegion}", "stat": "p90", "label": "p90" } ],
+                  [ "...", { "region": "${PrimaryRegion}", "stat": "p99", "label": "p99" } ]
+                ],
+                "view": "timeSeries", "stacked": false,
+                "region": "${PrimaryRegion}", "period": 60
+              }
+            },
+            {
+              "height": 6, "width": 6, "y": 52, "x": 18,
+              "type": "metric",
+              "properties": {
+                "title": "Orders Latency ms (${PrimaryRegion})",
+                "metrics": [
+                  [ "ApplicationSignals", "Latency", "Environment", "ecs:${PrimaryEcsCluster}", "Service", "ui", "Operation", "GET /orders", { "region": "${PrimaryRegion}", "stat": "p50", "label": "p50" } ],
+                  [ "...", { "region": "${PrimaryRegion}", "stat": "p90", "label": "p90" } ],
+                  [ "...", { "region": "${PrimaryRegion}", "stat": "p99", "label": "p99" } ]
+                ],
+                "view": "timeSeries", "stacked": false,
+                "region": "${PrimaryRegion}", "period": 60
+              }
+            },
+            {
+              "height": 6, "width": 6, "y": 58, "x": 0,
+              "type": "metric",
+              "properties": {
+                "title": "Home Latency ms (${SecondaryRegion})",
+                "metrics": [
+                  [ "ApplicationSignals", "Latency", "Environment", "ecs:${SecondaryEcsCluster}", "Service", "ui", "Operation", "GET /home", { "region": "${SecondaryRegion}", "stat": "p50", "label": "p50" } ],
+                  [ "...", { "region": "${SecondaryRegion}", "stat": "p90", "label": "p90" } ],
+                  [ "...", { "region": "${SecondaryRegion}", "stat": "p99", "label": "p99" } ]
+                ],
+                "view": "timeSeries", "stacked": false,
+                "region": "${PrimaryRegion}", "period": 60
+              }
+            },
+            {
+              "height": 6, "width": 6, "y": 58, "x": 6,
+              "type": "metric",
+              "properties": {
+                "title": "Catalog Latency ms (${SecondaryRegion})",
+                "metrics": [
+                  [ "ApplicationSignals", "Latency", "Environment", "ecs:${SecondaryEcsCluster}", "Service", "ui", "Operation", "GET /catalog", { "region": "${SecondaryRegion}", "stat": "p50", "label": "p50" } ],
+                  [ "...", { "region": "${SecondaryRegion}", "stat": "p90", "label": "p90" } ],
+                  [ "...", { "region": "${SecondaryRegion}", "stat": "p99", "label": "p99" } ]
+                ],
+                "view": "timeSeries", "stacked": false,
+                "region": "${PrimaryRegion}", "period": 60
+              }
+            },
+            {
+              "height": 6, "width": 6, "y": 58, "x": 12,
+              "type": "metric",
+              "properties": {
+                "title": "Cart Latency ms (${SecondaryRegion})",
+                "metrics": [
+                  [ "ApplicationSignals", "Latency", "Environment", "ecs:${SecondaryEcsCluster}", "Service", "ui", "Operation", "GET /cart", { "region": "${SecondaryRegion}", "stat": "p50", "label": "p50" } ],
+                  [ "...", { "region": "${SecondaryRegion}", "stat": "p90", "label": "p90" } ],
+                  [ "...", { "region": "${SecondaryRegion}", "stat": "p99", "label": "p99" } ]
+                ],
+                "view": "timeSeries", "stacked": false,
+                "region": "${PrimaryRegion}", "period": 60
+              }
+            },
+            {
+              "height": 6, "width": 6, "y": 58, "x": 18,
+              "type": "metric",
+              "properties": {
+                "title": "Orders Latency ms (${SecondaryRegion})",
+                "metrics": [
+                  [ "ApplicationSignals", "Latency", "Environment", "ecs:${SecondaryEcsCluster}", "Service", "ui", "Operation", "GET /orders", { "region": "${SecondaryRegion}", "stat": "p50", "label": "p50" } ],
+                  [ "...", { "region": "${SecondaryRegion}", "stat": "p90", "label": "p90" } ],
+                  [ "...", { "region": "${SecondaryRegion}", "stat": "p99", "label": "p99" } ]
+                ],
+                "view": "timeSeries", "stacked": false,
+                "region": "${PrimaryRegion}", "period": 60
               }
             }
           ]
