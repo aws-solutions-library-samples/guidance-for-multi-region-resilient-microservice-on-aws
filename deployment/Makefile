@@ -423,12 +423,13 @@ monitoring: restore-reconciliation arc-dns-status
 	@echo "Deploy the Monitoring Dashboard"
 	$(eval _PRIMARY_CLUSTER:=$(shell aws cloudformation describe-stack-resource --stack-name apps$(ENV) --logical-resource-id EcsCluster --region $(PRIMARY_REGION) --query 'StackResourceDetail.PhysicalResourceId' --output text))
 	$(eval _STANDBY_CLUSTER:=$(shell aws cloudformation describe-stack-resource --stack-name apps$(ENV) --logical-resource-id EcsCluster --region $(STANDBY_REGION) --query 'StackResourceDetail.PhysicalResourceId' --output text))
+	$(eval _CANARY_BUCKET:=$(shell aws ssm get-parameter --name canaryBucketName$(ENV) --region $(PRIMARY_REGION) --query "Parameter.Value" --output text))
 	@aws cloudformation deploy --region ${PRIMARY_REGION} --template ./monitoring.yml \
 	--stack-name monitoring${ENV} --capabilities CAPABILITY_NAMED_IAM --parameter-overrides PrimaryRegion=${PRIMARY_REGION} Env=${ENV} SecondaryRegion=${STANDBY_REGION} \
-	PrimaryEcsCluster=$(_PRIMARY_CLUSTER) SecondaryEcsCluster=$(_STANDBY_CLUSTER)
+	PrimaryEcsCluster=$(_PRIMARY_CLUSTER) SecondaryEcsCluster=$(_STANDBY_CLUSTER) --s3-bucket $(_CANARY_BUCKET)
 	@aws cloudformation deploy --region ${STANDBY_REGION} --template ./monitoring.yml \
 	--stack-name monitoring${ENV} --capabilities CAPABILITY_NAMED_IAM --parameter-overrides PrimaryRegion=${PRIMARY_REGION} Env=${ENV} SecondaryRegion=${STANDBY_REGION} \
-	PrimaryEcsCluster=$(_PRIMARY_CLUSTER) SecondaryEcsCluster=$(_STANDBY_CLUSTER)
+	PrimaryEcsCluster=$(_PRIMARY_CLUSTER) SecondaryEcsCluster=$(_STANDBY_CLUSTER) --s3-bucket $(_CANARY_BUCKET)
 
 arc-dns-status: region-switch
 	@echo "Deploy ARC DNS status Lambda to both regions"

@@ -23,7 +23,148 @@ Parameters:
     Description: ECS cluster name in secondary region (for Application Signals Environment dimension)
     Default: ""
 
+Conditions:
+  IsPrimaryRegion: !Equals [!Ref AWS::Region, !Ref PrimaryRegion]
+
 Resources:
+  CriticalAlarmTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub 'critical-alarms-${AWS::Region}${Env}'
+
+  InfoAlarmTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub 'info-alarms-${AWS::Region}${Env}'
+
+  AuroraCPUAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub 'aurora-cpu-${AWS::Region}${Env}'
+      MetricName: CPUUtilization
+      Namespace: AWS/RDS
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: DBClusterIdentifier
+          Value: !Sub 'catalog-dbcluster-01-${AWS::Region}${Env}'
+      TreatMissingData: notBreaching
+
+  AuroraConnectionsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub 'aurora-connections-${AWS::Region}${Env}'
+      MetricName: DatabaseConnections
+      Namespace: AWS/RDS
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: DBClusterIdentifier
+          Value: !Sub 'catalog-dbcluster-01-${AWS::Region}${Env}'
+      TreatMissingData: notBreaching
+
+  AuroraReplicaLagAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub 'aurora-lag-${AWS::Region}${Env}'
+      MetricName: AuroraGlobalDBReplicationLag
+      Namespace: AWS/RDS
+      Statistic: Average
+      Period: 60
+      EvaluationPeriods: 2
+      Threshold: 5000
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: DBClusterIdentifier
+          Value: !Sub 'catalog-dbcluster-01-${AWS::Region}${Env}'
+      TreatMissingData: notBreaching
+
+  AuroraDatabaseComposite:
+    Type: AWS::CloudWatch::CompositeAlarm
+    Properties:
+      AlarmName: !Sub 'aurora-degraded-${AWS::Region}${Env}'
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref CriticalAlarmTopic
+      AlarmRule: !Sub '(ALARM(${AuroraConnectionsAlarm}) AND (ALARM(${AuroraCPUAlarm}) OR ALARM(${AuroraReplicaLagAlarm})))'
+
+  DynamoDBUserErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub 'dynamodb-user-errors-${AWS::Region}${Env}'
+      MetricName: UserErrors
+      Namespace: AWS/DynamoDB
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: TableName
+          Value: !Sub 'cartsTable${Env}'
+      TreatMissingData: notBreaching
+
+  DynamoDBSystemErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub 'dynamodb-system-errors-${AWS::Region}${Env}'
+      MetricName: SystemErrors
+      Namespace: AWS/DynamoDB
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: TableName
+          Value: !Sub 'cartsTable${Env}'
+      TreatMissingData: notBreaching
+
+  DynamoDBComposite:
+    Type: AWS::CloudWatch::CompositeAlarm
+    Properties:
+      AlarmName: !Sub 'dynamodb-errors-${AWS::Region}${Env}'
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref CriticalAlarmTopic
+      AlarmRule: !Sub '(ALARM(${DynamoDBUserErrorsAlarm}) OR ALARM(${DynamoDBSystemErrorsAlarm}))'
+
+  OrdersCreatedAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub 'orders-created-zero-${AWS::Region}${Env}'
+      MetricName: !Sub 'OrdersCreated${Env}'
+      Namespace: ecommerce
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: LessThanOrEqualToThreshold
+      TreatMissingData: breaching
+      AlarmActions:
+        - !Ref InfoAlarmTopic
+
+  CanarySuccessRateAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub 'canary-success-low-${AWS::Region}${Env}'
+      MetricName: SuccessPercent
+      Namespace: CloudWatchSynthetics
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 90
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref CriticalAlarmTopic
+
   SystemDashboard:
     Type: AWS::CloudWatch::Dashboard
     Properties:
