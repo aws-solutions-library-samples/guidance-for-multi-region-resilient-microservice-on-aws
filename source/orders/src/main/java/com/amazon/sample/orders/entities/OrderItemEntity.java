@@ -18,6 +18,7 @@
 
 package com.amazon.sample.orders.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 
 import jakarta.persistence.*;
@@ -52,6 +53,7 @@ public class OrderItemEntity {
 
     private int totalCost;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("orderId")
 

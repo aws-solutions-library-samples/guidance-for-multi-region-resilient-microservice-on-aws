@@ -11,3 +11,5 @@
 **/aggregated_results*
 deployment/.build-done/
 .ash/
+.kiro/
+temporary/
