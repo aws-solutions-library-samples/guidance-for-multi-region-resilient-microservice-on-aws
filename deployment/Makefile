@@ -471,7 +471,12 @@ test-creds:
 
 ####
 # Destroy targets
+# IMPORTANT: Destroy targets must run serially to respect resource dependencies
+# (e.g., Aurora global cluster requires standby deletion before primary).
+# Do not use make -j with destroy-all.
 ####
+
+.NOTPARALLEL: destroy-all destroy-peer destroy-infra destroy-databases-primary destroy-databases-standby
 
 destroy-all: destroy-peer
 	@echo "Removed all cloudformation stacks!!!"
@@ -489,9 +494,20 @@ destroy-secrets-rotation:
 	@aws cloudformation wait stack-delete-complete --stack-name secrets-rotation${ENV} --region ${PRIMARY_REGION}
 
 destroy-monitoring:
-	@echo "Deleting monitoring stack"
+	@echo "Deleting monitoring stack in ${PRIMARY_REGION}"
 	@aws cloudformation delete-stack --stack-name monitoring${ENV} --region ${PRIMARY_REGION}
+	@echo "Deleting monitoring stack in ${STANDBY_REGION}"
+	@aws cloudformation delete-stack --stack-name monitoring${ENV} --region ${STANDBY_REGION}
 	@aws cloudformation wait stack-delete-complete --stack-name monitoring${ENV} --region ${PRIMARY_REGION}
+	@aws cloudformation wait stack-delete-complete --stack-name monitoring${ENV} --region ${STANDBY_REGION}
+
+destroy-arc-dns-status:
+	@echo "Deleting ARC DNS status stack in ${PRIMARY_REGION}"
+	@aws cloudformation delete-stack --stack-name arc-dns-status${ENV} --region ${PRIMARY_REGION}
+	@echo "Deleting ARC DNS status stack in ${STANDBY_REGION}"
+	@aws cloudformation delete-stack --stack-name arc-dns-status${ENV} --region ${STANDBY_REGION}
+	@aws cloudformation wait stack-delete-complete --stack-name arc-dns-status${ENV} --region ${PRIMARY_REGION}
+	@aws cloudformation wait stack-delete-complete --stack-name arc-dns-status${ENV} --region ${STANDBY_REGION}
 
 destroy-restore-reconciliation-ssm: destroy-monitoring
 
@@ -567,7 +583,7 @@ destroy-codebuild:
 	@aws cloudformation delete-stack --stack-name codebuild${ENV} --region ${PRIMARY_REGION}
 	@aws cloudformation wait stack-delete-complete --stack-name codebuild${ENV} --region ${PRIMARY_REGION}
 
-destroy-infra: destroy-ecr-standby destroy-ecr-primary destroy-databases-standby destroy-databases-primary destroy-client-primary destroy-client-standby destroy-codebuild destroy-monitoring destroy-chaos-engineering destroy-global_routing
+destroy-infra: destroy-ecr-standby destroy-ecr-primary destroy-databases-standby destroy-databases-primary destroy-client-primary destroy-client-standby destroy-codebuild destroy-monitoring destroy-arc-dns-status destroy-chaos-engineering destroy-global_routing
 	@echo "Deleting networking resources in ${STANDBY_REGION}..."
 	@aws cloudformation delete-stack --stack-name baseInfra${ENV} --region ${STANDBY_REGION}
 	@aws cloudformation wait stack-delete-complete --stack-name baseInfra${ENV} --region ${STANDBY_REGION}
@@ -644,6 +660,11 @@ destroy-dsql-vpc-endpoint-standby: destroy-apps-standby
 	fi
 
 destroy-databases-primary: destroy-apps-primary destroy-databases-standby destroy-secrets-rotation destroy-crdr-roles destroy-dsql-vpc-endpoint
+	@echo "Removing standby cluster from global cluster (if still attached)..."
+	@aws rds remove-from-global-cluster \
+		--global-cluster-identifier catalog-global-db-cluster$(ENV) \
+		--db-cluster-identifier arn:aws:rds:$(STANDBY_REGION):$(AWS_ACCOUNT_ID):cluster:catalog-dbcluster-02-$(STANDBY_REGION) \
+		--region $(PRIMARY_REGION) --no-cli-pager 2>/dev/null || true
 	@echo "Deleting databases in ${PRIMARY_REGION}..."
 	@aws cloudformation delete-stack --stack-name catalog-db-stack${ENV} --region ${PRIMARY_REGION}
 	@aws cloudformation delete-stack --stack-name orders-dsql-stack${ENV} --region ${PRIMARY_REGION}
@@ -654,6 +675,13 @@ destroy-databases-primary: destroy-apps-primary destroy-databases-standby destro
 	@aws cloudformation wait stack-delete-complete --stack-name carts-db-stack${ENV} --region ${PRIMARY_REGION}
 
 destroy-databases-standby: destroy-apps-standby destroy-restore-reconciliation-ssm destroy-crdr-roles destroy-dsql-vpc-endpoint-standby
+	@echo "Detaching standby Aurora cluster from global cluster..."
+	@aws rds remove-from-global-cluster \
+		--global-cluster-identifier catalog-global-db-cluster$(ENV) \
+		--db-cluster-identifier arn:aws:rds:$(STANDBY_REGION):$(AWS_ACCOUNT_ID):cluster:catalog-dbcluster-02-$(STANDBY_REGION) \
+		--region $(PRIMARY_REGION) --no-cli-pager 2>/dev/null || true
+	@echo "Waiting for standby cluster to detach..."
+	@sleep 30
 	@echo "Deleting databases in ${STANDBY_REGION}..."
 	@aws cloudformation delete-stack --stack-name catalog-db-stack${ENV} --region ${STANDBY_REGION}
 	@aws cloudformation delete-stack --stack-name orders-dsql-stack${ENV} --region ${STANDBY_REGION}
