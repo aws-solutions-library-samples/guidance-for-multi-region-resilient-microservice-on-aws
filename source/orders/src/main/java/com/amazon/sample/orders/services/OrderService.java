@@ -24,14 +24,14 @@ import com.amazon.sample.orders.messaging.OrdersEventHandler;
 import com.amazon.sample.orders.repositories.OrderRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import jakarta.transaction.Transactional;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 @Service
 @Slf4j
@@ -63,16 +63,6 @@ public class OrderService {
     }
 
     public List<OrderEntity> list() {
-        List<OrderEntity> orderEntities = StreamSupport.stream(this.repository.findAll().spliterator(), false)
-                .collect(Collectors.toList());
-        orderEntities.forEach(o -> {
-            log.info("OrderId: {}", o.getId());
-            o.getItems().forEach(i -> {
-                log.info(i.getProductId());
-                log.info(String.valueOf(i.getQuantity()));
-                log.info(String.valueOf(i.getTotalCost()));
-            });
-        });
-        return orderEntities;
+        return this.repository.findAll(PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "createdOn"))).getContent();
     }
 }

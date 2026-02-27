@@ -20,7 +20,8 @@ package com.amazon.sample.orders.repositories;
 
 import com.amazon.sample.orders.entities.OrderEntity;
 import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.repository.PagingAndSortingRepository;
 
-public interface OrderRepository extends CrudRepository<OrderEntity, String> {
+public interface OrderRepository extends CrudRepository<OrderEntity, String>, PagingAndSortingRepository<OrderEntity, String> {
 
 }

@@ -32,7 +32,7 @@ Resources:
     Type: "AWS::AmazonMQ::Broker"
     Properties:
       AutoMinorVersionUpgrade: true
-      BrokerName: !Sub "retail-store-arordersmq-broker${Env}"
+      BrokerName: !Sub "retail-store-ar-ordersmq${Env}"
       DeploymentMode: "SINGLE_INSTANCE"
       EngineType: "RabbitMQ"
       EngineVersion: "3.13"
@@ -336,7 +336,7 @@ Resources:
     Properties:
       Name: !Sub 'retail-store-ar-mq${Env}'
       KmsKeyId: !Ref KmsKey
-      SecretString: !Sub "{\"host\":\"amqps://${OrdersMqBroker}-1.mq.${AWS::Region}.amazonaws.com:5671\",\"password\":\"{{resolve:secretsmanager:retail-store-ar-mq-password${Env}}}\",\"username\":\"default_mq_user\"}"
+      SecretString: !Sub "{\"host\":\"amqps://${OrdersMqBroker}.mq.${AWS::Region}.on.aws:5671\",\"password\":\"{{resolve:secretsmanager:retail-store-ar-mq-password${Env}}}\",\"username\":\"mq\"}"
   
   MqPassword:
     Type: "AWS::SecretsManager::Secret"
