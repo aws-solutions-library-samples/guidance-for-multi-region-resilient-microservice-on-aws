@@ -47,7 +47,9 @@ updates:
         update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "pip"
-    directory: "/deployment/database/crdr-reconciliation/src/function"
+    directories:
+      - "/deployment/database/crdr-reconciliation/src/function"
+      - "/deployment/database/secrets-rotation/src/function"
     schedule:
       interval: "weekly"
     labels:
