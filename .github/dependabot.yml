@@ -40,6 +40,11 @@ updates:
       - "java"
       - "auto-approve"
       - "auto-merge"
+    ignore:
+      - dependency-name: "org.springframework.boot:spring-boot-starter-parent"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "org.testcontainers:testcontainers"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "pip"
     directory: "/deployment/database/crdr-reconciliation/src/function"
