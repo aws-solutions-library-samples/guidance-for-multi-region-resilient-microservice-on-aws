@@ -1,0 +1,62 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/source/checkout"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "javascript"
+      - "auto-approve"
+      - "auto-merge"
+    groups:
+      nestjs:
+        patterns:
+          - "@nestjs/*"
+          - "nestjs-*"
+      opentelemetry:
+        patterns:
+          - "@opentelemetry/*"
+
+  - package-ecosystem: "gomod"
+    directory: "/source/catalog"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "go"
+      - "auto-approve"
+      - "auto-merge"
+
+  - package-ecosystem: "maven"
+    directories:
+      - "/source/ui"
+      - "/source/cart"
+      - "/source/orders"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "java"
+      - "auto-approve"
+      - "auto-merge"
+
+  - package-ecosystem: "pip"
+    directory: "/deployment/database/crdr-reconciliation/src/function"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "python"
+      - "auto-approve"
+      - "auto-merge"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "auto-approve"
+      - "auto-merge"

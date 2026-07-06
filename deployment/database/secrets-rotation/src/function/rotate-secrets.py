@@ -12,7 +12,6 @@ logger.setLevel(logging.INFO)
 
 
 def lambda_handler(event, context):
-    logger.info(event)
     """Secrets Manager RDS MySQL Handler
 
     This handler uses the single-user rotation scheme to rotate an RDS MySQL user credential. This rotation scheme
@@ -51,22 +50,22 @@ def lambda_handler(event, context):
 
     # Setup the client
     service_client = boto3.client('secretsmanager')
-    logger.info("Created client")
+    logger.info("Starting rotation step: %s", step)
+
     # Make sure the version is staged correctly
     metadata = service_client.describe_secret(SecretId=arn)
-    logger.info(metadata)
     if "RotationEnabled" in metadata and not metadata['RotationEnabled']:
-        logger.error("Secret %s is not enabled for rotation" % arn)
+        logger.error("Secret is not enabled for rotation")
         raise ValueError("Secret %s is not enabled for rotation" % arn)
     versions = metadata['VersionIdsToStages']
     if token not in versions:
-        logger.error("Secret version %s has no stage for rotation of secret %s." % (token, arn))
+        logger.error("Secret version has no stage for rotation")
         raise ValueError("Secret version %s has no stage for rotation of secret %s." % (token, arn))
     if "AWSCURRENT" in versions[token]:
-        logger.info("Secret version %s already set as AWSCURRENT for secret %s." % (token, arn))
+        logger.info("Secret version already set as AWSCURRENT, nothing to do")
         return
     elif "AWSPENDING" not in versions[token]:
-        logger.error("Secret version %s not set as AWSPENDING for rotation of secret %s." % (token, arn))
+        logger.error("Secret version not set as AWSPENDING for rotation")
         raise ValueError("Secret version %s not set as AWSPENDING for rotation of secret %s." % (token, arn))
 
     # Call the appropriate step
@@ -83,7 +82,7 @@ def lambda_handler(event, context):
         finish_secret(service_client, arn, token)
 
     else:
-        logger.error("lambda_handler: Invalid step parameter %s for secret %s" % (step, arn))
+        logger.error("lambda_handler: Invalid step parameter")
         raise ValueError("Invalid step parameter %s for secret %s" % (step, arn))
 
 
@@ -112,14 +111,14 @@ def create_secret(service_client, arn, token):
     # Now try to get the secret version, if that fails, put a new secret
     try:
         get_secret_dict(service_client, arn, "AWSPENDING", token)
-        logger.info("createSecret: Successfully retrieved secret for %s." % arn)
+        logger.info("createSecret: Successfully retrieved secret for pending version")
     except service_client.exceptions.ResourceNotFoundException:
         # Generate a random password
         current_dict['password'] = get_random_password(service_client)
 
         # Put the secret
         service_client.put_secret_value(SecretId=arn, ClientRequestToken=token, SecretString=json.dumps(current_dict), VersionStages=['AWSPENDING'])
-        logger.info("createSecret: Successfully put secret for ARN %s and version %s." % (arn, token))
+        logger.info("createSecret: Successfully put secret for pending version")
 
 def set_secret(service_client, arn, token):
     """Set the pending secret in the database
@@ -154,17 +153,17 @@ def set_secret(service_client, arn, token):
     conn = get_connection(pending_dict)
     if conn:
         conn.close()
-        logger.info("setSecret: AWSPENDING secret is already set as password in MySQL DB for secret arn %s." % arn)
+        logger.info("setSecret: AWSPENDING secret is already set as password in MySQL DB")
         return
 
     # Make sure the user from current and pending match
     if current_dict['username'] != pending_dict['username']:
-        logger.error("setSecret: Attempting to modify user %s other than current user %s" % (pending_dict['username'], current_dict['username']))
+        logger.error("setSecret: Attempting to modify user other than current user")
         raise ValueError("Attempting to modify user %s other than current user %s" % (pending_dict['username'], current_dict['username']))
 
     # Make sure the host from current and pending match
     if current_dict['host'] != pending_dict['host']:
-        logger.error("setSecret: Attempting to modify user for host %s other than current host %s" % (pending_dict['host'], current_dict['host']))
+        logger.error("setSecret: Attempting to modify user for host other than current host")
         raise ValueError("Attempting to modify user for host %s other than current host %s" % (pending_dict['host'], current_dict['host']))
 
     # Now try the current password
@@ -181,15 +180,15 @@ def set_secret(service_client, arn, token):
 
         # Make sure the user/host from previous and pending match
         if previous_dict['username'] != pending_dict['username']:
-            logger.error("setSecret: Attempting to modify user %s other than previous valid user %s" % (pending_dict['username'], previous_dict['username']))
+            logger.error("setSecret: Attempting to modify user other than previous valid user")
             raise ValueError("Attempting to modify user %s other than previous valid user %s" % (pending_dict['username'], previous_dict['username']))
         if previous_dict['host'] != pending_dict['host']:
-            logger.error("setSecret: Attempting to modify user for host %s other than previous host %s" % (pending_dict['host'], previous_dict['host']))
+            logger.error("setSecret: Attempting to modify user for host other than previous host")
             raise ValueError("Attempting to modify user for host %s other than previous host %s" % (pending_dict['host'], previous_dict['host']))
 
     # If we still don't have a connection, raise a ValueError
     if not conn:
-        logger.error("setSecret: Unable to log into database with previous, current, or pending secret of secret arn %s" % arn)
+        logger.error("setSecret: Unable to log into database with previous, current, or pending secret")
         raise ValueError("Unable to log into database with previous, current, or pending secret of secret arn %s" % arn)
 
     # Now set the password to the pending password
@@ -200,7 +199,7 @@ def set_secret(service_client, arn, token):
             password_option = get_password_option(ver[0])
             cur.execute("SET PASSWORD = " + password_option, pending_dict['password'])
             conn.commit()
-            logger.info("setSecret: Successfully set password for user %s in MySQL DB for secret arn %s." % (pending_dict['username'], arn))
+            logger.info("setSecret: Successfully set password for user in MySQL DB")
     finally:
         conn.close()
 
@@ -238,10 +237,10 @@ def test_secret(service_client, arn, token):
         finally:
             conn.close()
 
-        logger.info("testSecret: Successfully signed into MySQL DB with AWSPENDING secret in %s." % arn)
+        logger.info("testSecret: Successfully signed into MySQL DB with AWSPENDING secret")
         return
     else:
-        logger.error("testSecret: Unable to log into database with pending secret of secret ARN %s" % arn)
+        logger.error("testSecret: Unable to log into database with pending secret")
         raise ValueError("Unable to log into database with pending secret of secret ARN %s" % arn)
 
 
@@ -265,14 +264,14 @@ def finish_secret(service_client, arn, token):
         if "AWSCURRENT" in metadata["VersionIdsToStages"][version]:
             if version == token:
                 # The correct version is already marked as current, return
-                logger.info("finishSecret: Version %s already marked as AWSCURRENT for %s" % (version, arn))
+                logger.info("finishSecret: Version already marked as AWSCURRENT")
                 return
             current_version = version
             break
 
     # Finalize by staging the secret version current
     service_client.update_secret_version_stage(SecretId=arn, VersionStage="AWSCURRENT", MoveToVersionId=token, RemoveFromVersionId=current_version)
-    logger.info("finishSecret: Successfully set AWSCURRENT stage to version %s for secret %s." % (token, arn))
+    logger.info("finishSecret: Successfully set AWSCURRENT stage to pending version")
 
 
 def get_connection(secret_dict):
@@ -374,11 +373,11 @@ def connect_and_authenticate(secret_dict, port, dbname, use_ssl):
     try:
         # Checks hostname and verifies server certificate implictly when 'ca' key is in 'ssl' dictionary
         conn = pymysql.connect(host=secret_dict['host'], user=secret_dict['username'], password=secret_dict['password'], port=port, database=dbname, connect_timeout=5, ssl=ssl)
-        logger.info("Successfully established %s connection as user '%s' with host: '%s'" % ("SSL/TLS" if use_ssl else "non SSL/TLS", secret_dict['username'], secret_dict['host']))
+        logger.info("Successfully established %s connection", "SSL/TLS" if use_ssl else "non SSL/TLS")
         return conn
     except pymysql.OperationalError as e:
         if 'certificate verify failed: IP address mismatch' in e.args[1]:
-            logger.error("Hostname verification failed when estlablishing SSL/TLS Handshake with host: %s" % secret_dict['host'])
+            logger.error("Hostname verification failed when establishing SSL/TLS Handshake")
         return None
 
 
