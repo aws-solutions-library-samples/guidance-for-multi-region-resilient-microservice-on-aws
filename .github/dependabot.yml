@@ -65,3 +65,6 @@ updates:
       - "github-actions"
       - "auto-approve"
       - "auto-merge"
+
+# Force Dependabot to re-evaluate all ecosystems and create fresh PRs
+# Last triggered: 2026-07-06
