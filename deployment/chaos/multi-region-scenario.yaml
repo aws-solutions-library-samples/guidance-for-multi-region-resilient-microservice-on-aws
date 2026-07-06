@@ -258,11 +258,18 @@ Resources:
             Principal:
               Service: fis.amazonaws.com
             Action: sts:AssumeRole
-      Policies:
-        - PolicyName: CrossRegionPolicy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
+      ManagedPolicyArns:
+        - !Ref CrossRegionRTManagedPolicy
+        - !Ref CrossRegionTGS3ManagedPolicy
+        - !Ref FISExperimentManagedPolicy
+        - !Ref AZDisruptionManagedPolicy
+
+  CrossRegionRTManagedPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
             - Sid: RouteTableDisruptConnectivity1
               Effect: Allow
               Action: 'ec2:CreateRouteTable'
@@ -445,6 +452,13 @@ Resources:
               Condition:
                 StringEquals:
                   'aws:ResourceAccount': !Ref AWS::AccountId
+
+  CrossRegionTGS3ManagedPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
             - Sid: TransitGatewayDisruptConnectivity1
               Effect: Allow
               Action:
@@ -531,10 +545,12 @@ Resources:
               Condition:
                 StringEquals:
                   'aws:ResourceAccount': !Ref AWS::AccountId
-        - PolicyName: FISExperimentPolicy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
+  FISExperimentManagedPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
               - Effect: Allow
                 Action:
                   - 'ec2:*'
@@ -545,10 +561,12 @@ Resources:
                   StringEquals:
                     aws:PrincipalAccount: !Sub "${AWS::AccountId}"
                     aws:ResourceAccount: !Ref 'AWS::AccountId'
-        - PolicyName: AZDisruptionPolicy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
+  AZDisruptionManagedPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
               - Sid: AllowRouteTableDisruptions
                 Effect: Allow
                 Action:
