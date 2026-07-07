@@ -50,7 +50,7 @@ Resources:
           - name: CopyFailoverSnapshot
             action: 'aws:executeScript'
             inputs:
-              Runtime: python3.7
+              Runtime: python3.12
               Handler: script_handler
               InputPayload:                
                 SourceDBsnapshotArn: !Sub "{{SourceDBsnapshotArn}}"                
