@@ -40,7 +40,7 @@ Resources:
       DeploymentMode: "SINGLE_INSTANCE"
       EngineType: "RabbitMQ"
       EngineVersion: "3.13"
-      HostInstanceType: "mq.t3.micro"
+      HostInstanceType: "mq.m5.large"
       PubliclyAccessible: false
       StorageType: "ebs"
       AuthenticationStrategy: "simple"
@@ -372,7 +372,10 @@ Resources:
         Key: deregistration_delay.timeout_seconds
         Value: '5'
       HealthCheckEnabled: true
-      HealthCheckPath: '/actuator'
+      HealthCheckPath: '/actuator/health'
+      HealthCheckIntervalSeconds: 30
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 5
       Port: 8080
       Protocol: HTTP
       Matcher:
@@ -467,6 +470,9 @@ Resources:
       ContainerDefinitions:
         -
           Name: "carts"
+          DependsOn:
+            - ContainerName: init
+              Condition: SUCCESS
           MountPoints: 
             - SourceVolume: opentelemetry-auto-instrumentation
               ContainerPath: /otel-auto-instrumentation
@@ -657,6 +663,9 @@ Resources:
             - otel-auto-instrumentation/javaagent.jar
         -
           Name: "orders"
+          DependsOn:
+            - ContainerName: init
+              Condition: SUCCESS
           MountPoints: 
             - SourceVolume: opentelemetry-auto-instrumentation
               ContainerPath: /otel-auto-instrumentation
@@ -1142,6 +1151,9 @@ Resources:
       ContainerDefinitions:
         -
           Name: "ui"
+          DependsOn:
+            - ContainerName: init
+              Condition: SUCCESS
           MountPoints: 
             - SourceVolume: opentelemetry-auto-instrumentation
               ContainerPath: /otel-auto-instrumentation
@@ -1223,6 +1235,7 @@ Resources:
       - CheckoutService
     Properties:
       ServiceName: !Sub ui${Env}
+      HealthCheckGracePeriodSeconds: 120
       LoadBalancers:
         - TargetGroupArn: !Ref AlbTargetGroup
           ContainerName: ui 

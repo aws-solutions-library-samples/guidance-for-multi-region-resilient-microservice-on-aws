@@ -85,7 +85,7 @@ Resources:
               logger.info("Selenium Python API canary.")
               main()
       ArtifactS3Location: !Sub s3://{{resolve:ssm:canaryBucketName${Env}}}
-      RuntimeVersion: syn-python-selenium-2.1
+      RuntimeVersion: syn-python-selenium-8.0
       Schedule:
         Expression: 'rate(1 minute)'
         DurationInSeconds: 0
@@ -159,7 +159,7 @@ Resources:
               logger.info("Selenium Python API canary.")
               main()
       ArtifactS3Location: !Sub 's3://{{resolve:ssm:canaryBucketName${Env}}}'
-      RuntimeVersion: syn-python-selenium-2.1
+      RuntimeVersion: syn-python-selenium-8.0
       Schedule:
         Expression: 'rate(1 minute)'
         DurationInSeconds: 0
@@ -233,7 +233,7 @@ Resources:
               logger.info("Selenium Python API canary.")
               main()
       ArtifactS3Location: !Sub s3://{{resolve:ssm:canaryBucketName${Env}}}
-      RuntimeVersion: syn-python-selenium-2.1
+      RuntimeVersion: syn-python-selenium-8.0
       Schedule:
         Expression: 'rate(1 minute)'
         DurationInSeconds: 0
@@ -307,7 +307,7 @@ Resources:
               logger.info("Selenium Python API canary.")
               main()
       ArtifactS3Location: !Sub s3://{{resolve:ssm:canaryBucketName${Env}}}
-      RuntimeVersion: syn-python-selenium-2.1
+      RuntimeVersion: syn-python-selenium-8.0
       Schedule:
         Expression: 'rate(1 minute)'
         DurationInSeconds: 0
@@ -382,7 +382,7 @@ Resources:
               logger.info("Selenium Python API canary.")
               main()
       ArtifactS3Location: !Sub s3://{{resolve:ssm:canaryBucketName${Env}}}
-      RuntimeVersion: syn-python-selenium-2.1
+      RuntimeVersion: syn-python-selenium-8.0
       Schedule:
         Expression: 'rate(1 minute)'
         DurationInSeconds: 0
@@ -457,7 +457,7 @@ Resources:
               logger.info("Selenium Python API canary.")
               main()
       ArtifactS3Location: !Sub 's3://{{resolve:ssm:canaryBucketName${Env}}}'
-      RuntimeVersion: syn-python-selenium-2.1
+      RuntimeVersion: syn-python-selenium-8.0
       Schedule:
         Expression: 'rate(1 minute)'
         DurationInSeconds: 0
@@ -532,7 +532,7 @@ Resources:
               logger.info("Selenium Python API canary.")
               main()
       ArtifactS3Location: !Sub s3://{{resolve:ssm:canaryBucketName${Env}}}
-      RuntimeVersion: syn-python-selenium-2.1
+      RuntimeVersion: syn-python-selenium-8.0
       Schedule:
         Expression: 'rate(1 minute)'
         DurationInSeconds: 0
@@ -607,7 +607,7 @@ Resources:
               logger.info("Selenium Python API canary.")
               main()
       ArtifactS3Location: !Sub s3://{{resolve:ssm:canaryBucketName${Env}}}
-      RuntimeVersion: syn-python-selenium-2.1
+      RuntimeVersion: syn-python-selenium-8.0
       Schedule:
         Expression: 'rate(1 minute)'
         DurationInSeconds: 0
@@ -682,7 +682,7 @@ Resources:
               logger.info("Selenium Python API canary.")
               main()
       ArtifactS3Location: !Sub s3://{{resolve:ssm:canaryBucketName${Env}}}
-      RuntimeVersion: syn-python-selenium-2.1
+      RuntimeVersion: syn-python-selenium-8.0
       Schedule:
         Expression: 'rate(1 minute)'
         DurationInSeconds: 0
@@ -757,7 +757,7 @@ Resources:
               logger.info("Selenium Python API canary.")
               main()
       ArtifactS3Location: !Sub 's3://{{resolve:ssm:canaryBucketName${Env}}}'
-      RuntimeVersion: syn-python-selenium-2.1
+      RuntimeVersion: syn-python-selenium-8.0
       Schedule:
         Expression: 'rate(1 minute)'
         DurationInSeconds: 0
@@ -832,7 +832,7 @@ Resources:
               logger.info("Selenium Python API canary.")
               main()
       ArtifactS3Location: !Sub s3://{{resolve:ssm:canaryBucketName${Env}}}
-      RuntimeVersion: syn-python-selenium-2.1
+      RuntimeVersion: syn-python-selenium-8.0
       Schedule:
         Expression: 'rate(1 minute)'
         DurationInSeconds: 0
@@ -907,7 +907,7 @@ Resources:
               logger.info("Selenium Python API canary.")
               main()
       ArtifactS3Location: !Sub s3://{{resolve:ssm:canaryBucketName${Env}}}
-      RuntimeVersion: syn-python-selenium-2.1
+      RuntimeVersion: syn-python-selenium-8.0
       Schedule:
         Expression: 'rate(1 minute)'
         DurationInSeconds: 0

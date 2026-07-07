@@ -1,4 +1,4 @@
-FROM amazoncorretto:17-al2-full as build-env
+FROM amazoncorretto:17-al2023 as build-env
 
 ARG JAR_PATH
 
@@ -16,7 +16,7 @@ COPY ./src ./src
 RUN ./mvnw -DskipTests package -q && mv ./target/orders-0.0.1-SNAPSHOT.jar /app.jar
 
 # Package Stage
-FROM amazoncorretto:17-al2-full
+FROM amazoncorretto:17-al2023
 
 ARG aws_opentelemetry_agent_version=1.24.0
 

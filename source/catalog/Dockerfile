@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM golang:1.20  as builder
+FROM golang:latest as builder
 RUN go env -w GOPROXY=direct
 
 WORKDIR /workspace

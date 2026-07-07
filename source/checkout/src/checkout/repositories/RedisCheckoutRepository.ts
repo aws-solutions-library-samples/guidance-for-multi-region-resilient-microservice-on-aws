@@ -52,13 +52,13 @@ export class RedisCheckoutRepository implements ICheckoutRepository {
   async get(key : string) : Promise<string> {
     const client = await this.readClient()
 
-    return client.get(key);
+    return client.get(key) as Promise<string>;
   }
 
   async set(key : string, value : string) : Promise<string> {
     const client = await this.client()
 
-    return client.set(key, value);
+    return client.set(key, value) as Promise<string>;
   }
 
   async remove(key : string) : Promise<void> {
