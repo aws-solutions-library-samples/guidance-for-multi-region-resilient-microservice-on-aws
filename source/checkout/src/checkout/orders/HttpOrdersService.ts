@@ -17,7 +17,7 @@
  */
 
 import { Checkout } from '../models/Checkout';
-import { ExistingOrder, OrdersApi } from '../../clients/orders/api';
+import { ExistingOrder, OrdersApi } from '../../clients/orders';
 import { IOrdersService } from './IOrdersService';
 
 export class HttpOrdersService implements IOrdersService {
@@ -40,8 +40,6 @@ export class HttpOrdersService implements IOrdersService {
           quantity: item.quantity,
         };
       }),
-    }).then((value) => {
-      return value.body;
     });
   }
 }

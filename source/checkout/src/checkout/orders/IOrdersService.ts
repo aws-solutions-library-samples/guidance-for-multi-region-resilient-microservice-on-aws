@@ -16,7 +16,7 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import { ExistingOrder } from '../../clients/orders/api';
+import { ExistingOrder } from '../../clients/orders';
 import { Checkout } from '../models/Checkout';
 
 export interface IOrdersService {

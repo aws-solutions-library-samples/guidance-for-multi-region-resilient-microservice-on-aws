@@ -23,12 +23,12 @@ jobs:
       - name: Merge eligible Dependabot PRs
         run: |
           # For check_suite events, find open Dependabot PRs with auto-merge label
-          if [ "${{ github.event_name }}" = "check_suite" ]; then
+          if [ "$EVENT_NAME" = "check_suite" ]; then
             prs=$(gh pr list --repo "$GITHUB_REPOSITORY" --author "app/dependabot" \
               --label "auto-merge" --json number,mergeable \
               --jq '.[] | select(.mergeable == "MERGEABLE") | .number')
           else
-            prs="${{ github.event.pull_request.number }}"
+            prs="$PR_NUMBER"
           fi
 
           for pr in $prs; do
@@ -38,3 +38,5 @@ jobs:
           done
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
