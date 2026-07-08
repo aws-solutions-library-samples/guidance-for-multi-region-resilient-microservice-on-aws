@@ -271,9 +271,9 @@ secrets-rotation: primary_region_orders-db primary_region_catalog-db
 restart-ecs-services:
 	@echo "Restarting ECS Services"
 	@if [ -z "${ENV}" ]; then \
-		./restart-services.sh --services catalog,orders; \
+		./restart-services.sh --region ${PRIMARY_REGION} --services catalog,orders; \
 	else \
-		./restart-services.sh --env ${ENV} --services catalog,orders; \
+		./restart-services.sh --env ${ENV} --region ${PRIMARY_REGION} --services catalog,orders; \
 	fi
 
 chaos-engineering: create-peer
