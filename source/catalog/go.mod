@@ -1,11 +1,11 @@
 module catalog
 
-go 1.25.0
+go 1.25.11
 
 require (
 	github.com/dlmiddlecote/sqlstats v1.0.2
 	github.com/gin-gonic/gin v1.12.0
-	github.com/golang-migrate/migrate/v4 v4.19.1
+	github.com/golang-migrate/migrate/v4 v4.20.1
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/prometheus/client_golang v1.24.1
 	github.com/sethvargo/go-envconfig v1.4.3
