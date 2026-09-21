@@ -10,13 +10,13 @@ updates:
       - "auto-approve"
       - "auto-merge"
     groups:
-      nestjs:
+      # Every npm update in this directory rewrites the same
+      # source/checkout/package-lock.json, so one PR per dependency means the
+      # first to merge leaves the rest conflicting. Group the directory into a
+      # single PR: one lock file change per cycle, nothing to conflict with.
+      checkout:
         patterns:
-          - "@nestjs/*"
-          - "nestjs-*"
-      opentelemetry:
-        patterns:
-          - "@opentelemetry/*"
+          - "*"
 
   - package-ecosystem: "gomod"
     directory: "/source/catalog"

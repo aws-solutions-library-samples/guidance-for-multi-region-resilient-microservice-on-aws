@@ -20,23 +20,86 @@ jobs:
       (github.event_name == 'check_suite' &&
        github.event.check_suite.conclusion == 'success')
     steps:
-      - name: Merge eligible Dependabot PRs
-        run: |
-          # For check_suite events, find open Dependabot PRs with auto-merge label
-          if [ "$EVENT_NAME" = "check_suite" ]; then
-            prs=$(gh pr list --repo "$GITHUB_REPOSITORY" --author "app/dependabot" \
-              --label "auto-merge" --json number,mergeable \
-              --jq '.[] | select(.mergeable == "MERGEABLE") | .number')
-          else
-            prs="$PR_NUMBER"
-          fi
-
-          for pr in $prs; do
-            echo "Attempting to merge PR #$pr..."
-            gh pr merge "$pr" --repo "$GITHUB_REPOSITORY" --squash --admin \
-              --delete-branch 2>&1 || echo "PR #$pr not ready to merge yet"
-          done
+      # This PR triggered the run, so report its outcome on this PR's own checks.
+      - name: Merge this Dependabot PR
+        if: github.event_name == 'pull_request_target'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          EVENT_NAME: ${{ github.event_name }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+
+          # A freshly opened PR often has no mergeable state yet. That is not a
+          # failure, so poll briefly before deciding.
+          state=UNKNOWN
+          for _ in 1 2 3 4 5 6; do
+            state=$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" \
+              --json mergeable --jq .mergeable)
+            [ "$state" = "UNKNOWN" ] || break
+            echo "Mergeable state not computed yet; waiting 10s..."
+            sleep 10
+          done
+
+          case "$state" in
+            MERGEABLE)
+              echo "Merging PR #${PR_NUMBER}..."
+              gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" \
+                --squash --admin --delete-branch
+              echo "Merged PR #${PR_NUMBER}."
+              ;;
+            UNKNOWN)
+              echo "::warning::GitHub did not compute a mergeable state for PR #${PR_NUMBER}; the check_suite sweep will retry it."
+              ;;
+            *)
+              echo "::error::PR #${PR_NUMBER} is ${state} and cannot be auto-merged. Resolve it with a '@dependabot rebase' comment, a '@dependabot recreate' comment (needed when the conflict is in a lock file), or by closing the PR."
+              exit 1
+              ;;
+          esac
+
+      # Another PR just merged, which can leave its siblings conflicting, so
+      # re-check every labelled Dependabot PR rather than only this event's.
+      - name: Sweep eligible Dependabot PRs
+        if: github.event_name == 'check_suite'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          # --limit defaults to 30, which would silently ignore the tail of a
+          # long queue.
+          candidates=$(gh pr list --repo "$GITHUB_REPOSITORY" \
+            --author "app/dependabot" --label "auto-merge" --state open \
+            --limit 100 --json number,mergeable)
+
+          failed=0
+
+          # CONFLICTING is a real stall that needs a human or a Dependabot
+          # recreate. UNKNOWN only means GitHub has not finished computing the
+          # state, so it warns and is retried by the next sweep.
+          printf '%s' "$candidates" | jq -r '
+            .[] | select(.mergeable != "MERGEABLE")
+            | if .mergeable == "CONFLICTING" then
+                "::error::PR #\(.number) is CONFLICTING and cannot be auto-merged. Resolve it with a '"'"'@dependabot rebase'"'"' comment, a '"'"'@dependabot recreate'"'"' comment (needed when the conflict is in a lock file), or by closing the PR."
+              else
+                "::warning::PR #\(.number) has mergeable state \(.mergeable); skipping it this run."
+              end'
+
+          conflicting_count=$(printf '%s' "$candidates" \
+            | jq -r '[.[] | select(.mergeable == "CONFLICTING")] | length')
+          [ "$conflicting_count" -eq 0 ] || failed=1
+
+          mergeable=$(printf '%s' "$candidates" \
+            | jq -r '.[] | select(.mergeable == "MERGEABLE") | .number')
+
+          for pr in $mergeable; do
+            echo "Merging PR #${pr}..."
+            if gh pr merge "$pr" --repo "$GITHUB_REPOSITORY" \
+              --squash --admin --delete-branch; then
+              echo "Merged PR #${pr}."
+            else
+              echo "::error::'gh pr merge' failed for PR #${pr}."
+              failed=1
+            fi
+          done
+
+          exit "$failed"
